@@ -7,7 +7,7 @@ const WORKOUT_DATABASE = {
     // Día A: Tren Superior (Upper Body) - Pecho y Hombros (2 Grupos Musculares)
     upper: {
         name: "Tren Superior Élite",
-        duration: "45 min",
+        duration: "30 min",
         exercises: [
             {
                 name: "Movilidad Articular Torso",
@@ -129,10 +129,10 @@ const WORKOUT_DATABASE = {
             }
         ]
     },
-    // Día B: Tren Inferior (Lower Body) - Piernas y Abdomen (2 Grupos Musculares)
+    // Día B: Tren Inferior (Lower Body) - Piernas
     lower: {
         name: "Tren Inferior Potencia",
-        duration: "50 min",
+        duration: "30 min",
         exercises: [
             {
                 name: "Movilidad Cadera y Tobillo",
@@ -200,7 +200,14 @@ const WORKOUT_DATABASE = {
                     { reps: 15, weight: 0 },
                     { reps: 15, weight: 0 }
                 ]
-            },
+            }
+        ]
+    },
+    // Rutina C: Abdominales y Core
+    core: {
+        name: "Abdominales Esculpidos",
+        duration: "15 min",
+        exercises: [
             {
                 name: "Crunch Abdominal",
                 muscle: "Abdomen (Core)",
@@ -315,6 +322,7 @@ const DOM = {
     weeklyDaysDots: document.getElementById('weekly-days-dots'),
     todayWorkoutTitle: document.getElementById('today-workout-title'),
     todayWorkoutDetails: document.getElementById('today-workout-details'),
+    todayWorkoutTag: document.getElementById('today-workout-tag'),
     btnStartWorkout: document.getElementById('btn-start-workout'),
     
     // Routines Tab
@@ -598,11 +606,11 @@ function updateOnboardingDaysPreview() {
         
         let descText = '';
         if (count === 2 || count === 4) {
-            descText = `División Balanceada Torso/Pierna: Alternancia equitativa equitativa de tus rutinas de Tren Superior y Tren Inferior para optimizar la recuperación muscular.`;
+            descText = `División Balanceada: Alternancia de entrenamientos combinados (Día A: Torso + Abdomen, Día B: Piernas + Abdomen) para optimizar la recuperación muscular.`;
         } else if (count === 3) {
-            descText = `Distribución Rotativa Óptima: Intercambiaremos las cargas Torso (Día A) y Pierna (Día B) asegurando al menos 48 horas de descanso por bloque.`;
+            descText = `Distribución Rotativa Óptima: Intercambiaremos las cargas de Torso + Abdomen (Día A) y Piernas + Abdomen (Día B) asegurando al menos 48 horas de descanso por bloque.`;
         } else {
-            descText = `Distribución Avanzada de Volumen: Se modulará la intensidad y el volumen total de tus series diarias para evitar el sobreentrenamiento sistémico en rutinas de 5 a 7 días.`;
+            descText = `Distribución Avanzada de Volumen: Se modulará la intensidad de tus entrenamientos combinados diarios de Torso + Abdomen y Piernas + Abdomen para evitar sobreentrenamiento.`;
         }
         DOM.routineDistributionDesc.textContent = descText;
     } else {
@@ -659,13 +667,25 @@ function getTodayWorkout() {
         targetBlock = (totalCompleted % 2 === 0) ? 'upper' : 'lower';
     }
     
-    const routineData = WORKOUT_DATABASE[targetBlock];
+    const baseRoutine = WORKOUT_DATABASE[targetBlock];
+    const coreRoutine = WORKOUT_DATABASE['core'];
+    
+    const combinedName = `${baseRoutine.name} + ${coreRoutine.name}`;
+    const baseMin = parseInt(baseRoutine.duration) || 30;
+    const coreMin = parseInt(coreRoutine.duration) || 15;
+    const combinedDuration = `${baseMin + coreMin} min`;
+    
+    const combinedExercises = [
+        ...JSON.parse(JSON.stringify(baseRoutine.exercises)),
+        ...JSON.parse(JSON.stringify(coreRoutine.exercises))
+    ];
+    
     return {
         rest: false,
         key: targetBlock,
-        name: routineData.name,
-        duration: routineData.duration,
-        exercises: JSON.parse(JSON.stringify(routineData.exercises)) // Deep copy
+        name: combinedName,
+        duration: combinedDuration,
+        exercises: combinedExercises
     };
 }
 
@@ -702,7 +722,7 @@ function renderDashboard() {
         DOM.btnStartWorkout.classList.add('hidden');
     } else {
         DOM.todayWorkoutTitle.textContent = todayWorkout.name;
-        DOM.todayWorkoutDetails.textContent = `Enfoque en ${todayWorkout.key === 'upper' ? 'Torso' : 'Piernas'} • ${todayWorkout.duration}`;
+        DOM.todayWorkoutDetails.textContent = `Enfoque en ${todayWorkout.key === 'upper' ? 'Torso + Abdomen' : 'Piernas + Abdomen'} • ${todayWorkout.duration}`;
         DOM.todayWorkoutTag.textContent = "Rutina del Día";
         DOM.todayWorkoutTag.className = "badge badge-glow";
         DOM.btnStartWorkout.classList.remove('hidden');
@@ -797,7 +817,7 @@ function updateStreak() {
 function renderRoutinesTab() {
     DOM.routinesContainer.innerHTML = '';
     
-    const keys = ['upper', 'lower'];
+    const keys = ['upper', 'lower', 'core'];
     keys.forEach(key => {
         const routine = WORKOUT_DATABASE[key];
         const card = document.createElement('div');

@@ -9,7 +9,7 @@ Ofrece una experiencia fluida, rápida y funcional **offline-first** para entren
 ## 🚀 Características Clave
 *   **Instalación PWA Autónomo (Standalone)**: Instálala directamente en la pantalla de inicio de dispositivos iOS y Android con soporte offline completo mediante *Service Workers*.
 *   **Onboarding Inteligente**: Configuración personalizada de perfil físico, objetivos (Hipertrofia, Fuerza, Resistencia) y nivel, adaptando la división y dosificación automáticamente.
-*   **Distribución Balanceada de Días**: Distribución automatizada con un enfoque estricto en 2 grupos musculares por día (Pecho y Hombros en Torso; Piernas y Abdomen en Pierna) para evitar el sobreentrenamiento sistémico.
+*   **Distribución Balanceada de Días**: Distribución automatizada con 2 rutinas por día de entrenamiento (Día A: Tren Superior y Abdominales; Día B: Tren Inferior y Abdominales) para un trabajo completo y balanceado.
 *   **Workout Player Interactivo**:
     *   Registro dinámico de series, peso y repeticiones.
     *   *Rest Timer* inteligente con barra de progreso circular que se inicia automáticamente al marcar una serie.
