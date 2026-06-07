@@ -64,6 +64,15 @@
                         <label for="input-height">Altura (cm)</label>
                         <input type="number" id="input-height" placeholder="cm" min="100" max="250" required>
                     </div>
+                    <!-- IMC Preview Box -->
+                    <div id="imc-preview-box" class="imc-preview-card hidden">
+                        <div class="imc-result">
+                            <span class="imc-lbl">Tu IMC Estimado:</span>
+                            <span class="imc-val" id="imc-value">--</span>
+                        </div>
+                        <span id="imc-badge" class="imc-category-badge">Normal</span>
+                        <p id="imc-desc" class="text-xs text-secondary text-center">Calculado a partir de tu peso y altura.</p>
+                    </div>
                 </div>
                 <div class="onboarding-actions">
                     <button id="btn-onboarding-to-3" class="btn btn-primary">Continuar</button>
@@ -184,6 +193,29 @@
                         </div>
                     </div>
 
+                    <!-- Manual Routine Selector -->
+                    <div class="manual-routine-selector-card">
+                        <div class="selector-header">
+                            <span class="selector-dot"></span>
+                            <h3 class="selector-title">Selección de Rutina (Manual)</h3>
+                        </div>
+                        <p class="selector-desc text-secondary text-xs">Personaliza tu sesión de hoy alternando el enfoque según tus objetivos:</p>
+                        <div class="routine-selector-grid">
+                            <button class="routine-select-btn" id="btn-select-auto" data-routine="auto">
+                                <span class="routine-btn-title">🔄 Automático</span>
+                                <span class="routine-btn-subtitle">Sugerido por AURA</span>
+                            </button>
+                            <button class="routine-select-btn" id="btn-select-upper" data-routine="upper">
+                                <span class="routine-btn-title">💪 Tren Superior</span>
+                                <span class="routine-btn-subtitle">Torso + Abdomen</span>
+                            </button>
+                            <button class="routine-select-btn" id="btn-select-lower" data-routine="lower">
+                                <span class="routine-btn-title">🦵 Tren Inferior</span>
+                                <span class="routine-btn-subtitle">Piernas + Abdomen</span>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Workout of the Day Card -->
                     <div class="today-workout-card">
                         <div class="workout-card-glow"></div>
@@ -259,6 +291,74 @@
                     </div>
                 </section>
 
+                <!-- TAB: ADMINISTRACIÓN -->
+                <section id="tab-admin" class="tab-pane">
+                    <header class="tab-header">
+                        <div>
+                            <span class="text-secondary text-xs font-mono uppercase tracking-widest">AURA CONTROL CENTER</span>
+                            <h1 class="welcome-title">Panel de Administración</h1>
+                        </div>
+                    </header>
+
+                    <!-- IA Engine Controls & Summary -->
+                    <div class="admin-ai-panel">
+                        <div class="admin-ai-header">
+                            <div class="ai-title-group">
+                                <span class="ai-pulse-dot"></span>
+                                <h3>Motor de IA (K-Means Clustering)</h3>
+                            </div>
+                            <button id="btn-run-clustering" class="btn btn-primary btn-sm btn-glow">Ejecutar Motor IA</button>
+                        </div>
+                        <div class="ai-stats-summary">
+                            <div class="ai-stat-box">
+                                <span class="ai-stat-lbl">Iteraciones</span>
+                                <span class="ai-stat-val" id="admin-ai-iterations">--</span>
+                            </div>
+                            <div class="ai-stat-box">
+                                <span class="ai-stat-lbl">Comprometidos</span>
+                                <span class="ai-stat-val cluster-val-committed" id="admin-count-committed">0</span>
+                            </div>
+                            <div class="ai-stat-box">
+                                <span class="ai-stat-lbl">Irregulares</span>
+                                <span class="ai-stat-val cluster-val-irregular" id="admin-count-irregular">0</span>
+                            </div>
+                            <div class="ai-stat-box">
+                                <span class="ai-stat-lbl">Alto Riesgo</span>
+                                <span class="ai-stat-val cluster-val-highrisk" id="admin-count-highrisk">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tabla de Usuarios Registrados -->
+                    <div class="admin-table-section">
+                        <h3 class="panel-section-title">Atletas Registrados</h3>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ATLETA</th>
+                                        <th>NIVEL</th>
+                                        <th>ÚLTIMA SESIÓN</th>
+                                        <th>RACHA</th>
+                                        <th>CLUSTER DE RIESGO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-users-table-body">
+                                    <!-- Generado dinámicamente por JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Alertas y Notificaciones -->
+                    <div class="admin-notifications-section">
+                        <h3 class="panel-section-title">Notificaciones de Recuperación Automatizadas</h3>
+                        <div id="admin-notifications-container" class="admin-notifications-list">
+                            <!-- Generado dinámicamente por JS -->
+                        </div>
+                    </div>
+                </section>
+
             </main>
 
             <!-- Bottom Navigation Bar -->
@@ -285,6 +385,13 @@
                         <circle cx="12" cy="7" r="4"></circle>
                     </svg>
                     <span class="nav-lbl">Perfil</span>
+                </button>
+                <button class="nav-item" data-tab="admin" id="nav-item-admin">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                    <span class="nav-lbl">Admin</span>
                 </button>
             </nav>
         </div>
@@ -422,6 +529,7 @@
     </div>
 
     <!-- JS Aplicación -->
+    <script src="clustering.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

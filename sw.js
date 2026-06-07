@@ -1,8 +1,9 @@
-const CACHE_NAME = 'aura-fitness-v2';
+const CACHE_NAME = 'aura-fitness-v3';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
   './index.css',
+  './clustering.js',
   './app.js',
   './manifest.json',
   './icons/icon-192.svg',

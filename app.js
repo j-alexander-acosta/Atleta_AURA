@@ -275,7 +275,8 @@ let AppState = {
     workoutSecondsElapsed: 0,
     restTimerInterval: null,
     restSecondsRemaining: 0,
-    restTotalDuration: 90 // Segundos de descanso por defecto
+    restTotalDuration: 90, // Segundos de descanso por defecto
+    manualWorkoutSelection: 'auto' // 'auto', 'upper', 'lower'
 };
 
 // Elementos del DOM
@@ -370,7 +371,27 @@ const DOM = {
     videoModalTitle: document.getElementById('video-modal-title'),
     videoIframePlaceholder: document.getElementById('video-iframe-placeholder'),
     btnVideoModalClose: document.getElementById('btn-video-modal-close'),
-    videoModalCloseOverlay: document.getElementById('video-modal-close-overlay')
+    videoModalCloseOverlay: document.getElementById('video-modal-close-overlay'),
+
+    // Selector Manual de Rutinas
+    btnSelectAuto: document.getElementById('btn-select-auto'),
+    btnSelectUpper: document.getElementById('btn-select-upper'),
+    btnSelectLower: document.getElementById('btn-select-lower'),
+
+    // Panel de Administrador
+    btnRunClustering: document.getElementById('btn-run-clustering'),
+    adminAiIterations: document.getElementById('admin-ai-iterations'),
+    adminCountCommitted: document.getElementById('admin-count-committed'),
+    adminCountIrregular: document.getElementById('admin-count-irregular'),
+    adminCountHighrisk: document.getElementById('admin-count-highrisk'),
+    adminUsersTableBody: document.getElementById('admin-users-table-body'),
+    adminNotificationsContainer: document.getElementById('admin-notifications-container'),
+
+    // IMC Preview
+    imcPreviewBox: document.getElementById('imc-preview-box'),
+    imcValue: document.getElementById('imc-value'),
+    imcBadge: document.getElementById('imc-badge'),
+    imcDesc: document.getElementById('imc-desc')
 };
 
 // Variables temporales para el onboarding
@@ -381,7 +402,8 @@ let tempProfile = {
     height: 0,
     goal: 'hipertrofia',
     level: 'principiante',
-    days: [] // Lunes = 1, Domingo = 0
+    days: [], // Lunes = 1, Domingo = 0
+    imc: 0
 };
 
 /* ==========================================================================
@@ -389,6 +411,17 @@ let tempProfile = {
    ========================================================================== */
 window.addEventListener('DOMContentLoaded', () => {
     loadLocalData();
+    
+    // Inicializar base de datos de IA
+    try {
+        AURA_AI.loadDB();
+        if (AppState.user) {
+            AURA_AI.getUsers(); // Sincroniza perfil activo
+        }
+    } catch (err) {
+        console.error("Error al inicializar AURA_AI:", err);
+    }
+    
     initEventListeners();
     
     if (AppState.user) {
@@ -446,6 +479,10 @@ function initEventListeners() {
         saveOnboardingProfile();
     });
 
+    // 1b. Escuchadores de cálculo de IMC en tiempo real
+    if (DOM.inputWeight) DOM.inputWeight.addEventListener('input', updateIMCOnboarding);
+    if (DOM.inputHeight) DOM.inputHeight.addEventListener('input', updateIMCOnboarding);
+
     // 2. Selectores de Onboarding (Event Delegation / Click handler)
     DOM.btnGoalOptions.forEach(card => {
         card.addEventListener('click', () => {
@@ -495,6 +532,7 @@ function initEventListeners() {
             if (targetTab === 'dashboard') renderDashboard();
             if (targetTab === 'routines') renderRoutinesTab();
             if (targetTab === 'profile') renderProfileTab();
+            if (targetTab === 'admin') renderAdminTab();
         });
     });
 
@@ -502,6 +540,29 @@ function initEventListeners() {
     DOM.btnStartWorkout.addEventListener('click', () => {
         startWorkoutSession();
     });
+
+    // 4b. Selector Manual de Rutina
+    const selectRoutine = (type) => {
+        AppState.manualWorkoutSelection = type;
+        DOM.btnSelectAuto.classList.toggle('active', type === 'auto');
+        DOM.btnSelectUpper.classList.toggle('active', type === 'upper');
+        DOM.btnSelectLower.classList.toggle('active', type === 'lower');
+        renderDashboard();
+    };
+    if (DOM.btnSelectAuto) DOM.btnSelectAuto.addEventListener('click', () => selectRoutine('auto'));
+    if (DOM.btnSelectUpper) DOM.btnSelectUpper.addEventListener('click', () => selectRoutine('upper'));
+    if (DOM.btnSelectLower) DOM.btnSelectLower.addEventListener('click', () => selectRoutine('lower'));
+
+    // 4c. Acciones de Administración
+    if (DOM.btnRunClustering) {
+        DOM.btnRunClustering.addEventListener('click', () => {
+            const result = AURA_AI.runClustering();
+            if (result.success) {
+                playBeep(880, 0.15);
+                renderAdminTab();
+            }
+        });
+    }
 
     // 5. Controles del Player de Entrenamiento
     DOM.btnWorkoutQuit.addEventListener('click', () => {
@@ -597,6 +658,53 @@ function validateStep2() {
            DOM.inputHeight.value !== '';
 }
 
+// Calcular y Mostrar IMC dinámicamente en Onboarding
+function updateIMCOnboarding() {
+    const weight = parseFloat(DOM.inputWeight.value);
+    const height = parseFloat(DOM.inputHeight.value);
+    
+    if (weight > 0 && height > 0) {
+        const heightM = height / 100;
+        const imc = weight / (heightM * heightM);
+        const imcFormatted = imc.toFixed(1);
+        
+        if (DOM.imcValue) DOM.imcValue.textContent = imcFormatted;
+        tempProfile.imc = parseFloat(imcFormatted);
+        
+        // Determinar clasificación
+        let category = "Normal";
+        let badgeClass = "normal";
+        let desc = "¡Excelente! Tienes una relación de masa saludable.";
+        
+        if (imc < 18.5) {
+            category = "Bajo Peso";
+            badgeClass = "bajo";
+            desc = "Tu peso está por debajo de lo recomendado. Enfócate en una nutrición superávit.";
+        } else if (imc >= 18.5 && imc < 25) {
+            category = "Normal";
+            badgeClass = "normal";
+            desc = "¡Excelente! Estás en un rango de peso saludable.";
+        } else if (imc >= 25 && imc < 30) {
+            category = "Sobrepeso";
+            badgeClass = "sobrepeso";
+            desc = "Sobre el rango óptimo. Tu plan de entrenamiento te ayudará a recomponer tu física.";
+        } else {
+            category = "Obesidad";
+            badgeClass = "obesidad";
+            desc = "Rango de obesidad. Te sugerimos controlar las cargas iniciales y ser constante.";
+        }
+        
+        if (DOM.imcBadge) {
+            DOM.imcBadge.textContent = category;
+            DOM.imcBadge.className = `imc-category-badge ${badgeClass}`;
+        }
+        if (DOM.imcDesc) DOM.imcDesc.textContent = desc;
+        if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.remove('hidden');
+    } else {
+        if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.add('hidden');
+    }
+}
+
 // Actualizar Vista de Días de Onboarding
 function updateOnboardingDaysPreview() {
     const count = tempProfile.days.length;
@@ -631,7 +739,8 @@ function saveOnboardingProfile() {
         level: tempProfile.level,
         days: [...tempProfile.days],
         streak: 0,
-        lastWorkoutDate: null
+        lastWorkoutDate: null,
+        imc: tempProfile.imc || parseFloat((tempProfile.weight / Math.pow(tempProfile.height / 100, 2)).toFixed(1))
     };
     
     localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
@@ -645,25 +754,25 @@ function saveOnboardingProfile() {
    Motor de Distribución de Entrenamiento
    ========================================================================== */
 function getTodayWorkout() {
-    if (!AppState.user || AppState.user.days.length === 0) return { rest: true };
-    
-    const today = new Date().getDay(); // 0 = Domingo, 1 = Lunes, etc.
-    const isTrainingDay = AppState.user.days.includes(today);
-    
-    if (!isTrainingDay) {
-        return { rest: true, name: "Día de Descanso / Recuperación", desc: "El músculo crece durante el descanso. Mantente hidratado." };
-    }
-    
-    // Lógica de Alternancia basada en entrenamientos completados
-    // Contamos el total de entrenamientos completados para decidir si toca Upper o Lower
-    const totalCompleted = AppState.history.length;
+    if (!AppState.user) return { rest: true };
     
     let targetBlock = 'upper';
-    if (AppState.user.days.length === 2 || AppState.user.days.length === 4) {
-        // Alternar equitativo puro
-        targetBlock = (totalCompleted % 2 === 0) ? 'upper' : 'lower';
+    let isManual = false;
+    
+    if (AppState.manualWorkoutSelection && AppState.manualWorkoutSelection !== 'auto') {
+        targetBlock = AppState.manualWorkoutSelection;
+        isManual = true;
     } else {
-        // En otros esquemas, balancear volumen alternando de igual forma
+        if (AppState.user.days.length === 0) return { rest: true };
+        
+        const today = new Date().getDay(); // 0 = Domingo, 1 = Lunes, etc.
+        const isTrainingDay = AppState.user.days.includes(today);
+        
+        if (!isTrainingDay) {
+            return { rest: true, name: "Día de Descanso / Recuperación", desc: "El músculo crece durante el descanso. Mantente hidratado." };
+        }
+        
+        const totalCompleted = AppState.history.length;
         targetBlock = (totalCompleted % 2 === 0) ? 'upper' : 'lower';
     }
     
@@ -685,7 +794,8 @@ function getTodayWorkout() {
         key: targetBlock,
         name: combinedName,
         duration: combinedDuration,
-        exercises: combinedExercises
+        exercises: combinedExercises,
+        isManual: isManual
     };
 }
 
@@ -696,6 +806,12 @@ function getTodayWorkout() {
 // Renderizar Dashboard Principal
 function renderDashboard() {
     if (!AppState.user) return;
+    
+    // Sincronizar botones de selección manual
+    const selection = AppState.manualWorkoutSelection || 'auto';
+    if (DOM.btnSelectAuto) DOM.btnSelectAuto.classList.toggle('active', selection === 'auto');
+    if (DOM.btnSelectUpper) DOM.btnSelectUpper.classList.toggle('active', selection === 'upper');
+    if (DOM.btnSelectLower) DOM.btnSelectLower.classList.toggle('active', selection === 'lower');
     
     // 1. Bienvenida y datos básicos
     DOM.userGreeting.textContent = `Hola, ${AppState.user.name}`;
@@ -854,7 +970,11 @@ function renderProfileTab() {
     
     DOM.profileInitials.textContent = AppState.user.name.charAt(0).toUpperCase();
     DOM.profileName.textContent = AppState.user.name;
-    DOM.profileStatsSummary.textContent = `Objetivo: ${AppState.user.goal.toUpperCase()} • Nivel: ${AppState.user.level.toUpperCase()} • Peso: ${AppState.user.weight} kg`;
+    
+    const imcVal = AppState.user.imc || (AppState.user.weight && AppState.user.height ? parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1)) : null);
+    const imcText = imcVal ? ` • IMC: ${imcVal}` : '';
+    
+    DOM.profileStatsSummary.textContent = `Objetivo: ${AppState.user.goal.toUpperCase()} • Nivel: ${AppState.user.level.toUpperCase()} • Peso: ${AppState.user.weight} kg${imcText}`;
     
     // Estadísticas
     DOM.profileTotalWorkouts.textContent = AppState.history.length;
@@ -1185,6 +1305,19 @@ function finishWorkoutSession() {
     AppState.history.push(log);
     localStorage.setItem('aura_workout_history', JSON.stringify(AppState.history));
     
+    // Sincronizar en base de datos multiusuario
+    try {
+        AURA_AI.addLog("active-user", {
+            routineName: AppState.currentWorkout.name,
+            duration: duration,
+            volume: volume,
+            setsCount: setsCount
+        });
+        AURA_AI.runClustering();
+    } catch (err) {
+        console.error("Error al sincronizar con AURA_AI:", err);
+    }
+    
     // Mostrar Pantalla de Éxito
     DOM.summaryDuration.textContent = duration;
     DOM.summaryVolume.textContent = `${volume} kg`;
@@ -1306,5 +1439,98 @@ function registerServiceWorker() {
         navigator.serviceWorker.register('sw.js')
             .then(reg => console.log('Service Worker registrado con éxito.', reg.scope))
             .catch(err => console.warn('Fallo al registrar Service Worker.', err));
+    }
+}
+
+/* ==========================================================================
+   Admin Pane Render Logic
+   ========================================================================== */
+function renderAdminTab() {
+    // 1. Obtener usuarios y asegurar sincronización
+    const users = AURA_AI.getUsers();
+    
+    // Contar por clúster
+    let committedCount = 0;
+    let irregularCount = 0;
+    let highriskCount = 0;
+    
+    users.forEach(u => {
+        if (u.assignedCluster === 'Comprometido') committedCount++;
+        else if (u.assignedCluster === 'Irregular') irregularCount++;
+        else if (u.assignedCluster === 'Alto riesgo') highriskCount++;
+    });
+    
+    if (DOM.adminCountCommitted) DOM.adminCountCommitted.textContent = committedCount;
+    if (DOM.adminCountIrregular) DOM.adminCountIrregular.textContent = irregularCount;
+    if (DOM.adminCountHighrisk) DOM.adminCountHighrisk.textContent = highriskCount;
+    
+    // Correr clustering y obtener iteraciones
+    const clusterResult = AURA_AI.runClustering();
+    if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
+    
+    // 2. Renderizar Tabla de Usuarios
+    if (DOM.adminUsersTableBody) {
+        DOM.adminUsersTableBody.innerHTML = '';
+        clusterResult.users.forEach(user => {
+            const tr = document.createElement('tr');
+            
+            let lastDateStr = '--';
+            if (user.lastWorkoutDate) {
+                lastDateStr = new Date(user.lastWorkoutDate).toLocaleDateString('es-ES', {
+                    day: 'numeric',
+                    month: 'short'
+                });
+            }
+            
+            let clusterClass = 'irregular';
+            if (user.assignedCluster === 'Comprometido') clusterClass = 'committed';
+            else if (user.assignedCluster === 'Alto riesgo') clusterClass = 'highrisk';
+            
+            tr.innerHTML = `
+                <td class="user-name-col">${user.name}</td>
+                <td class="user-level-col">${user.level}</td>
+                <td>${lastDateStr}</td>
+                <td class="font-mono">🔥 ${user.streak}</td>
+                <td><span class="cluster-badge ${clusterClass}">${user.assignedCluster || 'Irregular'}</span></td>
+            `;
+            DOM.adminUsersTableBody.appendChild(tr);
+        });
+    }
+    
+    // 3. Renderizar Notificaciones de Recuperación
+    if (DOM.adminNotificationsContainer) {
+        DOM.adminNotificationsContainer.innerHTML = '';
+        const notifications = AURA_AI.generateNotifications();
+        
+        if (notifications.length === 0) {
+            DOM.adminNotificationsContainer.innerHTML = `<p class="text-secondary text-xs text-center" style="padding: 20px 0;">No hay atletas en "Alto riesgo" actualmente.</p>`;
+            return;
+        }
+        
+        notifications.forEach(notif => {
+            const card = document.createElement('div');
+            card.className = 'admin-notification-card';
+            
+            card.innerHTML = `
+                <div class="notif-header">
+                    <span class="notif-user-tag">${notif.userName}</span>
+                    <span class="notif-risk-badge">Alto Riesgo</span>
+                </div>
+                <p class="notif-message">"${notif.message}"</p>
+                <div class="notif-actions">
+                    <button class="btn-notif-send">Enviar Alerta</button>
+                </div>
+            `;
+            
+            const sendBtn = card.querySelector('.btn-notif-send');
+            sendBtn.addEventListener('click', () => {
+                sendBtn.textContent = 'Enviada ✓';
+                sendBtn.disabled = true;
+                card.classList.add('sent');
+                playBeep(1000, 0.2);
+            });
+            
+            DOM.adminNotificationsContainer.appendChild(card);
+        });
     }
 }
