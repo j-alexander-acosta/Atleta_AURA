@@ -563,6 +563,26 @@
                         <div id="video-iframe-placeholder"></div>
                     </div>
                 </div>
+        </div>
+
+        <!-- 6. MODAL DE CONFIRMACIÓN PERSONALIZADO -->
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-overlay" id="confirm-modal-overlay"></div>
+            <div class="modal-wrapper">
+                <div class="modal-header">
+                    <h3 id="confirm-modal-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
+                        ⚠️ ADVERTENCIA
+                    </h3>
+                </div>
+                <div class="modal-body text-center" style="padding: 24px 20px;">
+                    <p id="confirm-modal-message" class="text-sm text-secondary" style="line-height: 1.5; margin-bottom: 24px;">
+                        ATENCIÓN: Esto borrará por completo tu perfil y todo tu historial de entrenamiento de forma irreversible. ¿Proceder?
+                    </p>
+                    <div class="confirm-modal-actions" style="display: flex; gap: 16px; justify-content: center; width: 100%;">
+                        <button id="btn-confirm-cancel" class="btn btn-secondary btn-half" style="text-transform: uppercase;">Cancelar</button>
+                        <button id="btn-confirm-accept" class="btn btn-primary btn-half btn-glow" style="background: var(--color-danger); color: white; text-transform: uppercase; box-shadow: 0 0 15px rgba(255, 71, 87, 0.25);">Aceptar</button>
+                    </div>
+                </div>
             </div>
         </div>
 

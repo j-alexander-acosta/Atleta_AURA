@@ -400,7 +400,13 @@ const DOM = {
     inputWaist: document.getElementById('input-waist'),
     inputNeck: document.getElementById('input-neck'),
     inputHip: document.getElementById('input-hip'),
-    groupHip: document.getElementById('group-hip')
+    groupHip: document.getElementById('group-hip'),
+
+    // Modal de Confirmación
+    confirmModal: document.getElementById('confirm-modal'),
+    btnConfirmCancel: document.getElementById('btn-confirm-cancel'),
+    btnConfirmAccept: document.getElementById('btn-confirm-accept'),
+    confirmModalOverlay: document.getElementById('confirm-modal-overlay')
 };
 
 // Variables temporales para el onboarding
@@ -663,12 +669,27 @@ function initEventListeners() {
     });
 
     // 9. Resetear Datos
-    DOM.btnResetData.addEventListener('click', () => {
-        if (confirm("ATENCIÓN: Esto borrará por completo tu perfil y todo tu historial de entrenamiento. ¿Proceder?")) {
+    DOM.btnResetData.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (DOM.confirmModal) DOM.confirmModal.classList.remove('hidden');
+    });
+
+    // Cancelar en el Modal de Confirmación
+    const closeConfirmModal = () => {
+        if (DOM.confirmModal) DOM.confirmModal.classList.add('hidden');
+    };
+
+    if (DOM.btnConfirmCancel) DOM.btnConfirmCancel.addEventListener('click', closeConfirmModal);
+    if (DOM.confirmModalOverlay) DOM.confirmModalOverlay.addEventListener('click', closeConfirmModal);
+
+    // Aceptar en el Modal de Confirmación y reiniciar
+    if (DOM.btnConfirmAccept) {
+        DOM.btnConfirmAccept.addEventListener('click', () => {
             localStorage.clear();
             location.reload();
-        }
-    });
+        });
+    }
 }
 
 /* ==========================================================================
