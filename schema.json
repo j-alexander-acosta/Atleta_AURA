@@ -1,0 +1,225 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AuraFitnessSchema",
+  "description": "Esquema de datos completo para la plataforma AURA Fitness, conteniendo usuarios (con datos antropométricos y clústeres), entrenamientos y registros históricos detallados de series.",
+  "type": "OBJECT",
+  "properties": {
+    "users": {
+      "type": "ARRAY",
+      "description": "Listado de atletas registrados en el sistema.",
+      "items": {
+        "type": "OBJECT",
+        "required": ["id", "name", "age", "sex", "weight", "height", "waist", "neck", "goal", "level", "days", "streak", "imc", "bodyFat", "assignedCluster"],
+        "properties": {
+          "id": {
+            "type": "STRING",
+            "description": "Identificador único del usuario (ej: 'user-1' o 'active-user')."
+          },
+          "name": {
+            "type": "STRING",
+            "description": "Nombre de pila o nickname del atleta."
+          },
+          "age": {
+            "type": "INTEGER",
+            "minimum": 12,
+            "maximum": 100,
+            "description": "Edad del usuario en años."
+          },
+          "sex": {
+            "type": "STRING",
+            "enum": ["male", "female"],
+            "description": "Sexo biológico del usuario para el cálculo metabólico Navy Seal."
+          },
+          "weight": {
+            "type": "NUMBER",
+            "minimum": 30.0,
+            "maximum": 250.0,
+            "description": "Peso actual en kilogramos."
+          },
+          "height": {
+            "type": "NUMBER",
+            "minimum": 100.0,
+            "maximum": 250.0,
+            "description": "Estatura o talla actual en centímetros."
+          },
+          "waist": {
+            "type": "NUMBER",
+            "minimum": 40.0,
+            "maximum": 200.0,
+            "description": "Circunferencia de la cintura medida a la altura del ombligo en centímetros."
+          },
+          "neck": {
+            "type": "NUMBER",
+            "minimum": 20.0,
+            "maximum": 80.0,
+            "description": "Circunferencia del cuello en centímetros."
+          },
+          "hip": {
+            "type": "NUMBER",
+            "minimum": 40.0,
+            "maximum": 200.0,
+            "description": "Circunferencia de la cadera en centímetros. Campo obligatorio solo para mujeres en la Navy Seal formula."
+          },
+          "goal": {
+            "type": "STRING",
+            "enum": ["hipertrofia", "fuerza", "resistencia"],
+            "description": "Meta principal del atleta."
+          },
+          "level": {
+            "type": "STRING",
+            "enum": ["principiante", "intermedio", "avanzado"],
+            "description": "Nivel de experiencia del usuario."
+          },
+          "days": {
+            "type": "ARRAY",
+            "items": {
+              "type": "INTEGER",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "description": "Días de entrenamiento seleccionados (0 = Domingo, 1 = Lunes, etc.)."
+          },
+          "streak": {
+            "type": "INTEGER",
+            "minimum": 0,
+            "description": "Racha de días activos de entrenamiento."
+          },
+          "lastWorkoutDate": {
+            "type": ["STRING", "NULL"],
+            "format": "date-time",
+            "description": "Fecha y hora en formato ISO 8601 del último entrenamiento completado."
+          },
+          "imc": {
+            "type": "NUMBER",
+            "description": "Índice de Masa Corporal (IMC) estimado del atleta (peso / talla^2 en metros)."
+          },
+          "bodyFat": {
+            "type": "NUMBER",
+            "description": "Porcentaje de grasa corporal estimado mediante el método de circunferencias Navy Seal."
+          },
+          "assignedCluster": {
+            "type": "STRING",
+            "enum": ["Comprometido", "Irregular", "Alto riesgo", "Pendiente"],
+            "description": "Grupo de comportamiento asignado por el motor de IA (K-Means)."
+          }
+        }
+      }
+    },
+    "workouts": {
+      "type": "OBJECT",
+      "description": "Catálogo estático o dinámico de entrenamientos divididos por enfoque.",
+      "properties": {
+        "upper": { "$ref": "#/definitions/Workout" },
+        "lower": { "$ref": "#/definitions/Workout" },
+        "core": { "$ref": "#/definitions/Workout" }
+      }
+    },
+    "logs": {
+      "type": "ARRAY",
+      "description": "Historial de asistencias y volumen de entrenamiento registrado.",
+      "items": {
+        "type": "OBJECT",
+        "required": ["id", "userId", "date", "routineName", "duration", "volume", "setsCount", "sets"],
+        "properties": {
+          "id": {
+            "type": "STRING",
+            "description": "ID único de registro de la sesión."
+          },
+          "userId": {
+            "type": "STRING",
+            "description": "ID del atleta que realizó el entrenamiento."
+          },
+          "date": {
+            "type": "STRING",
+            "format": "date-time",
+            "description": "Fecha e inicio de la sesión en formato ISO."
+          },
+          "routineName": {
+            "type": "STRING",
+            "description": "Nombre de la rutina o rutinas completadas."
+          },
+          "duration": {
+            "type": "STRING",
+            "description": "Tiempo total transcurrido (ej: '00:30:15' o '45 min')."
+          },
+          "volume": {
+            "type": "NUMBER",
+            "description": "Volumen total de carga desplazada (peso * repeticiones de sets completados) en kg."
+          },
+          "setsCount": {
+            "type": "INTEGER",
+            "description": "Cantidad de series completadas exitosamente."
+          },
+          "sets": {
+            "type": "ARRAY",
+            "description": "Detalle paso a paso de cada serie ejecutada en la sesión.",
+            "items": {
+              "type": "OBJECT",
+              "required": ["exerciseName", "setIndex", "reps", "weight", "completed"],
+              "properties": {
+                "exerciseName": {
+                  "type": "STRING",
+                  "description": "Nombre del ejercicio correspondiente al set."
+                },
+                "setIndex": {
+                  "type": "INTEGER",
+                  "description": "Índice de la serie (0-indexed)."
+                },
+                "reps": {
+                  "type": "INTEGER",
+                  "description": "Repeticiones realizadas."
+                },
+                "weight": {
+                  "type": "NUMBER",
+                  "description": "Peso utilizado en kg (0 para peso corporal)."
+                },
+                "completed": {
+                  "type": "BOOLEAN",
+                  "description": "Estado de finalización del set."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "Workout": {
+      "type": "OBJECT",
+      "required": ["name", "duration", "exercises"],
+      "properties": {
+        "name": { "type": "STRING" },
+        "duration": { "type": "STRING" },
+        "exercises": {
+          "type": "ARRAY",
+          "items": {
+            "type": "OBJECT",
+            "required": ["name", "muscle", "animationClass", "videoUrl", "instructions", "sets"],
+            "properties": {
+              "name": { "type": "STRING" },
+              "muscle": { "type": "STRING" },
+              "animationClass": { "type": "STRING" },
+              "videoUrl": { "type": "STRING" },
+              "instructions": {
+                "type": "ARRAY",
+                "items": { "type": "STRING" }
+              },
+              "sets": {
+                "type": "ARRAY",
+                "items": {
+                  "type": "OBJECT",
+                  "required": ["reps", "weight"],
+                  "properties": {
+                    "reps": { "type": "INTEGER" },
+                    "weight": { "type": "NUMBER" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -386,24 +386,38 @@ const DOM = {
     adminCountHighrisk: document.getElementById('admin-count-highrisk'),
     adminUsersTableBody: document.getElementById('admin-users-table-body'),
     adminNotificationsContainer: document.getElementById('admin-notifications-container'),
+    adminFilterCluster: document.getElementById('admin-filter-cluster'),
 
-    // IMC Preview
+    // IMC & BFP Preview
     imcPreviewBox: document.getElementById('imc-preview-box'),
     imcValue: document.getElementById('imc-value'),
+    bfpValue: document.getElementById('bfp-value'),
     imcBadge: document.getElementById('imc-badge'),
-    imcDesc: document.getElementById('imc-desc')
+    imcDesc: document.getElementById('imc-desc'),
+
+    // Antropometría
+    genderControl: document.getElementById('gender-control'),
+    inputWaist: document.getElementById('input-waist'),
+    inputNeck: document.getElementById('input-neck'),
+    inputHip: document.getElementById('input-hip'),
+    groupHip: document.getElementById('group-hip')
 };
 
 // Variables temporales para el onboarding
 let tempProfile = {
     name: '',
     age: 0,
+    sex: 'male',
     weight: 0,
     height: 0,
+    waist: 0,
+    neck: 0,
+    hip: 0,
     goal: 'hipertrofia',
     level: 'principiante',
     days: [], // Lunes = 1, Domingo = 0
-    imc: 0
+    imc: 0,
+    bodyFat: 0
 };
 
 /* ==========================================================================
@@ -462,9 +476,12 @@ function initEventListeners() {
             tempProfile.age = parseInt(DOM.inputAge.value);
             tempProfile.weight = parseFloat(DOM.inputWeight.value);
             tempProfile.height = parseInt(DOM.inputHeight.value);
+            tempProfile.waist = parseFloat(DOM.inputWaist.value);
+            tempProfile.neck = parseFloat(DOM.inputNeck.value);
+            tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
             showOnboardingStep(3);
         } else {
-            alert("Por favor completa todos tus datos físicos.");
+            alert("Por favor completa todos tus datos físicos y antropométricos requeridos.");
         }
     });
     
@@ -479,9 +496,36 @@ function initEventListeners() {
         saveOnboardingProfile();
     });
 
-    // 1b. Escuchadores de cálculo de IMC en tiempo real
+    // 1b. Escuchadores de cálculo de IMC y Grasa en tiempo real
     if (DOM.inputWeight) DOM.inputWeight.addEventListener('input', updateIMCOnboarding);
     if (DOM.inputHeight) DOM.inputHeight.addEventListener('input', updateIMCOnboarding);
+    if (DOM.inputWaist) DOM.inputWaist.addEventListener('input', updateIMCOnboarding);
+    if (DOM.inputNeck) DOM.inputNeck.addEventListener('input', updateIMCOnboarding);
+    if (DOM.inputHip) DOM.inputHip.addEventListener('input', updateIMCOnboarding);
+
+    // Selector de Sexo Biológico (Onboarding)
+    if (DOM.genderControl) {
+        const genderBtns = DOM.genderControl.querySelectorAll('.segment-btn');
+        genderBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                genderBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tempProfile.sex = btn.dataset.gender;
+                if (tempProfile.sex === 'female') {
+                    if (DOM.groupHip) DOM.groupHip.classList.remove('hidden');
+                    if (DOM.inputHip) DOM.inputHip.required = true;
+                } else {
+                    if (DOM.groupHip) DOM.groupHip.classList.add('hidden');
+                    if (DOM.inputHip) {
+                        DOM.inputHip.required = false;
+                        DOM.inputHip.value = '';
+                    }
+                    tempProfile.hip = 0;
+                }
+                updateIMCOnboarding();
+            });
+        });
+    }
 
     // 2. Selectores de Onboarding (Event Delegation / Click handler)
     DOM.btnGoalOptions.forEach(card => {
@@ -561,6 +605,12 @@ function initEventListeners() {
                 playBeep(880, 0.15);
                 renderAdminTab();
             }
+        });
+    }
+
+    if (DOM.adminFilterCluster) {
+        DOM.adminFilterCluster.addEventListener('change', () => {
+            renderAdminTab();
         });
     }
 
@@ -652,16 +702,25 @@ function showOnboardingStep(stepNum) {
 
 // Validar Datos Físicos
 function validateStep2() {
-    return DOM.inputName.value.trim() !== '' &&
-           DOM.inputAge.value !== '' &&
-           DOM.inputWeight.value !== '' &&
-           DOM.inputHeight.value !== '';
+    const baseValid = DOM.inputName.value.trim() !== '' &&
+                      DOM.inputAge.value !== '' &&
+                      DOM.inputWeight.value !== '' &&
+                      DOM.inputHeight.value !== '' &&
+                      DOM.inputWaist.value !== '' &&
+                      DOM.inputNeck.value !== '';
+    if (tempProfile.sex === 'female') {
+        return baseValid && DOM.inputHip.value !== '';
+    }
+    return baseValid;
 }
 
-// Calcular y Mostrar IMC dinámicamente en Onboarding
+// Calcular y Mostrar IMC y Grasa Corporal dinámicamente en Onboarding
 function updateIMCOnboarding() {
     const weight = parseFloat(DOM.inputWeight.value);
     const height = parseFloat(DOM.inputHeight.value);
+    const waist = parseFloat(DOM.inputWaist.value);
+    const neck = parseFloat(DOM.inputNeck.value);
+    const hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
     
     if (weight > 0 && height > 0) {
         const heightM = height / 100;
@@ -699,6 +758,16 @@ function updateIMCOnboarding() {
             DOM.imcBadge.className = `imc-category-badge ${badgeClass}`;
         }
         if (DOM.imcDesc) DOM.imcDesc.textContent = desc;
+
+        // Calcular Grasa Corporal (Navy Seal Formula)
+        if (waist > 0 && neck > 0 && (tempProfile.sex === 'male' || hip > 0)) {
+            const bfp = AURA_AI.calculateNavySealBFP(tempProfile.sex, height, waist, neck, hip);
+            if (DOM.bfpValue) DOM.bfpValue.textContent = `${bfp.toFixed(1)}%`;
+            tempProfile.bodyFat = parseFloat(bfp.toFixed(1));
+        } else {
+            if (DOM.bfpValue) DOM.bfpValue.textContent = '--';
+        }
+        
         if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.remove('hidden');
     } else {
         if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.add('hidden');
@@ -733,14 +802,20 @@ function saveOnboardingProfile() {
     AppState.user = {
         name: tempProfile.name,
         age: tempProfile.age,
+        sex: tempProfile.sex,
         weight: tempProfile.weight,
         height: tempProfile.height,
+        waist: tempProfile.waist,
+        neck: tempProfile.neck,
+        hip: tempProfile.hip,
         goal: tempProfile.goal,
         level: tempProfile.level,
         days: [...tempProfile.days],
         streak: 0,
         lastWorkoutDate: null,
-        imc: tempProfile.imc || parseFloat((tempProfile.weight / Math.pow(tempProfile.height / 100, 2)).toFixed(1))
+        imc: tempProfile.imc || parseFloat((tempProfile.weight / Math.pow(tempProfile.height / 100, 2)).toFixed(1)),
+        bodyFat: tempProfile.bodyFat || 20.0,
+        assignedCluster: "Pendiente"
     };
     
     localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
@@ -973,8 +1048,10 @@ function renderProfileTab() {
     
     const imcVal = AppState.user.imc || (AppState.user.weight && AppState.user.height ? parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1)) : null);
     const imcText = imcVal ? ` • IMC: ${imcVal}` : '';
+    const bfpVal = AppState.user.bodyFat || (AppState.user.weight && AppState.user.height ? parseFloat(AURA_AI.calculateNavySealBFP(AppState.user.sex || 'male', AppState.user.height, AppState.user.waist || 80, AppState.user.neck || 36, AppState.user.hip || 0).toFixed(1)) : null);
+    const bfpText = bfpVal ? ` • Grasa: ${bfpVal}%` : '';
     
-    DOM.profileStatsSummary.textContent = `Objetivo: ${AppState.user.goal.toUpperCase()} • Nivel: ${AppState.user.level.toUpperCase()} • Peso: ${AppState.user.weight} kg${imcText}`;
+    DOM.profileStatsSummary.textContent = `Objetivo: ${AppState.user.goal.toUpperCase()} • Nivel: ${AppState.user.level.toUpperCase()} • Peso: ${AppState.user.weight} kg${imcText}${bfpText}`;
     
     // Estadísticas
     DOM.profileTotalWorkouts.textContent = AppState.history.length;
@@ -1295,12 +1372,28 @@ function finishWorkoutSession() {
     }
     
     // Guardar en Historial
+    const loggedSets = [];
+    AppState.currentWorkout.exercises.forEach(ex => {
+        ex.sets.forEach((set, setIdx) => {
+            if (set.completed) {
+                loggedSets.push({
+                    exerciseName: ex.name,
+                    setIndex: setIdx,
+                    reps: set.reps,
+                    weight: set.weight,
+                    completed: true
+                });
+            }
+        });
+    });
+
     const log = {
         date: todayStr,
         routineName: AppState.currentWorkout.name,
         duration: duration,
         volume: volume,
-        setsCount: setsCount
+        setsCount: setsCount,
+        sets: loggedSets
     };
     AppState.history.push(log);
     localStorage.setItem('aura_workout_history', JSON.stringify(AppState.history));
@@ -1311,7 +1404,8 @@ function finishWorkoutSession() {
             routineName: AppState.currentWorkout.name,
             duration: duration,
             volume: volume,
-            setsCount: setsCount
+            setsCount: setsCount,
+            sets: loggedSets
         });
         AURA_AI.runClustering();
     } catch (err) {
@@ -1449,7 +1543,7 @@ function renderAdminTab() {
     // 1. Obtener usuarios y asegurar sincronización
     const users = AURA_AI.getUsers();
     
-    // Contar por clúster
+    // Contar por clúster (siempre sobre el total)
     let committedCount = 0;
     let irregularCount = 0;
     let highriskCount = 0;
@@ -1468,10 +1562,17 @@ function renderAdminTab() {
     const clusterResult = AURA_AI.runClustering();
     if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
     
+    // Obtener valor del filtro
+    const filterValue = DOM.adminFilterCluster ? DOM.adminFilterCluster.value : 'all';
+    let filteredUsers = clusterResult.users;
+    if (filterValue !== 'all') {
+        filteredUsers = filteredUsers.filter(u => u.assignedCluster === filterValue);
+    }
+    
     // 2. Renderizar Tabla de Usuarios
     if (DOM.adminUsersTableBody) {
         DOM.adminUsersTableBody.innerHTML = '';
-        clusterResult.users.forEach(user => {
+        filteredUsers.forEach(user => {
             const tr = document.createElement('tr');
             
             let lastDateStr = '--';
@@ -1486,9 +1587,12 @@ function renderAdminTab() {
             if (user.assignedCluster === 'Comprometido') clusterClass = 'committed';
             else if (user.assignedCluster === 'Alto riesgo') clusterClass = 'highrisk';
             
+            const fatVal = user.bodyFat ? `${user.bodyFat.toFixed(1)}%` : '--';
+            
             tr.innerHTML = `
                 <td class="user-name-col">${user.name}</td>
                 <td class="user-level-col">${user.level}</td>
+                <td class="font-mono text-neon-pink">${fatVal}</td>
                 <td>${lastDateStr}</td>
                 <td class="font-mono">🔥 ${user.streak}</td>
                 <td><span class="cluster-badge ${clusterClass}">${user.assignedCluster || 'Irregular'}</span></td>

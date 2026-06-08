@@ -56,22 +56,51 @@
                             <input type="number" id="input-age" placeholder="Años" min="12" max="100" required>
                         </div>
                         <div class="form-group">
+                            <label>Sexo Biológico</label>
+                            <div class="segment-control" id="gender-control">
+                                <button type="button" class="segment-btn active" data-gender="male" style="padding: 6px;">Masc.</button>
+                                <button type="button" class="segment-btn" data-gender="female" style="padding: 6px;">Fem.</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
                             <label for="input-weight">Peso (kg)</label>
                             <input type="number" id="input-weight" placeholder="kg" min="30" max="250" step="0.1" required>
                         </div>
+                        <div class="form-group">
+                            <label for="input-height">Altura (cm)</label>
+                            <input type="number" id="input-height" placeholder="cm" min="100" max="250" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label for="input-height">Altura (cm)</label>
-                        <input type="number" id="input-height" placeholder="cm" min="100" max="250" required>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="input-waist">Cintura (cm)</label>
+                            <input type="number" id="input-waist" placeholder="cm" min="40" max="200" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-neck">Cuello (cm)</label>
+                            <input type="number" id="input-neck" placeholder="cm" min="20" max="80" step="0.1" required>
+                        </div>
                     </div>
-                    <!-- IMC Preview Box -->
+                    <div class="form-group hidden" id="group-hip">
+                        <label for="input-hip">Cadera (cm)</label>
+                        <input type="number" id="input-hip" placeholder="cm (Requerido para mujeres)" min="40" max="200" step="0.1">
+                    </div>
+                    <!-- IMC & BFP Preview Box -->
                     <div id="imc-preview-box" class="imc-preview-card hidden">
-                        <div class="imc-result">
-                            <span class="imc-lbl">Tu IMC Estimado:</span>
-                            <span class="imc-val" id="imc-value">--</span>
+                        <div class="preview-stats-grid">
+                            <div class="imc-result">
+                                <span class="imc-lbl">Tu IMC:</span>
+                                <span class="imc-val" id="imc-value">--</span>
+                            </div>
+                            <div class="bfp-result">
+                                <span class="imc-lbl">% Grasa (IA):</span>
+                                <span class="imc-val" id="bfp-value">--</span>
+                            </div>
                         </div>
                         <span id="imc-badge" class="imc-category-badge">Normal</span>
-                        <p id="imc-desc" class="text-xs text-secondary text-center">Calculado a partir de tu peso y altura.</p>
+                        <p id="imc-desc" class="text-xs text-secondary text-center">Estimaciones calculadas a partir de tus medidas antropométricas.</p>
                     </div>
                 </div>
                 <div class="onboarding-actions">
@@ -331,16 +360,27 @@
 
                     <!-- Tabla de Usuarios Registrados -->
                     <div class="admin-table-section">
-                        <h3 class="panel-section-title">Atletas Registrados</h3>
+                        <div class="admin-table-header">
+                            <h3 class="panel-section-title">Atletas Registrados</h3>
+                            <div class="filter-wrapper">
+                                <select id="admin-filter-cluster" class="admin-select-filter">
+                                    <option value="all">Todos los clústeres</option>
+                                    <option value="Comprometido">Comprometidos</option>
+                                    <option value="Irregular">Irregulares</option>
+                                    <option value="Alto riesgo">Alto Riesgo</option>
+                                </select>
+                            </div>
+                        </div>
                         <div class="table-responsive">
                             <table class="admin-table">
                                 <thead>
                                     <tr>
                                         <th>ATLETA</th>
                                         <th>NIVEL</th>
+                                        <th>GRASA (IA)</th>
                                         <th>ÚLTIMA SESIÓN</th>
                                         <th>RACHA</th>
-                                        <th>CLUSTER DE RIESGO</th>
+                                        <th>CLUSTER</th>
                                     </tr>
                                 </thead>
                                 <tbody id="admin-users-table-body">
