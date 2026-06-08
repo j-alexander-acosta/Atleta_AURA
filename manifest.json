@@ -1,6 +1,6 @@
 {
-  "name": "AURA Fitness - Elite Athletics",
-  "short_name": "AURA",
+  "name": "GYM_UCN Fitness - Elite Athletics",
+  "short_name": "GYM_UCN",
   "description": "Aplicación premium de entrenamiento físico interactiva e instalable inspirada en la estética dark y neón.",
   "start_url": "./index.html",
   "display": "standalone",

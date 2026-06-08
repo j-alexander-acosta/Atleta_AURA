@@ -672,11 +672,17 @@ function initEventListeners() {
     DOM.btnResetData.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        if (DOM.confirmModal) DOM.confirmModal.classList.remove('hidden');
+        setTimeout(() => {
+            if (DOM.confirmModal) DOM.confirmModal.classList.remove('hidden');
+        }, 50);
     });
 
     // Cancelar en el Modal de Confirmación
-    const closeConfirmModal = () => {
+    const closeConfirmModal = (e) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (DOM.confirmModal) DOM.confirmModal.classList.add('hidden');
     };
 

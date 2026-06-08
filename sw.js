@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-fitness-v3';
+const CACHE_NAME = 'gymucn-fitness-v1';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

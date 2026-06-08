@@ -123,6 +123,14 @@ body {
     -webkit-overflow-scrolling: touch;
 }
 
+.tab-pane {
+    display: none;
+}
+
+.tab-pane.active {
+    display: block;
+}
+
 /* ==========================================================================
    Componentes Comunes: Botones, Inputs e Información
    ========================================================================== */
