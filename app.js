@@ -1557,11 +1557,29 @@ function formatTime(totalSeconds) {
 // Registrar Service Worker para PWA Offline
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('Service Worker registrado con éxito.', reg.scope))
-            .catch(err => console.warn('Fallo al registrar Service Worker.', err));
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+            }
+        });
+        caches.keys().then(function(names) {
+            for (let name of names) caches.delete(name);
+        });
     }
 }
+
+// Función global para forzar la limpieza completa de la aplicación
+window.forceAppCleanup = function() {
+    console.log("Iniciando limpieza forzada de la aplicación...");
+    localStorage.clear();
+    sessionStorage.clear();
+    caches.keys().then(function(names) {
+        for (let name of names) caches.delete(name);
+    }).finally(() => {
+        alert("Aplicación y datos limpiados correctamente. Recargando...");
+        window.location.reload(true);
+    });
+};
 
 /* ==========================================================================
    Admin Pane Render Logic

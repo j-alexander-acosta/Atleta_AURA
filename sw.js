@@ -38,42 +38,23 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Evento Fetch: Servir desde Caché Offline-First
+// Evento Fetch: Network First (Deshabilitar Caché agresiva para desarrollo)
 self.addEventListener('fetch', event => {
-  // Ignorar peticiones que no sean GET
-  if (event.request.method !== 'GET') return;
-  
-  // Ignorar llamadas de videos externos (YouTube)
-  if (event.request.url.includes('youtube.com') || event.request.url.includes('youtu.be')) {
-    return;
-  }
-
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          return cachedResponse;
-        }
-        
-        return fetch(event.request)
-          .then(networkResponse => {
-            // No cachear llamadas inválidas
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
-            }
-            
-            // Clonar respuesta y guardar en caché
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME).then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-            
-            return networkResponse;
-          })
-          .catch(() => {
-            // Manejar fallas de red offline silenciosas
-            console.warn('Recurso no disponible offline:', event.request.url);
+    fetch(event.request)
+      .then(response => {
+        // Actualizar el caché en segundo plano si la red funciona
+        if (response && response.status === 200 && response.type === 'basic') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
           });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback a caché si no hay red
+        return caches.match(event.request);
       })
   );
 });
