@@ -1415,6 +1415,8 @@ function finishWorkoutSession() {
     });
 
     const log = {
+        id: 'log-' + Date.now(),
+        userId: AppState.user.id || 'user-1',
         date: todayStr,
         routineName: AppState.currentWorkout.name,
         duration: duration,
@@ -1425,6 +1427,21 @@ function finishWorkoutSession() {
     AppState.history.push(log);
     localStorage.setItem('aura_workout_history', JSON.stringify(AppState.history));
     
+    // Sincronizar en la Nube (Cloud Database & Motivation Reminders)
+    fetch('/api/workouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: AppState.user, log: log })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success && data.motivation) {
+            console.log("Sincronización en la Nube exitosa");
+            DOM.summaryBadgeText.innerHTML += `<br><br><span style="color:var(--aura-cyan); font-weight:bold;">${data.motivation}</span>`;
+        }
+    })
+    .catch(err => console.error("Error sincronizando con la Nube:", err));
+
     // Sincronizar en base de datos multiusuario
     try {
         AURA_AI.addLog("active-user", {

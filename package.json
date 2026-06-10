@@ -1,0 +1,25 @@
+{
+  "name": "ejercicios",
+  "version": "1.0.0",
+  "description": "AURA es una **Progressive Web App (PWA)** de acondicionamiento físico de alto rendimiento, diseñada con una estética de última generación en modo ultra-dark con acentos neón (violeta/cian), inspirada en perfiles de fitness élite de Instagram como *Demicstory* y *Jongkeun Gil*.",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/j-alexander-acosta/Atleta_AURA.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/j-alexander-acosta/Atleta_AURA/issues"
+  },
+  "homepage": "https://github.com/j-alexander-acosta/Atleta_AURA#readme",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "sqlite3": "^6.0.1"
+  }
+}
