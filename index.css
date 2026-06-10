@@ -356,6 +356,7 @@ input[type="number"]:focus {
     letter-spacing: 6px;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     z-index: 1;
 }
@@ -796,7 +797,7 @@ input[type="number"]:focus {
 
 .exercise-item-sets {
     color: var(--text-secondary);
-    font-mono: monospace;
+    font-family: monospace;
 }
 
 /* ==========================================================================
@@ -873,6 +874,7 @@ input[type="number"]:focus {
     font-weight: 700;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -1049,7 +1051,7 @@ input[type="number"]:focus {
 .workout-header-title span {
     font-size: 12px;
     color: var(--color-neon-teal);
-    font-mono: monospace;
+    font-family: monospace;
     font-weight: 600;
 }
 
@@ -1197,7 +1199,7 @@ input[type="number"]:focus {
 
 .set-obj {
     color: var(--text-secondary);
-    font-mono: monospace;
+    font-family: monospace;
 }
 
 .set-input {
@@ -1511,220 +1513,119 @@ input[type="number"]:focus {
 /* ==========================================================================
    ILUSTRACIONES ANIMADAS DE EJERCICIO (CSS/SVG)
    ========================================================================== */
+/* ==========================================================================
+   ILUSTRACIONES ANIMADAS DE EJERCICIO (3D IMAGES & NEON OVERLAYS)
+   ========================================================================== */
 .animation-box {
-    width: 100px;
-    height: 100px;
+    width: 100%;
+    height: 250px;
     position: relative;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    background-color: var(--bg-obsidian);
 }
 
-/* 1. Flexiones (Pushup) */
-.pushup-animation {
-    width: 100px;
+.img-3d-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.exercise-3d-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+    filter: brightness(0.9) contrast(1.1);
+}
+
+.neon-overlay-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Neon Glow Arrows */
+.neon-arrow {
+    position: absolute;
+    width: 4px;
     height: 60px;
-    border-bottom: 3px solid var(--text-muted);
-}
-.pushup-body {
-    width: 80px;
-    height: 10px;
-    background: var(--gradient-primary);
-    border-radius: 5px;
-    position: absolute;
-    bottom: 25px;
-    left: 10px;
-    transform-origin: 75px 5px;
-    animation: pushupAnimation 2s infinite ease-in-out;
-}
-.pushup-arms {
-    width: 3px;
-    height: 25px;
     background-color: var(--color-neon-teal);
-    position: absolute;
-    bottom: 0;
-    left: 20px;
-    transform-origin: top center;
-    animation: pushupArmsAnimation 2s infinite ease-in-out;
-}
-
-@keyframes pushupAnimation {
-    0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(-15deg); }
-}
-@keyframes pushupArmsAnimation {
-    0%, 100% { height: 25px; transform: scaleY(1); }
-    50% { height: 12px; transform: scaleY(0.5); }
-}
-
-/* 2. Sentadillas (Squat) */
-.squat-animation {
-    width: 60px;
-    height: 100px;
-}
-.squat-torso {
-    width: 10px;
-    height: 40px;
-    background: var(--gradient-primary);
-    border-radius: 5px;
-    position: absolute;
-    top: 15px;
-    left: 25px;
-    animation: squatTorsoAnim 2.5s infinite ease-in-out;
-}
-.squat-legs {
-    width: 10px;
-    height: 40px;
-    background-color: var(--color-neon-teal);
-    border-radius: 5px;
-    position: absolute;
-    bottom: 10px;
-    left: 25px;
-    transform-origin: bottom center;
-    animation: squatLegsAnim 2.5s infinite ease-in-out;
-}
-
-@keyframes squatTorsoAnim {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(20px); }
-}
-@keyframes squatLegsAnim {
-    0%, 100% { transform: scaleY(1); }
-    50% { transform: scaleY(0.5); }
-}
-
-/* 3. Dips (Fondos) */
-.dips-animation {
-    width: 80px;
-    height: 100px;
-}
-.dips-bar {
-    width: 6px;
-    height: 80px;
-    background-color: var(--text-muted);
-    position: absolute;
-    left: 45px;
-    top: 10px;
-    border-radius: 3px;
-}
-.dips-bar::after {
-    content: "";
-    width: 30px;
-    height: 6px;
-    background-color: var(--text-muted);
-    position: absolute;
-    left: -24px;
-    top: 20px;
-    border-radius: 3px;
-}
-.dips-body {
-    width: 12px;
-    height: 50px;
-    background: var(--gradient-primary);
-    border-radius: 6px;
-    position: absolute;
-    left: 16px;
-    top: 10px;
-    animation: dipsAnim 2s infinite ease-in-out;
-}
-
-@keyframes dipsAnim {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(25px); }
-}
-
-/* 4. Press de Hombros (Shoulder Press) */
-.press-animation {
-    width: 80px;
-    height: 100px;
-}
-.press-body {
-    width: 12px;
-    height: 45px;
-    background: var(--text-secondary);
-    position: absolute;
-    bottom: 10px;
-    left: 34px;
-    border-radius: 6px;
-}
-.press-barbell {
-    width: 60px;
-    height: 4px;
-    background: var(--color-neon-teal);
-    position: absolute;
-    left: 10px;
-    bottom: 55px;
-    animation: pressBarbellAnim 2.2s infinite ease-in-out;
-    box-shadow: 0 0 8px var(--color-neon-teal);
-}
-.press-barbell::before,
-.press-barbell::after {
-    content: "";
-    width: 8px;
-    height: 16px;
-    background-color: var(--color-neon-purple);
-    position: absolute;
-    top: -6px;
+    box-shadow: 0 0 15px var(--color-neon-teal), 0 0 30px var(--color-neon-teal);
     border-radius: 2px;
 }
-.press-barbell::before { left: 0; }
-.press-barbell::after { right: 0; }
-
-@keyframes pressBarbellAnim {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-30px); }
-}
-
-/* 5. Puente Gluteos (Glute Bridge) */
-.bridge-animation {
-    width: 100px;
-    height: 60px;
-    border-bottom: 2px solid var(--text-muted);
-}
-.bridge-hips {
-    width: 60px;
-    height: 12px;
-    background: var(--gradient-primary);
+.neon-arrow::after {
+    content: "";
     position: absolute;
-    bottom: 0px;
-    left: 20px;
-    transform-origin: 5px 6px;
-    animation: bridgeAnim 2.4s infinite ease-in-out;
-    border-radius: 6px;
+    bottom: -4px;
+    left: -8px;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 15px solid var(--color-neon-teal);
+    filter: drop-shadow(0 0 10px var(--color-neon-teal));
 }
 
-@keyframes bridgeAnim {
-    0%, 100% { transform: rotate(0); }
-    50% { transform: rotate(-35deg); }
+.down-arrow {
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounceDown 1.5s infinite ease-in-out;
+}
+@keyframes bounceDown {
+    0%, 100% { transform: translate(-50%, 0); opacity: 0.5; }
+    50% { transform: translate(-50%, 20px); opacity: 1; }
 }
 
-/* 6. Crunch Abdominal */
-.crunch-animation {
-    width: 90px;
-    height: 60px;
+.up-arrow {
+    top: 40%;
+    left: 50%;
+    transform: translateX(-50%) rotate(180deg);
+    animation: bounceUp 1.5s infinite ease-in-out;
 }
-.crunch-legs {
-    width: 40px;
-    height: 8px;
-    background-color: var(--text-muted);
+@keyframes bounceUp {
+    0%, 100% { transform: translate(-50%, 0) rotate(180deg); opacity: 0.5; }
+    50% { transform: translate(-50%, -20px) rotate(180deg); opacity: 1; }
+}
+
+.diagonal-arrow {
+    top: 40%;
+    left: 40%;
+    transform: rotate(135deg);
+    animation: bounceDiag 1.5s infinite ease-in-out;
+}
+@keyframes bounceDiag {
+    0%, 100% { transform: translate(0, 0) rotate(135deg); opacity: 0.5; }
+    50% { transform: translate(15px, 15px) rotate(135deg); opacity: 1; }
+}
+
+/* Neon Weights */
+.neon-weight {
     position: absolute;
-    bottom: 10px;
-    right: 10px;
-    border-radius: 4px;
-    transform: rotate(-45deg);
+    top: 20%;
+    right: 20%;
+    font-family: var(--font-display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--text-primary);
+    text-shadow: 0 0 10px var(--color-neon-teal), 0 0 20px var(--color-neon-teal);
+    background: rgba(0, 0, 0, 0.4);
+    padding: 10px 15px;
+    border-radius: 8px;
+    border: 2px solid var(--color-neon-teal);
+    box-shadow: inset 0 0 15px rgba(0, 245, 212, 0.5), 0 0 15px rgba(0, 245, 212, 0.5);
+    animation: pulseWeight 2s infinite alternate;
 }
-.crunch-torso {
-    width: 45px;
-    height: 10px;
-    background: var(--gradient-primary);
-    position: absolute;
-    bottom: 10px;
-    left: 15px;
-    transform-origin: right center;
-    border-radius: 5px;
-    animation: crunchAnim 2s infinite ease-in-out;
-}
-
-@keyframes crunchAnim {
-    0%, 100% { transform: rotate(0deg); }
-    50% { transform: rotate(40deg); }
+@keyframes pulseWeight {
+    0% { transform: scale(1); box-shadow: inset 0 0 15px rgba(0, 245, 212, 0.5), 0 0 15px rgba(0, 245, 212, 0.5); }
+    100% { transform: scale(1.1); box-shadow: inset 0 0 25px rgba(0, 245, 212, 0.8), 0 0 30px rgba(0, 245, 212, 0.8); }
 }
 
 /* ==========================================================================

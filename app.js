@@ -1206,27 +1206,39 @@ function renderActiveExercise() {
     renderSetsRows(exercise);
 }
 
-// Generar elementos secundarios adicionales de las animaciones CSS
+// Generar elementos secundarios adicionales de las animaciones CSS (ahora Imágenes 3D)
 function getAnimationExtraElements(animationClass) {
+    let imgSrc = '';
+    let overlayHtml = '';
+
     if (animationClass === 'pushup-animation') {
-        return `<div class="pushup-body"></div><div class="pushup-arms"></div>`;
+        imgSrc = 'img/pushup.png';
+        overlayHtml = '<div class="neon-arrow down-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'squat-animation') {
+        imgSrc = 'img/squat.png';
+        overlayHtml = '<div class="neon-arrow down-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'dips-animation') {
+        imgSrc = 'img/dips.png';
+        overlayHtml = '<div class="neon-arrow down-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'press-animation') {
+        imgSrc = 'img/press.png';
+        overlayHtml = '<div class="neon-arrow up-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'bridge-animation') {
+        imgSrc = 'img/bridge.png';
+        overlayHtml = '<div class="neon-arrow up-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'crunch-animation') {
+        imgSrc = 'img/crunch.png';
+        overlayHtml = '<div class="neon-arrow diagonal-arrow"></div><div class="neon-weight">LBS</div>';
     }
-    if (animationClass === 'squat-animation') {
-        return `<div class="squat-torso"></div><div class="squat-legs"></div>`;
-    }
-    if (animationClass === 'dips-animation') {
-        return `<div class="dips-bar"></div><div class="dips-body"></div>`;
-    }
-    if (animationClass === 'press-animation') {
-        return `<div class="press-body"></div><div class="press-barbell"></div>`;
-    }
-    if (animationClass === 'bridge-animation') {
-        return `<div class="bridge-hips"></div>`;
-    }
-    if (animationClass === 'crunch-animation') {
-        return `<div class="crunch-legs"></div><div class="crunch-torso"></div>`;
-    }
-    return '';
+
+    return `
+        <div class="img-3d-wrapper">
+            <img src="${imgSrc}" class="exercise-3d-img" alt="Exercise Illustration">
+            <div class="neon-overlay-container">
+                ${overlayHtml}
+            </div>
+        </div>
+    `;
 }
 
 // Renderizar Filas de Series
