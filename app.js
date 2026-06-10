@@ -1602,11 +1602,25 @@ window.forceAppCleanup = function() {
     console.log("Iniciando limpieza forzada de la aplicación...");
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Desregistrar el Service Worker para forzar la actualización de red
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for(let registration of registrations) {
+                registration.unregister();
+            }
+        });
+    }
+
     caches.keys().then(function(names) {
-        for (let name of names) caches.delete(name);
-    }).finally(() => {
+        let deletePromises = [];
+        for (let name of names) {
+            deletePromises.push(caches.delete(name));
+        }
+        return Promise.all(deletePromises);
+    }).catch(console.error).finally(() => {
         alert("Aplicación y datos limpiados correctamente. Recargando...");
-        window.location.reload(true);
+        window.location.href = window.location.pathname + '?reset=' + new Date().getTime();
     });
 };
 
