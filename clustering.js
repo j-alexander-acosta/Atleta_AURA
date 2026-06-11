@@ -52,7 +52,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(1),
                 assignedCluster: "Comprometido",
                 bodyFat: 16.0,
-                imc: 25.3
+                imc: 25.3,
+                profileType: "estudiante",
+                muscleMass: 42.5,
+                skeletalMuscle: 38.0,
+                injured: 0,
+                injuryDetails: ""
             },
             {
                 id: "user-2",
@@ -71,7 +76,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(2),
                 assignedCluster: "Comprometido",
                 bodyFat: 24.3,
-                imc: 22.8
+                imc: 22.8,
+                profileType: "deportista_seleccionado",
+                muscleMass: 31.0,
+                skeletalMuscle: 28.5,
+                injured: 0,
+                injuryDetails: ""
             },
             {
                 id: "user-3",
@@ -90,7 +100,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(4),
                 assignedCluster: "Irregular",
                 bodyFat: 22.6,
-                imc: 27.5
+                imc: 27.5,
+                profileType: "deportista_seleccionado",
+                muscleMass: 44.2,
+                skeletalMuscle: 39.1,
+                injured: 1,
+                injuryDetails: "Esguince de Tobillo Grado 2"
             },
             {
                 id: "user-4",
@@ -109,7 +124,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(5),
                 assignedCluster: "Irregular",
                 bodyFat: 23.0,
-                imc: 21.6
+                imc: 21.6,
+                profileType: "estudiante",
+                muscleMass: 27.5,
+                skeletalMuscle: 25.0,
+                injured: 0,
+                injuryDetails: ""
             },
             {
                 id: "user-5",
@@ -128,7 +148,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(10),
                 assignedCluster: "Alto riesgo",
                 bodyFat: 26.7,
-                imc: 28.7
+                imc: 28.7,
+                profileType: "estudiante",
+                muscleMass: 46.0,
+                skeletalMuscle: 41.2,
+                injured: 0,
+                injuryDetails: ""
             },
             {
                 id: "user-6",
@@ -147,7 +172,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: daysAgo(8),
                 assignedCluster: "Alto riesgo",
                 bodyFat: 33.9,
-                imc: 23.6
+                imc: 23.6,
+                profileType: "estudiante",
+                muscleMass: 30.5,
+                skeletalMuscle: 27.2,
+                injured: 0,
+                injuryDetails: ""
             }
         ];
 
@@ -183,7 +213,7 @@ const AURA_AI = (() => {
             { id: "log-17", userId: "user-6", date: daysAgo(8), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "43 min", volume: 300, setsCount: 7, sets: [] }
         ];
 
-        return { users: mockUsers, logs: mockLogs };
+        return { users: mockUsers, logs: mockLogs, attendance: [] };
     };
 
     // Inicializar localStorage si no existe
@@ -244,7 +274,12 @@ const AURA_AI = (() => {
                 lastWorkoutDate: userObj.lastWorkoutDate,
                 assignedCluster: userObj.assignedCluster || "Pendiente",
                 bodyFat: parseFloat(bfp.toFixed(1)),
-                imc: userObj.imc || parseFloat((userObj.weight / Math.pow(userObj.height / 100, 2)).toFixed(1))
+                imc: userObj.imc || parseFloat((userObj.weight / Math.pow(userObj.height / 100, 2)).toFixed(1)),
+                profileType: userObj.profileType || "estudiante",
+                muscleMass: userObj.muscleMass || 0.0,
+                skeletalMuscle: userObj.skeletalMuscle || 0.0,
+                injured: userObj.injured ? 1 : 0,
+                injuryDetails: userObj.injuryDetails || ""
             };
 
             if (idx !== -1) {
@@ -515,12 +550,36 @@ const AURA_AI = (() => {
         return notifications;
     };
 
+    const getAttendance = () => {
+        loadDB();
+        if (!db.attendance) {
+            db.attendance = [];
+            saveDB();
+        }
+        return db.attendance;
+    };
+
+    const addAttendance = (att) => {
+        loadDB();
+        if (!db.attendance) db.attendance = [];
+        const newAtt = {
+            id: `att-${Date.now()}`,
+            date: new Date().toISOString(),
+            ...att
+        };
+        db.attendance.push(newAtt);
+        saveDB();
+        return newAtt;
+    };
+
     return {
         getUsers,
         addLog,
         runClustering,
         generateNotifications,
         loadDB,
-        calculateNavySealBFP
+        calculateNavySealBFP,
+        getAttendance,
+        addAttendance
     };
 })();

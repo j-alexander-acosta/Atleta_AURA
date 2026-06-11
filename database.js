@@ -19,9 +19,21 @@ function initDb() {
         goal TEXT,
         level TEXT,
         streak INTEGER,
-        assignedCluster TEXT
+        assignedCluster TEXT,
+        profileType TEXT DEFAULT 'estudiante',
+        muscleMass REAL DEFAULT 0.0,
+        skeletalMuscle REAL DEFAULT 0.0,
+        injured INTEGER DEFAULT 0,
+        injuryDetails TEXT DEFAULT ''
       )
     `);
+
+    // Migraciones rápidas para bases de datos existentes
+    db.run("ALTER TABLE users ADD COLUMN profileType TEXT DEFAULT 'estudiante'", () => {});
+    db.run("ALTER TABLE users ADD COLUMN muscleMass REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN skeletalMuscle REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN injured INTEGER DEFAULT 0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN injuryDetails TEXT DEFAULT ''", () => {});
 
     // Tabla Workouts / Logs
     db.run(`
@@ -37,6 +49,18 @@ function initDb() {
       )
     `);
 
+    // Tabla de Asistencia
+    db.run(`
+      CREATE TABLE IF NOT EXISTS attendance (
+        id TEXT PRIMARY KEY,
+        userId TEXT,
+        date TEXT,
+        type TEXT,
+        notes TEXT,
+        FOREIGN KEY (userId) REFERENCES users(id)
+      )
+    `);
+
     console.log('Base de datos inicializada correctamente.');
   });
 }
@@ -44,12 +68,14 @@ function initDb() {
 function saveUser(user, callback) {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO users 
-    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run([
     user.id, user.name, user.age, user.sex, user.weight, user.height,
-    user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente'
+    user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
+    user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
+    user.injured ? 1 : 0, user.injuryDetails || ''
   ], function(err) {
     callback(err);
   });
@@ -70,9 +96,35 @@ function saveLog(log, callback) {
   stmt.finalize();
 }
 
+function saveAttendance(att, callback) {
+  const stmt = db.prepare(`
+    INSERT INTO attendance (id, userId, date, type, notes)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  stmt.run([
+    att.id || `att-${Date.now()}`, att.userId, att.date || new Date().toISOString(), att.type || 'standard', att.notes || ''
+  ], function(err) {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+function getAttendanceList(callback) {
+  db.all(`
+    SELECT a.*, u.name as userName, u.profileType 
+    FROM attendance a 
+    LEFT JOIN users u ON a.userId = u.id
+    ORDER BY a.date DESC
+  `, (err, rows) => {
+    callback(err, rows);
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
   saveUser,
-  saveLog
+  saveLog,
+  saveAttendance,
+  getAttendanceList
 };

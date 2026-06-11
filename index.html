@@ -86,6 +86,25 @@
                             <input type="number" id="input-neck" placeholder="cm" min="20" max="80" step="0.1" required>
                         </div>
                     </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Tipo de Perfil</label>
+                            <div class="segment-control" id="profile-type-control">
+                                <button type="button" class="segment-btn active" data-type="estudiante" style="padding: 6px;">Estudiante</button>
+                                <button type="button" class="segment-btn" data-type="deportista_seleccionado" style="padding: 6px;">Seleccionado</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="input-muscle-mass">% Masa Muscular</label>
+                            <input type="number" id="input-muscle-mass" placeholder="%" min="5" max="80" step="0.1" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-skeletal-muscle">% Músculo-Esquelético</label>
+                            <input type="number" id="input-skeletal-muscle" placeholder="%" min="5" max="80" step="0.1" required>
+                        </div>
+                    </div>
                     <div class="form-group hidden" id="group-hip">
                         <label for="input-hip">Cadera (cm)</label>
                         <input type="number" id="input-hip" placeholder="cm (Requerido para mujeres)" min="40" max="200" step="0.1">
@@ -103,7 +122,29 @@
                             </div>
                         </div>
                         <span id="imc-badge" class="imc-category-badge">Normal</span>
-                        <p id="imc-desc" class="text-xs text-secondary text-center">Estimaciones calculadas a partir de tus medidas antropométricas.</p>
+                        <p id="imc-desc" class="text-xs text-secondary text-center" style="margin-bottom: 8px;">Estimaciones calculadas a partir de tus medidas antropométricas.</p>
+                        
+                        <!-- Rango de peso saludable y barra visual -->
+                        <div id="imc-range-container" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                <span class="text-secondary">Rango Saludable:</span>
+                                <span id="imc-healthy-range-text" class="text-cyan font-bold" style="color: var(--color-neon-teal);">--</span>
+                            </div>
+                            <div id="imc-weight-status-text" class="text-xs text-center" style="font-weight: 600;"></div>
+                            
+                            <!-- Barra de Rango de IMC -->
+                            <div style="position: relative; height: 18px; margin-top: 4px;">
+                                <div style="position: absolute; top: 6px; left: 0; width: 100%; height: 6px; background: linear-gradient(to right, var(--color-danger) 0%, var(--color-danger) 17.5%, var(--color-neon-teal) 17.5%, var(--color-neon-teal) 49.5%, #ffa502 49.5%, #ffa502 75%, var(--color-danger) 75%, var(--color-danger) 100%); border-radius: 3px;"></div>
+                                <div id="imc-slider-indicator" style="position: absolute; top: 3px; left: 0%; width: 12px; height: 12px; border-radius: 50%; background: #ffffff; border: 2px solid var(--bg-card); box-shadow: 0 0 8px #ffffff; transition: left 0.3s ease;"></div>
+                            </div>
+                            
+                            <!-- Etiquetas del rango -->
+                            <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">
+                                <span>Bajo peso</span>
+                                <span>Normal</span>
+                                <span>Sobrepeso/Obesidad</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="onboarding-actions">
@@ -195,6 +236,9 @@
                             <span id="avatar-initials">A</span>
                         </div>
                     </header>
+
+                    <!-- Alert Banners -->
+                    <div id="dashboard-alerts" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;"></div>
 
                     <!-- Stats Quick Panel -->
                     <div class="stats-grid">
@@ -311,6 +355,69 @@
                         </div>
                     </div>
 
+                    <!-- Código QR de Acceso -->
+                    <div class="stats-panel-large" style="margin-bottom: 20px;">
+                        <h3 class="panel-section-title">Acceso Gimnasio</h3>
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0;">
+                            <p class="text-secondary text-xs text-center" style="margin: 0;">Genera tu código QR para marcar asistencia en recepción.</p>
+                            <button id="btn-show-qr" class="btn btn-primary btn-sm btn-glow" style="display: flex; align-items: center; gap: 6px; justify-content: center; width: 100%;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                                <span>Mostrar Mi QR de Acceso</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Panel de Actualización de Métricas -->
+                    <div class="stats-panel-large" style="margin-bottom: 20px;">
+                        <h3 class="panel-section-title">Actualizar Métricas Corporales</h3>
+                        <form id="form-update-metrics" style="display: flex; flex-direction: column; gap: 12px;">
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="profile-input-weight">Peso (kg)</label>
+                                    <input type="number" id="profile-input-weight" placeholder="kg" min="30" max="250" step="0.1" required>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="profile-input-height">Estatura (cm)</label>
+                                    <input type="number" id="profile-input-height" placeholder="cm" min="100" max="250" required>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="profile-input-muscle-mass">% Masa Muscular</label>
+                                    <input type="number" id="profile-input-muscle-mass" placeholder="%" min="5" max="80" step="0.1" required>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label for="profile-input-skeletal-muscle">% Mús-Esquelético</label>
+                                    <input type="number" id="profile-input-skeletal-muscle" placeholder="%" min="5" max="80" step="0.1" required>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="profile-input-type">Tipo de Perfil</label>
+                                <select id="profile-input-type" required style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                    <option value="estudiante">Estudiante</option>
+                                    <option value="deportista_seleccionado">Deportista Seleccionado</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-outline btn-sm btn-block" style="justify-content: center;">Guardar Métricas</button>
+                        </form>
+                    </div>
+
+                    <!-- Panel Médico / Kinesiología (Oculto por defecto) -->
+                    <div id="profile-kinesiology-panel" class="stats-panel-large hidden" style="margin-bottom: 20px;">
+                        <h3 class="panel-section-title" style="color: var(--color-danger);">Estado Médico & Kinesiología</h3>
+                        <div id="kinesiology-status-view">
+                            <!-- Renderizado dinámicamente -->
+                        </div>
+                        <div id="kinesiology-report-form" class="hidden" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                            <h4 class="text-xs uppercase tracking-widest text-secondary" style="margin-bottom: 8px;">Reportar Nueva Lesión</h4>
+                            <div class="form-group">
+                                <label for="input-injury-details">Detalles de la Lesión</label>
+                                <input type="text" id="input-injury-details" placeholder="Ej: Dolor hombro derecho, tendinitis">
+                            </div>
+                            <button id="btn-submit-injury" class="btn btn-danger btn-sm btn-block" style="justify-content: center; width: 100%;">Reportar Lesión y Solicitar Kinesiología</button>
+                        </div>
+                    </div>
+
                     <div class="history-list-section">
                         <h3 class="panel-section-title">Historial Reciente</h3>
                         <div id="history-items-container" class="history-list">
@@ -379,15 +486,55 @@
                                 <thead>
                                     <tr>
                                         <th>ATLETA</th>
-                                        <th>NIVEL</th>
-                                        <th>GRASA (IA)</th>
-                                        <th>ÚLTIMA SESIÓN</th>
-                                        <th>RACHA</th>
-                                        <th>CLUSTER</th>
+                                        <th>PERFIL / NIVEL</th>
+                                        <th>MÉTRICAS MANUALES</th>
+                                        <th>GRASA / IMC</th>
+                                        <th>ESTADO MÉDICO</th>
+                                        <th>CLUSTER / RACHA</th>
+                                        <th>ASISTENCIA</th>
                                     </tr>
                                 </thead>
                                 <tbody id="admin-users-table-body">
                                     <!-- Generado dinámicamente por JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Simulador Escáner QR de Asistencia -->
+                    <div class="admin-ai-panel" style="margin-bottom: 20px; border-color: rgba(0, 245, 212, 0.25);">
+                        <div class="admin-ai-header">
+                            <div class="ai-title-group">
+                                <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
+                                <h3>Simulador de Escáner QR de Asistencia</h3>
+                            </div>
+                        </div>
+                        <div style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
+                            <p class="text-secondary text-xs" style="margin: 0;">Simula la lectura de un código QR de acceso desde el dispositivo de un atleta.</p>
+                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                <select id="admin-qr-select-user" style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                    <!-- Cargado dinámicamente -->
+                                </select>
+                                <button id="btn-simulate-qr-scan" class="btn btn-primary btn-sm btn-glow">Simular Escaneo QR</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Registro de Asistencias Recientes -->
+                    <div class="admin-table-section" style="margin-bottom: 20px;">
+                        <h3 class="panel-section-title">Historial de Asistencia del Día</h3>
+                        <div class="table-responsive">
+                            <table class="admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>HORA</th>
+                                        <th>ATLETA</th>
+                                        <th>TIPO PERFIL</th>
+                                        <th>TIPO INGRESO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="admin-attendance-table-body">
+                                    <!-- Cargado dinámicamente -->
                                 </tbody>
                             </table>
                         </div>
@@ -568,6 +715,28 @@
                 </div>
         </div>
 
+        <!-- MODAL DE CÓDIGO QR -->
+        <div id="qr-modal" class="modal hidden">
+            <div class="modal-overlay" id="qr-modal-overlay"></div>
+            <div class="modal-wrapper" style="max-width: 350px;">
+                <div class="modal-header">
+                    <h3>Mi Código de Acceso QR</h3>
+                    <button id="btn-qr-modal-close" class="btn-icon-close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body text-center" style="padding: 24px 20px; display: flex; flex-direction: column; align-items: center; gap: 16px;">
+                    <div id="qr-code-placeholder" style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; width: 224px; height: 224px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                        <!-- Imagen QR se carga dinámicamente -->
+                    </div>
+                    <div>
+                        <h4 id="qr-modal-user-name" style="margin: 0; font-family: var(--font-display); color: var(--text-primary);">Atleta</h4>
+                        <p id="qr-modal-user-type" class="text-xs text-secondary" style="margin: 4px 0 0 0; text-transform: uppercase; letter-spacing: 1.5px; color: var(--color-neon-teal);">Estudiante</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- 6. MODAL DE CONFIRMACIÓN PERSONALIZADO -->
         <div id="confirm-modal" class="modal hidden">
             <div class="modal-overlay" id="confirm-modal-overlay"></div>
@@ -592,6 +761,7 @@
     </div>
 
     <!-- JS Aplicación -->
+    <script src="qrcode.min.js"></script>
     <script src="clustering.js"></script>
     <script src="app.js"></script>
 </body>

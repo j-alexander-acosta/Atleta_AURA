@@ -260,6 +260,215 @@ const WORKOUT_DATABASE = {
                 ]
             }
         ]
+    },
+    // Rutinas para Deportistas Seleccionados
+    upper_selected: {
+        name: "Tren Superior Selección (Potencia)",
+        duration: "35 min",
+        exercises: [
+            {
+                name: "Movilidad Articular Torso Selección",
+                muscle: "Hombros (Movilidad)",
+                animationClass: "press-animation",
+                videoUrl: "https://www.youtube.com/embed/FD31v3S23-s",
+                instructions: [
+                    "Realiza rotaciones dinámicas amplias de hombros y escápulas.",
+                    "Haz estiramientos dinámicos de pectorales y rotadores con banda elástica."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 }
+                ]
+            },
+            {
+                name: "Flexiones de Brazos Explosivas",
+                muscle: "Pecho (Potencia)",
+                animationClass: "pushup-animation",
+                videoUrl: "https://www.youtube.com/embed/4y0i5Kz0qf4",
+                instructions: [
+                    "Coloca las manos en el suelo. Cuerpo alineado.",
+                    "Fase Excéntrica: Baja el pecho de forma controlada (2 seg).",
+                    "Fase Concéntrica: Empuja explosivamente despegando las manos del suelo (palmada si es posible)."
+                ],
+                sets: [
+                    { reps: 10, weight: 0 },
+                    { reps: 10, weight: 0 },
+                    { reps: 8, weight: 0 },
+                    { reps: 8, weight: 0 }
+                ]
+            },
+            {
+                name: "Press Militar de Pie con Banda",
+                muscle: "Hombros (Shoulders)",
+                animationClass: "press-animation",
+                videoUrl: "https://www.youtube.com/embed/_yC_1gP3nO4",
+                instructions: [
+                    "Pisa la banda elástica con ambos pies y sujeta los extremos a la altura de los hombros.",
+                    "Empuja de forma vertical explosiva extendiendo los brazos totalmente sobre la cabeza.",
+                    "Desciende de forma controlada resistiendo la tensión elástica (3 seg)."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 10, weight: 0 },
+                    { reps: 10, weight: 0 }
+                ]
+            },
+            {
+                name: "Apertura de Pecho Doble Banda",
+                muscle: "Pecho (Chest)",
+                animationClass: "press-animation",
+                videoUrl: "https://www.youtube.com/embed/cM8lB46b3J0",
+                instructions: [
+                    "Ancla la banda doble y colócate de espaldas.",
+                    "Abre los brazos y junta las manos al frente con máxima contracción pectoral.",
+                    "Fase excéntrica lenta resistiendo la tensión del elástico."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 10, weight: 0 }
+                ]
+            },
+            {
+                name: "Fondos en Silla Explosivos",
+                muscle: "Tríceps / Hombros",
+                animationClass: "dips-animation",
+                videoUrl: "https://www.youtube.com/embed/642-qS9q_tU",
+                instructions: [
+                    "Coloca manos en el borde de la silla. Piernas estiradas para mayor palanca.",
+                    "Baja la cadera verticalmente doblando codos.",
+                    "Empuja con máxima potencia de tríceps recuperando la posición de bloqueo."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 10, weight: 0 }
+                ]
+            }
+        ]
+    },
+    lower_selected: {
+        name: "Tren Inferior Selección (Reactivo)",
+        duration: "35 min",
+        exercises: [
+            {
+                name: "Movilidad Cadera y Tobillo Dinámica",
+                muscle: "Piernas (Movilidad)",
+                animationClass: "bridge-animation",
+                videoUrl: "https://www.youtube.com/embed/Aq_Ohf4MhNU",
+                instructions: [
+                    "Realiza sentadillas profundas manteniendo talones apoyados.",
+                    "Ejecuta zancadas laterales y giros de tobillo para activar articulaciones."
+                ],
+                sets: [
+                    { reps: 15, weight: 0 },
+                    { reps: 15, weight: 0 }
+                ]
+            },
+            {
+                name: "Sentadilla con Salto Pliométrica",
+                muscle: "Piernas (Fuerza Reactiva)",
+                animationClass: "squat-animation",
+                videoUrl: "https://www.youtube.com/embed/W7oK3saC52g",
+                instructions: [
+                    "Realiza una sentadilla profunda cargando los talones.",
+                    "Empuja fuertemente y realiza un salto vertical buscando máxima altura.",
+                    "Amortigua la caída flexionando rodillas para iniciar el siguiente salto."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 10, weight: 0 },
+                    { reps: 10, weight: 0 }
+                ]
+            },
+            {
+                name: "Estocadas Pliométricas Alternadas",
+                muscle: "Piernas (Fuerza Explosiva)",
+                animationClass: "squat-animation",
+                videoUrl: "https://www.youtube.com/embed/Ry-wqegeKlE",
+                instructions: [
+                    "Inicia en posición de estocada. Salta explosivamente hacia arriba.",
+                    "En el aire, alterna la posición de las piernas.",
+                    "Cae amortiguando en posición de estocada con la pierna contraria al frente."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 10, weight: 0 }
+                ]
+            },
+            {
+                name: "Puente de Glúteos Unilateral",
+                muscle: "Glúteos / Femorales",
+                animationClass: "bridge-animation",
+                videoUrl: "https://www.youtube.com/embed/7uS-f49R71M",
+                instructions: [
+                    "Acuéstate boca arriba, dobla una rodilla apoyando el pie. Eleva la otra pierna.",
+                    "Eleva la pelvis contrayendo glúteos de forma explosiva.",
+                    "Regresa de forma controlada sin apoyar los glúteos en el suelo."
+                ],
+                sets: [
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 }
+                ]
+            }
+        ]
+    },
+    core_selected: {
+        name: "Core Selección (Estabilidad)",
+        duration: "20 min",
+        exercises: [
+            {
+                name: "Plancha con Toque de Hombros",
+                muscle: "Abdomen (Core)",
+                animationClass: "pushup-animation",
+                videoUrl: "https://www.youtube.com/embed/p1L6oW3d7b8",
+                instructions: [
+                    "Colócate en posición de plancha alta con manos alineadas.",
+                    "Toca el hombro izquierdo con la mano derecha, y viceversa, alternadamente.",
+                    "Evita balancear la cadera manteniendo el abdomen fuertemente contraído."
+                ],
+                sets: [
+                    { reps: 20, weight: 0 },
+                    { reps: 20, weight: 0 },
+                    { reps: 20, weight: 0 }
+                ]
+            },
+            {
+                name: "Elevación de Piernas al Pecho",
+                muscle: "Abdomen (Core)",
+                animationClass: "crunch-animation",
+                videoUrl: "https://www.youtube.com/embed/fE9f_3R_a1E",
+                instructions: [
+                    "Boca arriba, eleva las rodillas hacia el pecho de forma explosiva.",
+                    "Regresa al inicio extendiendo las piernas de forma lenta y controlada."
+                ],
+                sets: [
+                    { reps: 15, weight: 0 },
+                    { reps: 12, weight: 0 },
+                    { reps: 12, weight: 0 }
+                ]
+            },
+            {
+                name: "Giros Rusos con Tensión",
+                muscle: "Abdomen / Oblicuos",
+                animationClass: "crunch-animation",
+                videoUrl: "https://www.youtube.com/embed/X-M8Ww6H0y4",
+                instructions: [
+                    "Siéntate inclinando el torso atrás en 45 grados, pies despegados del suelo.",
+                    "Gira el torso hacia un costado y luego hacia el otro con control abdominal.",
+                    "Mantén la espalda recta en todo momento."
+                ],
+                sets: [
+                    { reps: 20, weight: 0 },
+                    { reps: 20, weight: 0 },
+                    { reps: 20, weight: 0 }
+                ]
+            }
+        ]
     }
 };
 
@@ -394,6 +603,9 @@ const DOM = {
     bfpValue: document.getElementById('bfp-value'),
     imcBadge: document.getElementById('imc-badge'),
     imcDesc: document.getElementById('imc-desc'),
+    imcHealthyRangeText: document.getElementById('imc-healthy-range-text'),
+    imcWeightStatusText: document.getElementById('imc-weight-status-text'),
+    imcSliderIndicator: document.getElementById('imc-slider-indicator'),
 
     // Antropometría
     genderControl: document.getElementById('gender-control'),
@@ -406,7 +618,34 @@ const DOM = {
     confirmModal: document.getElementById('confirm-modal'),
     btnConfirmCancel: document.getElementById('btn-confirm-cancel'),
     btnConfirmAccept: document.getElementById('btn-confirm-accept'),
-    confirmModalOverlay: document.getElementById('confirm-modal-overlay')
+    confirmModalOverlay: document.getElementById('confirm-modal-overlay'),
+
+    // Nuevos elementos agregados
+    profileTypeControl: document.getElementById('profile-type-control'),
+    inputMuscleMass: document.getElementById('input-muscle-mass'),
+    inputSkeletalMuscle: document.getElementById('input-skeletal-muscle'),
+    dashboardAlerts: document.getElementById('dashboard-alerts'),
+    btnShowQr: document.getElementById('btn-show-qr'),
+    formUpdateMetrics: document.getElementById('form-update-metrics'),
+    profileInputWeight: document.getElementById('profile-input-weight'),
+    profileInputHeight: document.getElementById('profile-input-height'),
+    profileInputMuscleMass: document.getElementById('profile-input-muscle-mass'),
+    profileInputSkeletalMuscle: document.getElementById('profile-input-skeletal-muscle'),
+    profileInputType: document.getElementById('profile-input-type'),
+    profileKinesiologyPanel: document.getElementById('profile-kinesiology-panel'),
+    kinesiologyStatusView: document.getElementById('kinesiology-status-view'),
+    kinesiologyReportForm: document.getElementById('kinesiology-report-form'),
+    inputInjuryDetails: document.getElementById('input-injury-details'),
+    btnSubmitInjury: document.getElementById('btn-submit-injury'),
+    qrModal: document.getElementById('qr-modal'),
+    qrModalOverlay: document.getElementById('qr-modal-overlay'),
+    btnQrModalClose: document.getElementById('btn-qr-modal-close'),
+    qrCodePlaceholder: document.getElementById('qr-code-placeholder'),
+    qrModalUserName: document.getElementById('qr-modal-user-name'),
+    qrModalUserType: document.getElementById('qr-modal-user-type'),
+    adminQrSelectUser: document.getElementById('admin-qr-select-user'),
+    btnSimulateQrScan: document.getElementById('btn-simulate-qr-scan'),
+    adminAttendanceTableBody: document.getElementById('admin-attendance-table-body')
 };
 
 // Variables temporales para el onboarding
@@ -423,7 +662,12 @@ let tempProfile = {
     level: 'principiante',
     days: [], // Lunes = 1, Domingo = 0
     imc: 0,
-    bodyFat: 0
+    bodyFat: 0,
+    profileType: 'estudiante',
+    muscleMass: 0,
+    skeletalMuscle: 0,
+    injured: 0,
+    injuryDetails: ''
 };
 
 /* ==========================================================================
@@ -476,6 +720,18 @@ function initEventListeners() {
     // 1. Navegación Onboarding
     DOM.btnOnboardingStart.addEventListener('click', () => showOnboardingStep(2));
     
+    // Escuchador para control segmentado de Tipo de Perfil en Onboarding
+    if (DOM.profileTypeControl) {
+        const typeBtns = DOM.profileTypeControl.querySelectorAll('.segment-btn');
+        typeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                typeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                tempProfile.profileType = btn.dataset.type;
+            });
+        });
+    }
+
     DOM.btnOnboardingTo3.addEventListener('click', () => {
         if (validateStep2()) {
             tempProfile.name = DOM.inputName.value.trim();
@@ -485,6 +741,8 @@ function initEventListeners() {
             tempProfile.waist = parseFloat(DOM.inputWaist.value);
             tempProfile.neck = parseFloat(DOM.inputNeck.value);
             tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
+            tempProfile.muscleMass = parseFloat(DOM.inputMuscleMass.value) || 0.0;
+            tempProfile.skeletalMuscle = parseFloat(DOM.inputSkeletalMuscle.value) || 0.0;
             showOnboardingStep(3);
         } else {
             alert("Por favor completa todos tus datos físicos y antropométricos requeridos.");
@@ -696,6 +954,95 @@ function initEventListeners() {
             location.reload();
         });
     }
+
+    // 10. Acciones de Código QR y Actualización de Métricas del Perfil
+    if (DOM.btnShowQr) {
+        DOM.btnShowQr.addEventListener('click', () => {
+            if (!AppState.user) return;
+            const qrData = AppState.user.id || 'active-user';
+            
+            // Limpiar marcador e inicializar el código QR local
+            DOM.qrCodePlaceholder.innerHTML = '';
+            try {
+                new QRCode(DOM.qrCodePlaceholder, {
+                    text: qrData,
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (err) {
+                console.error("Error generating QR:", err);
+                DOM.qrCodePlaceholder.innerHTML = `<p class="text-secondary text-xs text-center">Error al generar QR local. ID: ${qrData}</p>`;
+            }
+            
+            DOM.qrModalUserName.textContent = AppState.user.name;
+            DOM.qrModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
+            
+            DOM.qrModal.classList.remove('hidden');
+        });
+    }
+
+    const closeQrModal = () => {
+        if (DOM.qrModal) DOM.qrModal.classList.add('hidden');
+    };
+    if (DOM.btnQrModalClose) DOM.btnQrModalClose.addEventListener('click', closeQrModal);
+    if (DOM.qrModalOverlay) DOM.qrModalOverlay.addEventListener('click', closeQrModal);
+
+    if (DOM.formUpdateMetrics) {
+        DOM.formUpdateMetrics.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!AppState.user) return;
+            
+            AppState.user.weight = parseFloat(DOM.profileInputWeight.value) || AppState.user.weight;
+            AppState.user.height = parseFloat(DOM.profileInputHeight.value) || AppState.user.height;
+            AppState.user.muscleMass = parseFloat(DOM.profileInputMuscleMass.value) || AppState.user.muscleMass;
+            AppState.user.skeletalMuscle = parseFloat(DOM.profileInputSkeletalMuscle.value) || AppState.user.skeletalMuscle;
+            if (DOM.profileInputType) {
+                AppState.user.profileType = DOM.profileInputType.value || AppState.user.profileType;
+            }
+            
+            // Recalcular IMC
+            AppState.user.imc = parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1));
+            
+            saveActiveUserToDatabase();
+            renderProfileTab();
+            renderDashboard();
+            renderRoutinesTab();
+            renderAdminTab();
+            alert("✓ Métricas corporales y de perfil actualizadas correctamente.");
+        });
+    }
+
+    if (DOM.btnSubmitInjury) {
+        DOM.btnSubmitInjury.addEventListener('click', () => {
+            if (!AppState.user || AppState.user.profileType !== 'deportista_seleccionado') return;
+            
+            const details = DOM.inputInjuryDetails.value.trim();
+            if (!details) {
+                alert("Por favor detalla la lesión antes de enviar el reporte.");
+                return;
+            }
+            
+            AppState.user.injured = 1;
+            AppState.user.injuryDetails = details;
+            
+            saveActiveUserToDatabase();
+            DOM.inputInjuryDetails.value = '';
+            renderProfileTab();
+            renderDashboard();
+            alert("🚨 Lesión reportada. Se ha solicitado revisión médica / kinesiología.");
+        });
+    }
+
+    if (DOM.btnSimulateQrScan) {
+        DOM.btnSimulateQrScan.addEventListener('click', () => {
+            const userId = DOM.adminQrSelectUser.value;
+            if (!userId) return;
+            registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR');
+        });
+    }
 }
 
 /* ==========================================================================
@@ -734,7 +1081,9 @@ function validateStep2() {
                       DOM.inputWeight.value !== '' &&
                       DOM.inputHeight.value !== '' &&
                       DOM.inputWaist.value !== '' &&
-                      DOM.inputNeck.value !== '';
+                      DOM.inputNeck.value !== '' &&
+                      DOM.inputMuscleMass.value !== '' &&
+                      DOM.inputSkeletalMuscle.value !== '';
     if (tempProfile.sex === 'female') {
         return baseValid && DOM.inputHip.value !== '';
     }
@@ -762,22 +1111,54 @@ function updateIMCOnboarding() {
         let badgeClass = "normal";
         let desc = "¡Excelente! Tienes una relación de masa saludable.";
         
+        const minHealthyWeight = (18.5 * Math.pow(height / 100, 2)).toFixed(1);
+        const maxHealthyWeight = (24.9 * Math.pow(height / 100, 2)).toFixed(1);
+        
+        if (DOM.imcHealthyRangeText) {
+            DOM.imcHealthyRangeText.textContent = `${minHealthyWeight} - ${maxHealthyWeight} kg`;
+        }
+        
+        let statusText = '';
+        let statusColor = '';
+        
         if (imc < 18.5) {
             category = "Bajo Peso";
             badgeClass = "bajo";
             desc = "Tu peso está por debajo de lo recomendado. Enfócate en una nutrición superávit.";
+            const diff = (parseFloat(minHealthyWeight) - weight).toFixed(1);
+            statusText = `Bajo el peso mínimo recomendado por ${diff} kg`;
+            statusColor = 'var(--color-danger)';
         } else if (imc >= 18.5 && imc < 25) {
             category = "Normal";
             badgeClass = "normal";
             desc = "¡Excelente! Estás en un rango de peso saludable.";
+            statusText = `Peso óptimo dentro del rango saludable`;
+            statusColor = 'var(--color-neon-teal)';
         } else if (imc >= 25 && imc < 30) {
             category = "Sobrepeso";
             badgeClass = "sobrepeso";
             desc = "Sobre el rango óptimo. Tu plan de entrenamiento te ayudará a recomponer tu física.";
+            const diff = (weight - parseFloat(maxHealthyWeight)).toFixed(1);
+            statusText = `Sobre el peso máximo recomendado por ${diff} kg`;
+            statusColor = '#ffa502';
         } else {
             category = "Obesidad";
             badgeClass = "obesidad";
             desc = "Rango de obesidad. Te sugerimos controlar las cargas iniciales y ser constante.";
+            const diff = (weight - parseFloat(maxHealthyWeight)).toFixed(1);
+            statusText = `Sobrepeso severo (obesidad) por ${diff} kg`;
+            statusColor = 'var(--color-danger)';
+        }
+        
+        if (DOM.imcWeightStatusText) {
+            DOM.imcWeightStatusText.textContent = statusText;
+            DOM.imcWeightStatusText.style.color = statusColor;
+        }
+        
+        // Calcular porcentaje del slider (rango del IMC de 15 a 35)
+        const percentage = Math.min(Math.max(((imc - 15) / 20) * 100, 0), 100);
+        if (DOM.imcSliderIndicator) {
+            DOM.imcSliderIndicator.style.left = `calc(${percentage}% - 6px)`;
         }
         
         if (DOM.imcBadge) {
@@ -842,7 +1223,12 @@ function saveOnboardingProfile() {
         lastWorkoutDate: null,
         imc: tempProfile.imc || parseFloat((tempProfile.weight / Math.pow(tempProfile.height / 100, 2)).toFixed(1)),
         bodyFat: tempProfile.bodyFat || 20.0,
-        assignedCluster: "Pendiente"
+        assignedCluster: "Pendiente",
+        profileType: tempProfile.profileType || "estudiante",
+        muscleMass: tempProfile.muscleMass || 0.0,
+        skeletalMuscle: tempProfile.skeletalMuscle || 0.0,
+        injured: tempProfile.injured || 0,
+        injuryDetails: tempProfile.injuryDetails || ""
     };
     
     localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
@@ -878,8 +1264,12 @@ function getTodayWorkout() {
         targetBlock = (totalCompleted % 2 === 0) ? 'upper' : 'lower';
     }
     
-    const baseRoutine = WORKOUT_DATABASE[targetBlock];
-    const coreRoutine = WORKOUT_DATABASE['core'];
+    const isSelectedAthlete = (AppState.user.profileType === 'deportista_seleccionado');
+    const baseKey = isSelectedAthlete ? `${targetBlock}_selected` : targetBlock;
+    const coreKey = isSelectedAthlete ? 'core_selected' : 'core';
+    
+    const baseRoutine = WORKOUT_DATABASE[baseKey] || WORKOUT_DATABASE[targetBlock];
+    const coreRoutine = WORKOUT_DATABASE[coreKey] || WORKOUT_DATABASE['core'];
     
     const combinedName = `${baseRoutine.name} + ${coreRoutine.name}`;
     const baseMin = parseInt(baseRoutine.duration) || 30;
@@ -914,6 +1304,45 @@ function renderDashboard() {
     if (DOM.btnSelectAuto) DOM.btnSelectAuto.classList.toggle('active', selection === 'auto');
     if (DOM.btnSelectUpper) DOM.btnSelectUpper.classList.toggle('active', selection === 'upper');
     if (DOM.btnSelectLower) DOM.btnSelectLower.classList.toggle('active', selection === 'lower');
+    
+    // Renderizar banners de alerta en el Dashboard
+    let alertsHtml = '';
+    const statusInfo = getWeightStatusInfo(AppState.user.weight, AppState.user.height);
+    if (AppState.user.profileType === 'estudiante' && statusInfo.isUnderweight) {
+        alertsHtml += `
+            <div class="routine-preview-card" style="border-color: rgba(255, 159, 67, 0.4); background: rgba(255, 159, 67, 0.08); display: flex; flex-direction: column; gap: 4px;">
+                <h4 class="preview-title" style="color: #ff9f43; display: flex; align-items: center; gap: 6px; margin: 0;">
+                    ⚠️ ADVERTENCIA: Bajo Peso
+                </h4>
+                <p class="text-sm text-secondary" style="margin: 0;">
+                    Tu peso actual es <strong>${AppState.user.weight} kg</strong>. Tu rango de peso saludable es de <strong>${statusInfo.minWeight} kg</strong> a <strong>${statusInfo.maxWeight} kg</strong>.
+                </p>
+                <p class="text-xs text-secondary" style="margin: 4px 0 0 0; color: #ff9f43; font-weight: 500;">
+                    Debes ganar al menos <strong>${statusInfo.diff} kg</strong> para alcanzar el peso saludable mínimo (IMC 18.5).
+                </p>
+            </div>
+        `;
+    }
+    
+    if (AppState.user.profileType === 'deportista_seleccionado' && AppState.user.injured) {
+        alertsHtml += `
+            <div class="routine-preview-card" style="border-color: rgba(255, 71, 87, 0.4); background: rgba(255, 71, 87, 0.08); display: flex; flex-direction: column; gap: 4px;">
+                <h4 class="preview-title" style="color: var(--color-danger); display: flex; align-items: center; gap: 6px; margin: 0;">
+                    🚨 ALERTA MÉDICA: Lesión Activa
+                </h4>
+                <p class="text-sm text-secondary" style="margin: 0;">
+                    Has reportado la lesión: <strong>"${AppState.user.injuryDetails || 'Sin detalles'}"</strong>.
+                </p>
+                <p class="text-xs text-secondary" style="margin: 4px 0 0 0; color: var(--color-danger); font-weight: 500;">
+                    Por favor asiste a Kinesiología y registra tu sesión en recepción para agilizar tu alta.
+                </p>
+            </div>
+        `;
+    }
+    
+    if (DOM.dashboardAlerts) {
+        DOM.dashboardAlerts.innerHTML = alertsHtml;
+    }
     
     // 1. Bienvenida y datos básicos
     DOM.userGreeting.textContent = `Hola, ${AppState.user.name}`;
@@ -1035,9 +1464,11 @@ function updateStreak() {
 function renderRoutinesTab() {
     DOM.routinesContainer.innerHTML = '';
     
+    const isSelectedAthlete = (AppState.user && AppState.user.profileType === 'deportista_seleccionado');
     const keys = ['upper', 'lower', 'core'];
     keys.forEach(key => {
-        const routine = WORKOUT_DATABASE[key];
+        const dbKey = isSelectedAthlete ? `${key}_selected` : key;
+        const routine = WORKOUT_DATABASE[dbKey] || WORKOUT_DATABASE[key];
         const card = document.createElement('div');
         card.className = 'routine-block-card';
         
@@ -1078,7 +1509,26 @@ function renderProfileTab() {
     const bfpVal = AppState.user.bodyFat || (AppState.user.weight && AppState.user.height ? parseFloat(AURA_AI.calculateNavySealBFP(AppState.user.sex || 'male', AppState.user.height, AppState.user.waist || 80, AppState.user.neck || 36, AppState.user.hip || 0).toFixed(1)) : null);
     const bfpText = bfpVal ? ` • Grasa: ${bfpVal}%` : '';
     
-    DOM.profileStatsSummary.textContent = `Objetivo: ${AppState.user.goal.toUpperCase()} • Nivel: ${AppState.user.level.toUpperCase()} • Peso: ${AppState.user.weight} kg${imcText}${bfpText}`;
+    const typeLabel = AppState.user.profileType === 'deportista_seleccionado' ? 'SELECCIONADO' : 'ESTUDIANTE';
+    const muscleText = AppState.user.muscleMass ? ` • M. Muscular: ${AppState.user.muscleMass}%` : '';
+    const skeletalText = AppState.user.skeletalMuscle ? ` • M. Esquelética: ${AppState.user.skeletalMuscle}%` : '';
+    
+    DOM.profileStatsSummary.textContent = `Perfil: ${typeLabel} • Objetivo: ${AppState.user.goal.toUpperCase()} • Peso: ${AppState.user.weight} kg • Estatura: ${AppState.user.height} cm${imcText}${bfpText}${muscleText}${skeletalText}`;
+    
+    // Poblar inputs del formulario de actualización manual de métricas
+    if (DOM.profileInputWeight) DOM.profileInputWeight.value = AppState.user.weight || '';
+    if (DOM.profileInputHeight) DOM.profileInputHeight.value = AppState.user.height || '';
+    if (DOM.profileInputMuscleMass) DOM.profileInputMuscleMass.value = AppState.user.muscleMass || '';
+    if (DOM.profileInputSkeletalMuscle) DOM.profileInputSkeletalMuscle.value = AppState.user.skeletalMuscle || '';
+    if (DOM.profileInputType) DOM.profileInputType.value = AppState.user.profileType || 'estudiante';
+    
+    // Mostrar u ocultar panel de kinesiología
+    if (AppState.user.profileType === 'deportista_seleccionado') {
+        DOM.profileKinesiologyPanel.classList.remove('hidden');
+        renderKinesiologyStatus();
+    } else {
+        DOM.profileKinesiologyPanel.classList.add('hidden');
+    }
     
     // Estadísticas
     DOM.profileTotalWorkouts.textContent = AppState.history.length;
@@ -1657,38 +2107,86 @@ function renderAdminTab() {
         filteredUsers = filteredUsers.filter(u => u.assignedCluster === filterValue);
     }
     
+    // Poblar selector para simular QR
+    if (DOM.adminQrSelectUser) {
+        const selectedVal = DOM.adminQrSelectUser.value;
+        DOM.adminQrSelectUser.innerHTML = '';
+        users.forEach(user => {
+            const opt = document.createElement('option');
+            opt.value = user.id;
+            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Seleccionado' : 'Estudiante';
+            opt.textContent = `${user.name} (${profileLabel})`;
+            DOM.adminQrSelectUser.appendChild(opt);
+        });
+        if (selectedVal) DOM.adminQrSelectUser.value = selectedVal;
+    }
+
     // 2. Renderizar Tabla de Usuarios
     if (DOM.adminUsersTableBody) {
         DOM.adminUsersTableBody.innerHTML = '';
         filteredUsers.forEach(user => {
             const tr = document.createElement('tr');
             
-            let lastDateStr = '--';
-            if (user.lastWorkoutDate) {
-                lastDateStr = new Date(user.lastWorkoutDate).toLocaleDateString('es-ES', {
-                    day: 'numeric',
-                    month: 'short'
-                });
-            }
-            
             let clusterClass = 'irregular';
             if (user.assignedCluster === 'Comprometido') clusterClass = 'committed';
             else if (user.assignedCluster === 'Alto riesgo') clusterClass = 'highrisk';
             
             const fatVal = user.bodyFat ? `${user.bodyFat.toFixed(1)}%` : '--';
+            const imcVal = user.imc ? user.imc.toFixed(1) : '--';
             
+            let stateBadge = '';
+            if (user.profileType === 'deportista_seleccionado') {
+                stateBadge = user.injured 
+                    ? `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Lesionado</span>`
+                    : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Sano</span>`;
+            } else {
+                stateBadge = `<span class="cluster-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid var(--border-color); font-size:10px;">Estudiante</span>`;
+            }
+
+            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
+            const muscleVal = user.muscleMass ? `${user.muscleMass}%` : '--';
+            const skeletalVal = user.skeletalMuscle ? `${user.skeletalMuscle}%` : '--';
+            const metricsText = `${user.height} cm<br>Mus: ${muscleVal}<br>Esq: ${skeletalVal}`;
+            const bfpImcText = `Grasa: ${fatVal}<br>IMC: ${imcVal}`;
+
+            const kineButton = (user.profileType === 'deportista_seleccionado' && user.injured)
+                ? `<button class="btn btn-primary btn-sm btn-kine" style="padding: 4px 6px; font-size: 10px; margin-left: 2px; background: var(--color-neon-purple); border-color: rgba(123, 44, 191, 0.4);" data-id="${user.id}">+ Kine</button>`
+                : '';
+
             tr.innerHTML = `
-                <td class="user-name-col">${user.name}</td>
-                <td class="user-level-col">${user.level}</td>
-                <td class="font-mono text-neon-pink">${fatVal}</td>
-                <td>${lastDateStr}</td>
-                <td class="font-mono">🔥 ${user.streak}</td>
-                <td><span class="cluster-badge ${clusterClass}">${user.assignedCluster || 'Irregular'}</span></td>
+                <td class="user-name-col" style="font-weight:600; font-size:13px;">${user.name}</td>
+                <td><span style="font-size: 12px; font-weight: 500; color:var(--text-primary);">${profileLabel}</span><br><span style="font-size: 11px; color: var(--text-secondary);">${user.level}</span></td>
+                <td style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${metricsText}</td>
+                <td class="font-mono text-neon-pink" style="font-size: 11px; line-height: 1.3;">${bfpImcText}</td>
+                <td>${stateBadge}</td>
+                <td><span class="cluster-badge ${clusterClass}" style="font-size:10px;">${user.assignedCluster || 'Irregular'}</span><br><span style="font-size: 11px; color: var(--text-secondary);">Racha: 🔥 ${user.streak}</span></td>
+                <td>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn btn-primary btn-sm btn-attendance-check" style="padding: 4px 6px; font-size: 10px;" data-id="${user.id}">+ Gral</button>
+                        ${kineButton}
+                    </div>
+                </td>
             `;
+            
+            // Vincular eventos a los botones creados
+            tr.querySelector('.btn-attendance-check').addEventListener('click', () => {
+                registerUserAttendance(user.id, 'standard');
+            });
+            
+            const kBtn = tr.querySelector('.btn-kine');
+            if (kBtn) {
+                kBtn.addEventListener('click', () => {
+                    registerUserAttendance(user.id, 'kinesiology', `Rehabilitación: ${user.injuryDetails || ''}`);
+                });
+            }
+
             DOM.adminUsersTableBody.appendChild(tr);
         });
     }
     
+    // Renderizar historial de ingresos del día
+    renderAttendanceHistory();
+
     // 3. Renderizar Notificaciones de Recuperación
     if (DOM.adminNotificationsContainer) {
         DOM.adminNotificationsContainer.innerHTML = '';
@@ -1725,4 +2223,200 @@ function renderAdminTab() {
             DOM.adminNotificationsContainer.appendChild(card);
         });
     }
+}
+
+// Calcular rango de peso saludable e información si está bajo peso
+function getWeightStatusInfo(weight, height) {
+    const heightM = height / 100;
+    const minWeight = parseFloat((18.5 * heightM * heightM).toFixed(1));
+    const maxWeight = parseFloat((24.9 * heightM * heightM).toFixed(1));
+    const isUnderweight = weight < minWeight;
+    const diff = isUnderweight ? parseFloat((minWeight - weight).toFixed(1)) : 0.0;
+    
+    return {
+        minWeight,
+        maxWeight,
+        isUnderweight,
+        diff
+    };
+}
+
+// Renderizar el estado de Kinesiología y reportes de lesión
+function renderKinesiologyStatus() {
+    if (!AppState.user || AppState.user.profileType !== 'deportista_seleccionado') return;
+    
+    const viewContainer = DOM.kinesiologyStatusView;
+    const formContainer = DOM.kinesiologyReportForm;
+    
+    if (AppState.user.injured) {
+        viewContainer.innerHTML = `
+            <div style="background: rgba(255, 71, 87, 0.05); border: 1px solid rgba(255, 71, 87, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--color-danger); font-weight: bold; font-size: 13px; text-transform: uppercase;">● Lesión Activa</span>
+                    <button id="btn-recovery-clear" class="btn btn-outline btn-sm" style="font-size: 11px; padding: 4px 10px; border-color: rgba(0, 245, 212, 0.4); color: var(--color-neon-teal);">Recuperado (Alta)</button>
+                </div>
+                <p class="text-sm text-secondary" style="margin: 0;"><strong>Detalles:</strong> "${AppState.user.injuryDetails || 'Sin detalles'}"</p>
+                <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 4px; display: flex; flex-direction: column; gap: 6px;">
+                    <p class="text-xs text-secondary" style="margin: 0;">¿Asististe hoy a una sesión de Kinesiología?</p>
+                    <button id="btn-kinesiology-checkin" class="btn btn-primary btn-sm" style="font-size: 12px; padding: 8px 12px; display: flex; justify-content: center; align-items: center; gap: 6px; width: 100%;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        <span>Registrar mi Asistencia a Kinesiología</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        formContainer.classList.add('hidden');
+        
+        // Agregar manejadores
+        viewContainer.querySelector('#btn-recovery-clear').addEventListener('click', () => {
+            AppState.user.injured = 0;
+            AppState.user.injuryDetails = '';
+            saveActiveUserToDatabase();
+            renderProfileTab();
+            renderDashboard();
+        });
+        
+        viewContainer.querySelector('#btn-kinesiology-checkin').addEventListener('click', () => {
+            const att = {
+                userId: 'active-user',
+                date: new Date().toISOString(),
+                type: 'kinesiology',
+                notes: `Sesión de Kinesiología por lesión: ${AppState.user.injuryDetails}`
+            };
+            
+            AURA_AI.addAttendance(att);
+            fetch('/api/attendance', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(att)
+            })
+            .then(() => {
+                alert("✓ Asistencia a Kinesiología registrada con éxito.");
+                renderAdminTab();
+            })
+            .catch(err => console.error("Error guardando asistencia:", err));
+        });
+    } else {
+        viewContainer.innerHTML = `
+            <div style="background: rgba(0, 245, 212, 0.05); border: 1px solid rgba(0, 245, 212, 0.2); border-radius: 12px; padding: 16px; text-align: center;">
+                <p class="text-sm text-cyan" style="margin: 0; font-weight: bold;">✓ Sin lesiones activas reportadas</p>
+                <p class="text-xs text-secondary" style="margin: 4px 0 0 0;">Estás en óptimas condiciones de alto rendimiento.</p>
+                <button id="btn-toggle-injury-form" class="btn btn-outline btn-sm" style="margin-top: 10px; font-size: 11px; padding: 6px 12px; border-color: rgba(255, 71, 87, 0.4); color: var(--color-danger);">Reportar Lesión</button>
+            </div>
+        `;
+        formContainer.classList.add('hidden');
+        
+        viewContainer.querySelector('#btn-toggle-injury-form').addEventListener('click', () => {
+            formContainer.classList.toggle('hidden');
+        });
+    }
+}
+
+// Guardar el usuario activo actual en LocalStorage y sincronizarlo con el servidor
+function saveActiveUserToDatabase() {
+    localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
+    // Sincronizar en la nube
+    fetch('/api/workouts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: AppState.user })
+    })
+    .then(res => res.json())
+    .then(data => console.log("Usuario guardado en la nube:", data))
+    .catch(err => console.error("Error sincronizando usuario:", err));
+}
+
+// Registrar asistencia de usuario (Estándar o Kinesiología)
+function registerUserAttendance(userId, type = 'standard', notes = '') {
+    const users = AURA_AI.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    const att = {
+        userId: userId,
+        date: new Date().toISOString(),
+        type: type,
+        notes: notes || (type === 'kinesiology' ? `Kinesiología: ${user.injuryDetails || 'Lesión'}` : 'Acceso gimnasio general')
+    };
+    
+    // Guardar en la DB local simulada
+    AURA_AI.addAttendance(att);
+    
+    // Guardar en la base de datos de Express (SQLite)
+    fetch('/api/attendance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(att)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            playBeep(600, 0.15); // Sonido de éxito
+            renderAdminTab();
+        }
+    })
+    .catch(err => {
+        console.error("Error sincronizando asistencia:", err);
+        // Fallback local exitoso si no hay red
+        playBeep(600, 0.15);
+        renderAdminTab();
+    });
+}
+
+// Renderizar el historial de ingresos de asistencia
+function renderAttendanceHistory() {
+    if (!DOM.adminAttendanceTableBody) return;
+    
+    fetch('/api/attendance')
+    .then(res => res.json())
+    .then(data => {
+        const list = data.attendance || [];
+        const localAtt = AURA_AI.getAttendance();
+        
+        // Combinar listas sin duplicar
+        const allAtt = [...localAtt];
+        list.forEach(item => {
+            if (!allAtt.some(a => a.id === item.id)) {
+                allAtt.push(item);
+            }
+        });
+        
+        // Ordenar fecha desc
+        allAtt.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        DOM.adminAttendanceTableBody.innerHTML = '';
+        if (allAtt.length === 0) {
+            DOM.adminAttendanceTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay ingresos registrados hoy.</td></tr>`;
+            return;
+        }
+        
+        allAtt.forEach(att => {
+            const users = AURA_AI.getUsers();
+            const user = users.find(u => u.id === att.userId);
+            const userName = att.userName || (user ? user.name : 'Atleta Desconocido');
+            const profileType = att.profileType || (user ? user.profileType : 'estudiante');
+            const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
+            
+            const timeStr = new Date(att.date).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            const typeLabel = att.type === 'kinesiology'
+                ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
+                : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-mono" style="font-size: 11px;">${timeStr}</td>
+                <td style="font-weight: 500; font-size: 12px;">${userName}</td>
+                <td style="font-size: 12px; color: var(--text-secondary);">${profileLabel}</td>
+                <td style="font-size: 11px; line-height: 1.3;">${typeLabel}<br><span style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</span></td>
+            `;
+            DOM.adminAttendanceTableBody.appendChild(tr);
+        });
+    })
+    .catch(err => {
+        console.error("Error obteniendo asistencia:", err);
+    });
 }

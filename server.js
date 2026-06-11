@@ -18,12 +18,11 @@ db.initDb();
 app.post('/api/workouts', (req, res) => {
   const { user, log } = req.body;
 
-  if (!user || !log) {
-    return res.status(400).json({ error: 'Faltan datos del usuario o del entrenamiento' });
+  if (!user) {
+    return res.status(400).json({ error: 'Faltan datos del usuario' });
   }
 
   // 1. Guardar o actualizar el usuario
-  // Aquí simulamos el procesamiento de IA actualizando el clúster (podría llamar a clustering.js/py en el futuro)
   if (user.streak > 3) {
     user.assignedCluster = 'Comprometido';
   } else if (user.streak > 0) {
@@ -37,9 +36,11 @@ app.post('/api/workouts', (req, res) => {
   });
 
   // 2. Guardar el registro de entrenamiento
-  db.saveLog(log, (err) => {
-    if (err) console.error("Error guardando entrenamiento:", err);
-  });
+  if (log) {
+    db.saveLog(log, (err) => {
+      if (err) console.error("Error guardando entrenamiento:", err);
+    });
+  }
 
   // 3. Generar mensaje de motivación (Motivation Reminders)
   let motivationMessage = "¡Excelente trabajo! Sigue así.";
@@ -53,6 +54,33 @@ app.post('/api/workouts', (req, res) => {
     success: true,
     message: 'Entrenamiento registrado en la nube con éxito.',
     motivation: motivationMessage
+  });
+});
+
+// Endpoint para registrar asistencia (QR o manual)
+app.post('/api/attendance', (req, res) => {
+  const att = req.body;
+  if (!att || !att.userId) {
+    return res.status(400).json({ error: 'Faltan datos para registrar asistencia' });
+  }
+
+  db.saveAttendance(att, (err) => {
+    if (err) {
+      console.error("Error registrando asistencia:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+  });
+});
+
+// Endpoint para consultar asistencia
+app.get('/api/attendance', (req, res) => {
+  db.getAttendanceList((err, rows) => {
+    if (err) {
+      console.error("Error listando asistencia:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, attendance: rows });
   });
 });
 

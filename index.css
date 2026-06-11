@@ -151,6 +151,13 @@ body {
     letter-spacing: 0.5px;
 }
 
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+}
+
 .btn-primary {
     background: var(--gradient-primary);
     color: var(--bg-black);
