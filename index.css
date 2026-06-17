@@ -1117,6 +1117,30 @@ input[type="number"]:focus {
     letter-spacing: 0.5px;
 }
 
+.machine-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background-color: rgba(0, 245, 212, 0.15);
+    color: var(--color-neon-teal);
+    border: 1px solid rgba(0, 245, 212, 0.3);
+    padding: 4px 8px;
+    font-size: 10px;
+    border-radius: 30px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.exercise-item-machine {
+    display: inline-block;
+    color: var(--color-neon-teal);
+    font-size: 11px;
+    margin-top: 2px;
+    font-weight: 500;
+}
+
+
 .btn-video-guide {
     position: absolute;
     bottom: 12px;

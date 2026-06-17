@@ -84,6 +84,67 @@ app.get('/api/attendance', (req, res) => {
   });
 });
 
+// Endpoint para consultar rutinas completas con ejercicios y máquinas (Dinámico)
+app.get('/api/routines', (req, res) => {
+  db.getRoutinesWithExercisesAndMachines((err, rows) => {
+    if (err) {
+      console.error("Error al consultar rutinas:", err);
+      return res.status(500).json({ error: "Error de base de datos" });
+    }
+
+    const routines = {};
+
+    rows.forEach(row => {
+      const rId = row.routine_id;
+      if (!routines[rId]) {
+        routines[rId] = {
+          name: row.routine_name,
+          duration: row.routine_duration,
+          exercises: []
+        };
+      }
+
+      let instructions = [];
+      try {
+        instructions = JSON.parse(row.exercise_instructions || '[]');
+      } catch (e) {
+        console.error("Error parseando instrucciones:", e);
+      }
+
+      let sets = [];
+      try {
+        sets = JSON.parse(row.exercise_sets || '[]');
+      } catch (e) {
+        console.error("Error parseando sets:", e);
+      }
+
+      const exercise = {
+        name: row.exercise_name,
+        muscle: row.exercise_muscle,
+        animationClass: row.exercise_animationClass,
+        videoUrl: row.exercise_videoUrl,
+        instructions: instructions,
+        sets: sets
+      };
+
+      if (row.maquina_id) {
+        exercise.machine = {
+          id: row.maquina_id,
+          name: row.maquina_name,
+          description: row.maquina_desc,
+          zone: row.maquina_zona
+        };
+      } else {
+        exercise.machine = null;
+      }
+
+      routines[rId].exercises.push(exercise);
+    });
+
+    res.json({ success: true, routines });
+  });
+});
+
 // Endpoint para descargar la base de datos (Admin Only)
 app.get('/api/admin/download-db', (req, res) => {
   const secret = req.query.secret;

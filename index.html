@@ -610,6 +610,7 @@
                         <!-- Imagen representativa / Animación CSS -->
                         <div class="exercise-skeleton-loader">
                             <div class="muscles-targeted-badge" id="exercise-target-muscle">Cargando...</div>
+                            <div class="machine-badge hidden" id="exercise-machine-badge">Cargando...</div>
                             <div class="skeleton-illustration" id="exercise-illustration">
                                 <!-- Animaciones personalizadas SVG/CSS añadidas por JS -->
                             </div>
@@ -622,6 +623,10 @@
 
                     <div class="exercise-info-section">
                         <h2 id="exercise-active-name" class="exercise-name">Nombre del Ejercicio</h2>
+                        <div id="exercise-machine-info" class="text-secondary text-xs hidden" style="margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                            <span class="machine-location-label" style="background-color: var(--bg-obsidian); border: 1px solid var(--border-color); padding: 2px 6px; border-radius: 4px;">📍 Ubicación: <span id="exercise-machine-zone">--</span></span>
+                            <span class="machine-desc-label" style="color: var(--text-muted); font-style: italic;" id="exercise-machine-desc">--</span>
+                        </div>
                         <div id="exercise-instructions-list" class="exercise-instructions text-secondary text-sm">
                             <!-- Instrucciones paso a paso -->
                         </div>

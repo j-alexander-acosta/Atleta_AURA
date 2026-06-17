@@ -2,475 +2,8 @@
    AURA FITNESS BUSINESS LOGIC - APP.JS
    ========================================================================== */
 
-// 1. Catálogo Completo de Ejercicios y Rutinas (Basados en las imágenes)
-const WORKOUT_DATABASE = {
-    // Día A: Tren Superior (Upper Body) - Pecho y Hombros (2 Grupos Musculares)
-    upper: {
-        name: "Tren Superior Élite",
-        duration: "30 min",
-        exercises: [
-            {
-                name: "Movilidad Articular Torso",
-                muscle: "Hombros (Movilidad)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/FD31v3S23-s",
-                instructions: [
-                    "Párate con pies firmes y realiza rotaciones lentas de hombros.",
-                    "Lleva tus brazos estirados hacia los lados dibujando círculos pequeños.",
-                    "Abre el pecho estirando una banda elástica de baja resistencia frente a ti (Fila 2, Columna 1-2)."
-                ],
-                sets: [
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Flexiones de Brazos Estándar",
-                muscle: "Pecho (Chest)",
-                animationClass: "pushup-animation",
-                videoUrl: "https://www.youtube.com/embed/4y0i5Kz0qf4",
-                instructions: [
-                    "Coloca las manos en el suelo, separadas un poco más que el ancho de hombros (Imagen 2).",
-                    "Cuerpo alineado en línea recta desde los hombros hasta los talones.",
-                    "Fase Excéntrica: Baja el pecho doblando los codos hacia atrás en ángulo de 45 grados (3 seg).",
-                    "Fase Concéntrica: Empuja con fuerza contrayendo el pecho hasta extender los brazos (1 seg)."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 8, weight: 0 }
-                ]
-            },
-            {
-                name: "Flexiones Inclinadas en Silla",
-                muscle: "Pecho (Chest)",
-                animationClass: "pushup-animation",
-                videoUrl: "https://www.youtube.com/embed/6B928R2g060",
-                instructions: [
-                    "Apoya las manos firmemente en el borde de una silla o banco estable (Imagen 2 - Variante).",
-                    "Step back para alinear el torso y las piernas formando una pendiente diagonal.",
-                    "Fase Excéntrica: Baja el torso controladamente hasta rozar la silla con el esternón (3 seg).",
-                    "Fase Concéntrica: Empuja con fuerza enfocando el esfuerzo en la zona inferior del pectoral (1 seg)."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Apertura de Pecho con Banda",
-                muscle: "Pecho (Chest)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/cM8lB46b3J0",
-                instructions: [
-                    "Ancla la banda detrás de tu espalda a la altura de las escápulas (Imagen 3 - Fila 5, Columna 2).",
-                    "Extiende los brazos hacia adelante manteniendo una ligera flexión en los codos.",
-                    "Junta las manos al frente de tu cuerpo contrayendo el pecho en la parte concéntrica.",
-                    "Regresa de forma lenta y controlada abriendo los brazos (3 seg)."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Press de Hombros Sentado con Banda",
-                muscle: "Hombros (Shoulders)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/_yC_1gP3nO4",
-                instructions: [
-                    "Siéntate erguido sobre una silla pisando la banda elástica (Imagen 3 - Fila 5, Columna 3).",
-                    "Sostén los agarres a la altura de tus orejas con las palmas hacia adelante.",
-                    "Fase Concéntrica: Empuja la banda hacia arriba sobre tu cabeza hasta estirar los brazos (1 seg).",
-                    "Fase Excéntrica: Baja la banda lentamente resistiendo la tensión hasta la barbilla (2.5 seg)."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Elevaciones Laterales con Banda",
-                muscle: "Hombros (Shoulders)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/g62x_tW4q-E",
-                instructions: [
-                    "De pie, pisa el centro de la banda con un pie (Imagen 3 - Fila 4, Columna 2).",
-                    "Sujeta los extremos de la banda con los brazos extendidos a los costados.",
-                    "Fase Concéntrica: Eleva los brazos lateralmente hasta la altura de los hombros (1 seg).",
-                    "Fase Excéntrica: Baja los brazos lentamente controlando la tensión (2.5 seg)."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Fondos en Silla (Dips)",
-                muscle: "Hombros (Shoulders)",
-                animationClass: "dips-animation",
-                videoUrl: "https://www.youtube.com/embed/642-qS9q_tU",
-                instructions: [
-                    "Apoya las palmas en el borde del banco, pies al frente (Imagen 2 - Fondos/Dips).",
-                    "Desciende la cadera de forma vertical doblando los codos.",
-                    "Mantén la espalda pegada al banco.",
-                    "Empuja de vuelta extendiendo los brazos con la fuerza del tríceps y deltoide anterior."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            }
-        ]
-    },
-    // Día B: Tren Inferior (Lower Body) - Piernas
-    lower: {
-        name: "Tren Inferior Potencia",
-        duration: "30 min",
-        exercises: [
-            {
-                name: "Movilidad Cadera y Tobillo",
-                muscle: "Piernas (Movilidad)",
-                animationClass: "bridge-animation",
-                videoUrl: "https://www.youtube.com/embed/Aq_Ohf4MhNU",
-                instructions: [
-                    "Realiza sentadillas profundas sin carga sujetándote de un soporte (Imagen 4).",
-                    "Haz estocadas laterales alternas lentas para activar aductores (Fila 3, Columna 1).",
-                    "Realiza flexiones y giros dinámicos de tobillo de pie."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Sentadilla Peso Corporal",
-                muscle: "Piernas (Cuádriceps/Glúteos)",
-                animationClass: "squat-animation",
-                videoUrl: "https://www.youtube.com/embed/W7oK3saC52g",
-                instructions: [
-                    "Pies al ancho de hombros, puntas ligeramente hacia afuera (Imagen 2).",
-                    "Fase Excéntrica: Baja la cadera empujándola hacia atrás como sentándote (3 seg).",
-                    "Mantén la rodilla alineada en la dirección del pie sin colapsar.",
-                    "Fase Concéntrica: Empuja con fuerza desde los talones para recuperar la verticalidad (1 seg)."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Estocadas Alternadas (Lunges)",
-                muscle: "Piernas (Cuádriceps/Glúteos)",
-                animationClass: "squat-animation",
-                videoUrl: "https://www.youtube.com/embed/Ry-wqegeKlE",
-                instructions: [
-                    "Da un paso largo hacia adelante manteniendo la espalda recta (Imagen 2).",
-                    "Fase Excéntrica: Desciende ambas rodillas hasta que la trasera roce el suelo.",
-                    "La rodilla delantera debe formar un ángulo de 90 grados y estar alineada con el pie.",
-                    "Fase Concéntrica: Empuja fuerte con la pierna delantera para regresar (1 seg)."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Puente de Glúteos con Banda",
-                muscle: "Piernas (Cuádriceps/Glúteos)",
-                animationClass: "bridge-animation",
-                videoUrl: "https://www.youtube.com/embed/7uS-f49R71M",
-                instructions: [
-                    "Acuéstate boca arriba, rodillas dobladas, pies apoyados en el suelo (Imagen 5 - Fila 1, Columna 3).",
-                    "Coloca una banda elástica arriba de tus rodillas.",
-                    "Fase Concéntrica: Eleva la pelvis apretando los glúteos y empujando las rodillas hacia afuera.",
-                    "Fase Excéntrica: Baja la pelvis lentamente sin apoyar completamente los glúteos (2.5 seg)."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 }
-                ]
-            }
-        ]
-    },
-    // Rutina C: Abdominales y Core
-    core: {
-        name: "Abdominales Esculpidos",
-        duration: "15 min",
-        exercises: [
-            {
-                name: "Crunch Abdominal",
-                muscle: "Abdomen (Core)",
-                animationClass: "crunch-animation",
-                videoUrl: "https://www.youtube.com/embed/X-M8Ww6H0y4",
-                instructions: [
-                    "Boca arriba, rodillas flexionadas y pies planos (Imagen 2).",
-                    "Cruza las manos al pecho o apóyalas suavemente en las sienes.",
-                    "Fase Concéntrica: Eleva los hombros y escápulas contrayendo el abdomen al exhalar.",
-                    "Mantén la zona lumbar apoyada firmemente en el suelo."
-                ],
-                sets: [
-                    { reps: 20, weight: 0 },
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 }
-                ]
-            },
-            {
-                name: "Elevación de Piernas en Suelo",
-                muscle: "Abdomen (Core)",
-                animationClass: "crunch-animation",
-                videoUrl: "https://www.youtube.com/embed/fE9f_3R_a1E",
-                instructions: [
-                    "Boca arriba en el suelo, con las manos debajo de los glúteos para soporte lumbar (Imagen 5 - Fila 5, Columna 1).",
-                    "Mantén las piernas rectas juntas.",
-                    "Fase Concéntrica: Eleva las piernas verticalmente hasta formar un ángulo de 90 grados.",
-                    "Fase Excéntrica: Baja las piernas de forma controlada hasta que estén cerca del suelo (3 seg)."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Plancha Abdominal Estática (Plank)",
-                muscle: "Abdomen (Core)",
-                animationClass: "pushup-animation",
-                videoUrl: "https://www.youtube.com/embed/p1L6oW3d7b8",
-                instructions: [
-                    "Apoya los antebrazos y las puntas de los pies en el suelo (Imagen 5 - Fila 1, Columna 1).",
-                    "Los codos deben quedar alineados directamente debajo de los hombros.",
-                    "Mantén el abdomen y glúteos fuertemente contraídos, cuerpo en línea recta.",
-                    "Sostén la posición de forma inmóvil respirando controladamente."
-                ],
-                sets: [
-                    { reps: 30, weight: 0 },
-                    { reps: 30, weight: 0 },
-                    { reps: 30, weight: 0 }
-                ]
-            }
-        ]
-    },
-    // Rutinas para Deportistas Seleccionados
-    upper_selected: {
-        name: "Tren Superior Selección (Potencia)",
-        duration: "35 min",
-        exercises: [
-            {
-                name: "Movilidad Articular Torso Selección",
-                muscle: "Hombros (Movilidad)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/FD31v3S23-s",
-                instructions: [
-                    "Realiza rotaciones dinámicas amplias de hombros y escápulas.",
-                    "Haz estiramientos dinámicos de pectorales y rotadores con banda elástica."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Flexiones de Brazos Explosivas",
-                muscle: "Pecho (Potencia)",
-                animationClass: "pushup-animation",
-                videoUrl: "https://www.youtube.com/embed/4y0i5Kz0qf4",
-                instructions: [
-                    "Coloca las manos en el suelo. Cuerpo alineado.",
-                    "Fase Excéntrica: Baja el pecho de forma controlada (2 seg).",
-                    "Fase Concéntrica: Empuja explosivamente despegando las manos del suelo (palmada si es posible)."
-                ],
-                sets: [
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 8, weight: 0 },
-                    { reps: 8, weight: 0 }
-                ]
-            },
-            {
-                name: "Press Militar de Pie con Banda",
-                muscle: "Hombros (Shoulders)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/_yC_1gP3nO4",
-                instructions: [
-                    "Pisa la banda elástica con ambos pies y sujeta los extremos a la altura de los hombros.",
-                    "Empuja de forma vertical explosiva extendiendo los brazos totalmente sobre la cabeza.",
-                    "Desciende de forma controlada resistiendo la tensión elástica (3 seg)."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Apertura de Pecho Doble Banda",
-                muscle: "Pecho (Chest)",
-                animationClass: "press-animation",
-                videoUrl: "https://www.youtube.com/embed/cM8lB46b3J0",
-                instructions: [
-                    "Ancla la banda doble y colócate de espaldas.",
-                    "Abre los brazos y junta las manos al frente con máxima contracción pectoral.",
-                    "Fase excéntrica lenta resistiendo la tensión del elástico."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Fondos en Silla Explosivos",
-                muscle: "Tríceps / Hombros",
-                animationClass: "dips-animation",
-                videoUrl: "https://www.youtube.com/embed/642-qS9q_tU",
-                instructions: [
-                    "Coloca manos en el borde de la silla. Piernas estiradas para mayor palanca.",
-                    "Baja la cadera verticalmente doblando codos.",
-                    "Empuja con máxima potencia de tríceps recuperando la posición de bloqueo."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            }
-        ]
-    },
-    lower_selected: {
-        name: "Tren Inferior Selección (Reactivo)",
-        duration: "35 min",
-        exercises: [
-            {
-                name: "Movilidad Cadera y Tobillo Dinámica",
-                muscle: "Piernas (Movilidad)",
-                animationClass: "bridge-animation",
-                videoUrl: "https://www.youtube.com/embed/Aq_Ohf4MhNU",
-                instructions: [
-                    "Realiza sentadillas profundas manteniendo talones apoyados.",
-                    "Ejecuta zancadas laterales y giros de tobillo para activar articulaciones."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 15, weight: 0 }
-                ]
-            },
-            {
-                name: "Sentadilla con Salto Pliométrica",
-                muscle: "Piernas (Fuerza Reactiva)",
-                animationClass: "squat-animation",
-                videoUrl: "https://www.youtube.com/embed/W7oK3saC52g",
-                instructions: [
-                    "Realiza una sentadilla profunda cargando los talones.",
-                    "Empuja fuertemente y realiza un salto vertical buscando máxima altura.",
-                    "Amortigua la caída flexionando rodillas para iniciar el siguiente salto."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Estocadas Pliométricas Alternadas",
-                muscle: "Piernas (Fuerza Explosiva)",
-                animationClass: "squat-animation",
-                videoUrl: "https://www.youtube.com/embed/Ry-wqegeKlE",
-                instructions: [
-                    "Inicia en posición de estocada. Salta explosivamente hacia arriba.",
-                    "En el aire, alterna la posición de las piernas.",
-                    "Cae amortiguando en posición de estocada con la pierna contraria al frente."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 10, weight: 0 }
-                ]
-            },
-            {
-                name: "Puente de Glúteos Unilateral",
-                muscle: "Glúteos / Femorales",
-                animationClass: "bridge-animation",
-                videoUrl: "https://www.youtube.com/embed/7uS-f49R71M",
-                instructions: [
-                    "Acuéstate boca arriba, dobla una rodilla apoyando el pie. Eleva la otra pierna.",
-                    "Eleva la pelvis contrayendo glúteos de forma explosiva.",
-                    "Regresa de forma controlada sin apoyar los glúteos en el suelo."
-                ],
-                sets: [
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            }
-        ]
-    },
-    core_selected: {
-        name: "Core Selección (Estabilidad)",
-        duration: "20 min",
-        exercises: [
-            {
-                name: "Plancha con Toque de Hombros",
-                muscle: "Abdomen (Core)",
-                animationClass: "pushup-animation",
-                videoUrl: "https://www.youtube.com/embed/p1L6oW3d7b8",
-                instructions: [
-                    "Colócate en posición de plancha alta con manos alineadas.",
-                    "Toca el hombro izquierdo con la mano derecha, y viceversa, alternadamente.",
-                    "Evita balancear la cadera manteniendo el abdomen fuertemente contraído."
-                ],
-                sets: [
-                    { reps: 20, weight: 0 },
-                    { reps: 20, weight: 0 },
-                    { reps: 20, weight: 0 }
-                ]
-            },
-            {
-                name: "Elevación de Piernas al Pecho",
-                muscle: "Abdomen (Core)",
-                animationClass: "crunch-animation",
-                videoUrl: "https://www.youtube.com/embed/fE9f_3R_a1E",
-                instructions: [
-                    "Boca arriba, eleva las rodillas hacia el pecho de forma explosiva.",
-                    "Regresa al inicio extendiendo las piernas de forma lenta y controlada."
-                ],
-                sets: [
-                    { reps: 15, weight: 0 },
-                    { reps: 12, weight: 0 },
-                    { reps: 12, weight: 0 }
-                ]
-            },
-            {
-                name: "Giros Rusos con Tensión",
-                muscle: "Abdomen / Oblicuos",
-                animationClass: "crunch-animation",
-                videoUrl: "https://www.youtube.com/embed/X-M8Ww6H0y4",
-                instructions: [
-                    "Siéntate inclinando el torso atrás en 45 grados, pies despegados del suelo.",
-                    "Gira el torso hacia un costado y luego hacia el otro con control abdominal.",
-                    "Mantén la espalda recta en todo momento."
-                ],
-                sets: [
-                    { reps: 20, weight: 0 },
-                    { reps: 20, weight: 0 },
-                    { reps: 20, weight: 0 }
-                ]
-            }
-        ]
-    }
-};
+// 1. Catálogo Completo de Ejercicios y Rutinas (Cargado dinámicamente desde SQLite)
+let WORKOUT_DATABASE = {};
 
 // 2. Estado Global de la Aplicación
 let AppState = {
@@ -552,6 +85,10 @@ const DOM = {
     activeWorkoutTimer: document.getElementById('active-workout-timer'),
     activeWorkoutIndex: document.getElementById('active-workout-index'),
     exerciseTargetMuscle: document.getElementById('exercise-target-muscle'),
+    exerciseMachineBadge: document.getElementById('exercise-machine-badge'),
+    exerciseMachineInfo: document.getElementById('exercise-machine-info'),
+    exerciseMachineZone: document.getElementById('exercise-machine-zone'),
+    exerciseMachineDesc: document.getElementById('exercise-machine-desc'),
     exerciseIllustration: document.getElementById('exercise-illustration'),
     exerciseActiveName: document.getElementById('exercise-active-name'),
     exerciseInstructionsList: document.getElementById('exercise-instructions-list'),
@@ -688,19 +225,40 @@ window.addEventListener('DOMContentLoaded', () => {
     
     initEventListeners();
     
-    if (AppState.user) {
-        showScreen('main-layout');
-        renderDashboard();
-        renderRoutinesTab();
-        renderProfileTab();
-    } else {
-        showScreen('screen-onboarding');
-        showOnboardingStep(1);
-    }
+    // Cargar rutinas y máquinas desde el servidor
+    fetchRoutinesFromServer(() => {
+        if (AppState.user) {
+            showScreen('main-layout');
+            renderDashboard();
+            renderRoutinesTab();
+            renderProfileTab();
+        } else {
+            showScreen('screen-onboarding');
+            showOnboardingStep(1);
+        }
+    });
     
     // Registrar Service Worker
     registerServiceWorker();
 });
+
+function fetchRoutinesFromServer(callback) {
+    fetch('/api/routines')
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.routines) {
+                WORKOUT_DATABASE = data.routines;
+                console.log("Rutinas y equipamiento cargados dinámicamente desde el servidor.");
+            } else {
+                console.error("No se pudieron obtener las rutinas desde el servidor.");
+            }
+            if (callback) callback();
+        })
+        .catch(err => {
+            console.error("Error conectando con el servidor para obtener rutinas:", err);
+            if (callback) callback();
+        });
+}
 
 // Cargar Datos desde LocalStorage
 function loadLocalData() {
@@ -1474,9 +1032,13 @@ function renderRoutinesTab() {
         
         let exercisesHtml = '';
         routine.exercises.forEach(ex => {
+            const machineName = ex.machine ? ex.machine.name : 'Peso Corporal';
             exercisesHtml += `
-                <div class="routine-exercise-item">
-                    <span class="exercise-item-name">${ex.name}</span>
+                <div class="routine-exercise-item" style="align-items: flex-start; margin-bottom: 8px;">
+                    <div style="display: flex; flex-direction: column;">
+                        <span class="exercise-item-name">${ex.name}</span>
+                        <span class="exercise-item-machine" style="font-size: 11px; color: var(--color-neon-teal); margin-top: 2px;">🔧 ${machineName}</span>
+                    </div>
                     <span class="exercise-item-sets">${ex.sets.length} series x ${ex.sets[0].reps} rep.</span>
                 </div>
             `;
@@ -1627,6 +1189,19 @@ function renderActiveExercise() {
     DOM.activeWorkoutIndex.textContent = `${AppState.activeExerciseIndex + 1} / ${workout.exercises.length}`;
     DOM.exerciseTargetMuscle.textContent = exercise.muscle;
     DOM.exerciseActiveName.textContent = exercise.name;
+    
+    // Renderizar Info de la Máquina
+    if (exercise.machine) {
+        DOM.exerciseMachineBadge.textContent = `🔧 ${exercise.machine.name}`;
+        DOM.exerciseMachineBadge.classList.remove('hidden');
+        DOM.exerciseMachineZone.textContent = exercise.machine.zone || 'Espacio Abierto';
+        DOM.exerciseMachineDesc.textContent = exercise.machine.description || '';
+        DOM.exerciseMachineInfo.classList.remove('hidden');
+    } else {
+        DOM.exerciseMachineBadge.textContent = '💪 Peso Corporal';
+        DOM.exerciseMachineBadge.classList.remove('hidden');
+        DOM.exerciseMachineInfo.classList.add('hidden');
+    }
     
     // Renderizar Ilustración del Ejercicio (CSS/SVG Animado)
     DOM.exerciseIllustration.innerHTML = `<div class="${exercise.animationClass}">
