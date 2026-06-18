@@ -161,6 +161,83 @@ app.get('/api/admin/download-db', (req, res) => {
   });
 });
 
+// --- SISTEMA DE ASISTENCIA CÓDIGO BARRAS DINÁMICO ---
+const crypto = require('crypto');
+const activeTokens = new Map();
+
+// Limpiar tokens expirados cada minuto
+setInterval(() => {
+  const now = Date.now();
+  for (const [token, data] of activeTokens.entries()) {
+    if (data.expiresAt < now) {
+      activeTokens.delete(token);
+    }
+  }
+}, 60000);
+
+// 1. Endpoint para generar el token corto dinámico
+app.get('/api/asistencia/token', async (req, res) => {
+  const usuario_id = req.query.usuario_id;
+  if (!usuario_id) {
+    return res.status(400).json({ error: 'usuario_id es requerido' });
+  }
+
+  // Generar token corto alfanumérico seguro (8 caracteres)
+  const token = crypto.randomBytes(4).toString('hex').toUpperCase();
+  
+  // Guardar en memoria con expiración estricta de 30 segundos
+  activeTokens.set(token, {
+    usuario_id: usuario_id,
+    expiresAt: Date.now() + 30000
+  });
+
+  res.json({ success: true, token });
+});
+
+// 2. Endpoint exclusivo para recepción para escanear y hacer check-in
+app.post('/api/asistencia/check-in', async (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ success: false, error: 'Token no proporcionado' });
+
+  // Validar el token en memoria
+  const tokenData = activeTokens.get(token);
+  if (!tokenData || tokenData.expiresAt < Date.now()) {
+    if (tokenData) activeTokens.delete(token);
+    return res.status(401).json({ success: false, error: 'Código expirado o inválido' });
+  }
+
+  const usuario_id = tokenData.usuario_id;
+  // Eliminar el token inmediatamente para evitar re-uso
+  activeTokens.delete(token);
+
+    // Verificar margen de 1 hora para evitar duplicados
+    db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+      if (err) {
+        return res.status(500).json({ error: 'Error consultando asistencia previa' });
+      }
+
+      if (row && row.fecha_hora) {
+        // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+        const lastTime = new Date(row.fecha_hora + 'Z').getTime(); 
+        const now = new Date().getTime();
+        const diffMs = now - lastTime;
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours < 1) {
+          return res.status(409).json({ error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+        }
+      }
+
+      // Registrar asistencia en DB
+      db.registrarAsistenciaQR(usuario_id, (err, result) => {
+        if (err) {
+          return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
+        }
+        res.json({ success: true, message: 'Acceso Concedido' });
+      });
+    });
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Servidor Nube AURA corriendo en http://localhost:${PORT}`);

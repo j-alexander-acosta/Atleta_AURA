@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GYM_UCN - Recepción USB Scanner</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+        }
+        .status-box {
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            max-width: 500px;
+            width: 100%;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .status-idle { background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .status-success { background: rgba(0, 255, 128, 0.2); color: #00ff80; border: 1px solid #00ff80; box-shadow: 0 0 20px rgba(0, 255, 128, 0.4); }
+        .status-error { background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid #ff4757; box-shadow: 0 0 20px rgba(255, 71, 87, 0.4); }
+        
+        /* Ocultar el input visualmente pero mantenerlo funcional para el lector USB */
+        #lector {
+            position: absolute;
+            left: -9999px;
+            opacity: 0;
+        }
+    </style>
+</head>
+<body>
+    <div style="margin-bottom: 30px; text-align: center;">
+        <h1 style="color: var(--color-neon-teal); margin: 0; font-size: 2.5rem;">GYM_UCN Recepción</h1>
+        <p style="margin: 5px 0 0 0; color: var(--text-secondary); font-size: 1.2rem;">Escáner de Asistencia USB Activo</p>
+    </div>
+
+    <!-- Input invisible capturador de teclado/escáner -->
+    <input type="text" id="lector" autofocus autocomplete="off">
+
+    <div id="status-box" class="status-box status-idle">
+        Listo. Escanee el código QR...
+    </div>
+
+    <script src="recepcion.js"></script>
+</body>
+</html>

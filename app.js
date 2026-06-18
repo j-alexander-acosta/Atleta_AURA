@@ -174,14 +174,14 @@ const DOM = {
     kinesiologyReportForm: document.getElementById('kinesiology-report-form'),
     inputInjuryDetails: document.getElementById('input-injury-details'),
     btnSubmitInjury: document.getElementById('btn-submit-injury'),
-    qrModal: document.getElementById('qr-modal'),
-    qrModalOverlay: document.getElementById('qr-modal-overlay'),
-    btnQrModalClose: document.getElementById('btn-qr-modal-close'),
-    qrCodePlaceholder: document.getElementById('qr-code-placeholder'),
-    qrModalUserName: document.getElementById('qr-modal-user-name'),
-    qrModalUserType: document.getElementById('qr-modal-user-type'),
-    adminQrSelectUser: document.getElementById('admin-qr-select-user'),
-    btnSimulateQrScan: document.getElementById('btn-simulate-qr-scan'),
+    accessModal: document.getElementById('access-modal'),
+    accessModalOverlay: document.getElementById('access-modal-overlay'),
+    btnAccessModalClose: document.getElementById('btn-access-modal-close'),
+    barcodePlaceholder: document.getElementById('barcode-placeholder'),
+    accessModalUserName: document.getElementById('access-modal-username'),
+    accessModalUserType: document.getElementById('access-modal-usertype'),
+    adminBarcodeSelectUser: document.getElementById('admin-barcode-select-user'),
+    btnSimulateBarcodeScan: document.getElementById('btn-simulate-barcode-scan'),
     adminAttendanceTableBody: document.getElementById('admin-attendance-table-body')
 };
 
@@ -513,40 +513,64 @@ function initEventListeners() {
         });
     }
 
-    // 10. Acciones de Código QR y Actualización de Métricas del Perfil
-    if (DOM.btnShowQr) {
-        DOM.btnShowQr.addEventListener('click', () => {
-            if (!AppState.user) return;
-            const qrData = AppState.user.id || 'active-user';
+    let barcodeRefreshInterval = null;
+
+    // 10. Acciones de Código de Barras y Actualización de Métricas del Perfil
+    if (DOM.btnShowAccess) {
+        DOM.btnShowAccess.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!AppState || !AppState.user) return;
             
-            // Limpiar marcador e inicializar el código QR local
-            DOM.qrCodePlaceholder.innerHTML = '';
-            try {
-                new QRCode(DOM.qrCodePlaceholder, {
-                    text: qrData,
-                    width: 200,
-                    height: 200,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.H
-                });
-            } catch (err) {
-                console.error("Error generating QR:", err);
-                DOM.qrCodePlaceholder.innerHTML = `<p class="text-secondary text-xs text-center">Error al generar QR local. ID: ${qrData}</p>`;
-            }
+            if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
+            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
             
-            DOM.qrModalUserName.textContent = AppState.user.name;
-            DOM.qrModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
+            // Mostrar modal de inmediato para dar feedback al usuario
+            if (DOM.accessModal) DOM.accessModal.classList.remove('hidden');
+            if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Generando acceso seguro...</p>';
             
-            DOM.qrModal.classList.remove('hidden');
+            const refreshBarcode = async () => {
+                try {
+                    const response = await fetch(window.location.origin + `/api/asistencia/token?usuario_id=${AppState.user.id}`);
+                    const data = await response.json();
+                    
+                    if (data.success && data.token) {
+                        if (typeof JsBarcode !== 'undefined') {
+                            // Retraso minúsculo para asegurar que la modal es visible antes de medir el SVG
+                            setTimeout(() => {
+                                JsBarcode("#barcode-svg", data.token, {
+                                    format: "CODE128",
+                                    lineColor: "#000",
+                                    width: 3,
+                                    height: 80,
+                                    displayValue: true,
+                                    fontSize: 24,
+                                    margin: 10
+                                });
+                            }, 50);
+                        } else {
+                            if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Librería Barcode no disponible.</p>';
+                        }
+                    } else {
+                        if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Error al obtener token de asistencia.</p>';
+                    }
+                } catch (err) {
+                    console.error("Error generating Barcode:", err);
+                    if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Error de red.</p>';
+                }
+            };
+
+            await refreshBarcode();
+            if (barcodeRefreshInterval) clearInterval(barcodeRefreshInterval);
+            barcodeRefreshInterval = setInterval(refreshBarcode, 30000);
         });
     }
 
-    const closeQrModal = () => {
-        if (DOM.qrModal) DOM.qrModal.classList.add('hidden');
+    const closeAccessModal = () => {
+        if (DOM.accessModal) DOM.accessModal.classList.add('hidden');
+        if (barcodeRefreshInterval) clearInterval(barcodeRefreshInterval);
     };
-    if (DOM.btnQrModalClose) DOM.btnQrModalClose.addEventListener('click', closeQrModal);
-    if (DOM.qrModalOverlay) DOM.qrModalOverlay.addEventListener('click', closeQrModal);
+    if (DOM.btnAccessModalClose) DOM.btnAccessModalClose.addEventListener('click', closeAccessModal);
+    if (DOM.accessModalOverlay) DOM.accessModalOverlay.addEventListener('click', closeAccessModal);
 
     if (DOM.formUpdateMetrics) {
         DOM.formUpdateMetrics.addEventListener('submit', (e) => {
@@ -1254,6 +1278,21 @@ function getAnimationExtraElements(animationClass) {
     } else if (animationClass === 'crunch-animation') {
         imgSrc = 'img/crunch.png';
         overlayHtml = '<div class="neon-arrow diagonal-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'mobility-animation') {
+        imgSrc = 'img/mobility.png';
+        overlayHtml = '<div class="neon-arrow up-arrow"></div><div class="neon-weight">MOB</div>';
+    } else if (animationClass === 'leg-raises-animation') {
+        imgSrc = 'img/leg_raises.png';
+        overlayHtml = '<div class="neon-arrow up-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'plank-animation') {
+        imgSrc = 'img/plank.png';
+        overlayHtml = '<div class="neon-arrow down-arrow"></div><div class="neon-weight">ISO</div>';
+    } else if (animationClass === 'russian-twists-animation') {
+        imgSrc = 'img/russian_twists.png';
+        overlayHtml = '<div class="neon-arrow diagonal-arrow"></div><div class="neon-weight">LBS</div>';
+    } else if (animationClass === 'lunges-animation') {
+        imgSrc = 'img/lunges.png';
+        overlayHtml = '<div class="neon-arrow down-arrow"></div><div class="neon-weight">LBS</div>';
     }
 
     return `

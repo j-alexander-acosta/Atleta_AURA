@@ -61,6 +61,16 @@ function initDb() {
       )
     `);
 
+    // Tabla de Asistencia (QR Dinámico)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS asistencia (
+        id TEXT PRIMARY KEY,
+        usuario_id TEXT,
+        fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (usuario_id) REFERENCES users(id)
+      )
+    `);
+
     // Tabla de Máquinas
     db.run(`
       CREATE TABLE IF NOT EXISTS maquinas (
@@ -147,7 +157,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-mov-torso',
         nombre: 'Movilidad Articular Torso',
         muscle: 'Hombros (Movilidad)',
-        animationClass: 'press-animation',
+        animationClass: 'mobility-animation',
         videoUrl: 'https://www.youtube.com/embed/FD31v3S23-s',
         instructions: JSON.stringify([
           'Párate con pies firmes y realiza rotaciones lentas de hombros.',
@@ -280,7 +290,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-mov-cadera',
         nombre: 'Movilidad Cadera y Tobillo',
         muscle: 'Piernas (Movilidad)',
-        animationClass: 'bridge-animation',
+        animationClass: 'mobility-animation',
         videoUrl: 'https://www.youtube.com/embed/Aq_Ohf4MhNU',
         instructions: JSON.stringify([
           'Realiza sentadillas profundas sin carga sujetándote de un soporte (Imagen 4).',
@@ -317,7 +327,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-estocadas-lunges',
         nombre: 'Estocadas Alternadas (Lunges)',
         muscle: 'Piernas (Cuádriceps/Glúteos)',
-        animationClass: 'squat-animation',
+        animationClass: 'lunges-animation',
         videoUrl: 'https://www.youtube.com/embed/Ry-wqegeKlE',
         instructions: JSON.stringify([
           'Da un paso largo hacia adelante manteniendo la espalda recta (Imagen 2).',
@@ -375,7 +385,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-elevacion-piernas',
         nombre: 'Elevación de Piernas en Suelo',
         muscle: 'Abdomen (Core)',
-        animationClass: 'crunch-animation',
+        animationClass: 'leg-raises-animation',
         videoUrl: 'https://www.youtube.com/embed/fE9f_3R_a1E',
         instructions: JSON.stringify([
           'Boca arriba en el suelo, con las manos debajo de los glúteos para soporte lumbar (Imagen 5 - Fila 5, Columna 1).',
@@ -394,7 +404,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-plancha-estatica',
         nombre: 'Plancha Abdominal Estática (Plank)',
         muscle: 'Abdomen (Core)',
-        animationClass: 'pushup-animation',
+        animationClass: 'plank-animation',
         videoUrl: 'https://www.youtube.com/embed/p1L6oW3d7b8',
         instructions: JSON.stringify([
           'Apoya los antebrazos y las puntas de los pies en el suelo (Imagen 5 - Fila 1, Columna 1).',
@@ -414,7 +424,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-mov-torso-sel',
         nombre: 'Movilidad Articular Torso Selección',
         muscle: 'Hombros (Movilidad)',
-        animationClass: 'press-animation',
+        animationClass: 'mobility-animation',
         videoUrl: 'https://www.youtube.com/embed/FD31v3S23-s',
         instructions: JSON.stringify([
           'Realiza rotaciones dinámicas amplias de hombros y escápulas.',
@@ -505,7 +515,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-mov-cadera-din',
         nombre: 'Movilidad Cadera y Tobillo Dinámica',
         muscle: 'Piernas (Movilidad)',
-        animationClass: 'bridge-animation',
+        animationClass: 'mobility-animation',
         videoUrl: 'https://www.youtube.com/embed/Aq_Ohf4MhNU',
         instructions: JSON.stringify([
           'Realiza sentadillas profundas manteniendo talones apoyados.',
@@ -540,7 +550,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-estocadas-plio-alt',
         nombre: 'Estocadas Pliométricas Alternadas',
         muscle: 'Piernas (Fuerza Explosiva)',
-        animationClass: 'squat-animation',
+        animationClass: 'lunges-animation',
         videoUrl: 'https://www.youtube.com/embed/Ry-wqegeKlE',
         instructions: JSON.stringify([
           'Inicia en posición de estocada. Salta explosivamente hacia arriba.',
@@ -577,7 +587,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-plancha-toque-hombros',
         nombre: 'Plancha con Toque de Hombros',
         muscle: 'Abdomen (Core)',
-        animationClass: 'pushup-animation',
+        animationClass: 'plank-animation',
         videoUrl: 'https://www.youtube.com/embed/p1L6oW3d7b8',
         instructions: JSON.stringify([
           'Colócate en posición de plancha alta con manos alineadas.',
@@ -595,7 +605,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-elevacion-rodillas-pecho',
         nombre: 'Elevación de Piernas al Pecho',
         muscle: 'Abdomen (Core)',
-        animationClass: 'crunch-animation',
+        animationClass: 'leg-raises-animation',
         videoUrl: 'https://www.youtube.com/embed/fE9f_3R_a1E',
         instructions: JSON.stringify([
           'Boca arriba, eleva las rodillas hacia el pecho de forma explosiva.',
@@ -612,7 +622,7 @@ function seedDatabaseIfNeeded() {
         id: 'ex-giros-rusos-tension',
         nombre: 'Giros Rusos con Tensión',
         muscle: 'Abdomen / Oblicuos',
-        animationClass: 'crunch-animation',
+        animationClass: 'russian-twists-animation',
         videoUrl: 'https://www.youtube.com/embed/X-M8Ww6H0y4',
         instructions: JSON.stringify([
           'Siéntate inclinando el torso atrás en 45 grados, pies despegados del suelo.',
@@ -773,6 +783,28 @@ function getRoutinesWithExercisesAndMachines(callback) {
   });
 }
 
+function registrarAsistenciaQR(usuario_id, callback) {
+  const id = `asist-qr-${Date.now()}`;
+  const stmt = db.prepare(`
+    INSERT INTO asistencia (id, usuario_id)
+    VALUES (?, ?)
+  `);
+  stmt.run([id, usuario_id], function(err) {
+    callback(err, { id, usuario_id });
+  });
+  stmt.finalize();
+}
+
+function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
+  db.get(`
+    SELECT * FROM asistencia 
+    WHERE usuario_id = ? 
+    ORDER BY fecha_hora DESC LIMIT 1
+  `, [usuario_id], (err, row) => {
+    callback(err, row);
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -780,5 +812,7 @@ module.exports = {
   saveLog,
   saveAttendance,
   getAttendanceList,
-  getRoutinesWithExercisesAndMachines
+  getRoutinesWithExercisesAndMachines,
+  registrarAsistenciaQR,
+  obtenerUltimaAsistenciaUsuario
 };
