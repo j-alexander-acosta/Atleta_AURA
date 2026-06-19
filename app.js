@@ -278,6 +278,26 @@ function loadLocalData() {
 function initEventListeners() {
     // 1. Navegación Onboarding
     DOM.btnOnboardingStart.addEventListener('click', () => showOnboardingStep(2));
+    
+    // Acceso directo a Admin desde Onboarding
+    const btnOnboardingAdmin = document.getElementById('btn-onboarding-admin');
+    if (btnOnboardingAdmin) {
+        btnOnboardingAdmin.addEventListener('click', () => {
+            document.getElementById('screen-onboarding').classList.remove('active');
+            document.getElementById('main-layout').classList.add('active');
+            
+            // Ocultar todos los tabs y mostrar admin
+            document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+            document.getElementById('tab-admin').classList.add('active');
+            
+            // Desactivar todos los iconos nav y activar admin
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            const adminNav = document.getElementById('nav-item-admin');
+            if (adminNav) adminNav.classList.add('active');
+            
+            window.checkAdminAuth();
+        });
+    }
 
     // Escuchador para control segmentado de Tipo de Perfil en Onboarding
     if (DOM.profileTypeControl) {
