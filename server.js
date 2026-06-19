@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const db = require('./database');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -15,47 +16,168 @@ app.use(express.static(__dirname)); // Serve the static PWA files
 // Inicializar la base de datos
 db.initDb();
 
+// Función auxiliar: Validación de RUT Chileno (Módulo 11)
+function validarRut(rutCompleto) {
+  if (!/^[0-9]+[-|‐]{1}[0-9kK]{1}$/.test(rutCompleto)) return false;
+  let tmp = rutCompleto.split('-');
+  let digv = tmp[1].toLowerCase();
+  let rut = tmp[0];
+  if (digv == 'K') digv = 'k';
+
+  let M = 0, S = 1;
+  for (; rut; rut = Math.floor(rut / 10))
+    S = (S + rut % 10 * (9 - M++ % 6)) % 11;
+  return S ? S - 1 : 'k' === digv || S ? S - 1 == digv : false; // Ajuste simplificado
+}
+
+// Versión más estricta y correcta de Módulo 11:
+function isValidRut(rut) {
+  if (typeof rut !== 'string') return false;
+  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  if (cleanRut.length < 2) return false;
+
+  const body = cleanRut.slice(0, -1);
+  const dv = cleanRut.slice(-1);
+
+  let sum = 0;
+  let multiplier = 2;
+
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body.charAt(i)) * multiplier;
+    multiplier = multiplier < 7 ? multiplier + 1 : 2;
+  }
+
+  const expectedDv = 11 - (sum % 11);
+  const calculatedDv = expectedDv === 11 ? '0' : expectedDv === 10 ? 'K' : expectedDv.toString();
+
+  return dv === calculatedDv;
+}
+
+const JWT_SECRET = process.env.JWT_SECRET || 'AURA_FITNESS_SECRET_KEY';
+
+// Middleware de Autenticación de Admin
+function authenticateAdmin(req, res, next) {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) return res.status(401).json({ error: 'Acceso denegado. Token no proporcionado.' });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err || user.role !== 'admin') return res.status(403).json({ error: 'Acceso denegado o token expirado.' });
+    req.admin = user;
+    next();
+  });
+}
+
+// Endpoint de Login Admin
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Credenciales incompletas.' });
+
+  db.getAdminByUsername(username, async (err, admin) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor.' });
+    if (!admin) return res.status(401).json({ error: 'Credenciales inválidas.' });
+
+    const match = await bcrypt.compare(password, admin.password_hash);
+    if (!match) return res.status(401).json({ error: 'Credenciales inválidas.' });
+
+    const token = jwt.sign({ username: admin.username, role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
+    res.json({ success: true, token });
+  });
+});
+
+// Endpoint Habilitar Usuario (Protegido)
+app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
+  const { rut, dias_permitidos, es_exento } = req.body;
+
+  if (!rut || !isValidRut(rut)) {
+    return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
+  }
+
+  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  const dias = parseInt(dias_permitidos) || 0;
+
+  db.addUsuarioHabilitado(cleanRut, dias, es_exento, (err) => {
+    if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
+    res.json({ success: true, message: 'Usuario habilitado correctamente.' });
+  });
+});
+
+// Endpoint Validar Habilitación (Público, usado en Onboarding)
+app.get('/api/check-habilitacion', (req, res) => {
+  const rut = req.query.rut;
+  if (!rut || !isValidRut(rut)) {
+    return res.status(400).json({ valid: false, error: 'RUT inválido' });
+  }
+
+  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  db.checkHabilitacion(cleanRut, (err, row) => {
+    if (err) return res.status(500).json({ valid: false, error: 'Error de servidor' });
+
+    if (!row) {
+      return res.json({ valid: false, message: 'RUT no encontrado en la lista de habilitados.' });
+    }
+
+    if (!row.es_exento && row.dias_permitidos <= 0) {
+      return res.json({ valid: false, message: 'RUT sin días de acceso disponibles.' });
+    }
+
+    res.json({ valid: true, message: 'RUT habilitado.' });
+  });
+});
+
 // Endpoint para recibir datos de entrenamiento (Cloud AI Processing & Motivation)
 app.post('/api/workouts', (req, res) => {
   const { user, log } = req.body;
 
-  if (!user) {
-    return res.status(400).json({ error: 'Faltan datos del usuario' });
+  if (!user || !user.rut) {
+    return res.status(400).json({ error: 'Faltan datos del usuario o RUT' });
   }
 
-  // 1. Guardar o actualizar el usuario
-  if (user.streak > 3) {
-    user.assignedCluster = 'Comprometido';
-  } else if (user.streak > 0) {
-    user.assignedCluster = 'Irregular';
-  } else {
-    user.assignedCluster = 'Alto riesgo';
-  }
+  const cleanRut = user.rut.replace(/[^0-9kK]/g, '').toUpperCase();
 
-  db.saveUser(user, (err) => {
-    if (err) console.error("Error guardando usuario:", err);
-  });
+  // Validar contra usuarios_habilitados antes de guardar el usuario
+  db.checkHabilitacion(cleanRut, (err, habilitado) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor validando RUT' });
 
-  // 2. Guardar el registro de entrenamiento
-  if (log) {
-    db.saveLog(log, (err) => {
-      if (err) console.error("Error guardando entrenamiento:", err);
+    if (!habilitado || (!habilitado.es_exento && habilitado.dias_permitidos <= 0)) {
+      return res.status(403).json({ error: 'RUT no habilitado o sin días disponibles' });
+    }
+
+    // 1. Guardar o actualizar el usuario
+    if (user.streak > 3) {
+      user.assignedCluster = 'Comprometido';
+    } else if (user.streak > 0) {
+      user.assignedCluster = 'Irregular';
+    } else {
+      user.assignedCluster = 'Alto riesgo';
+    }
+
+    db.saveUser(user, (err) => {
+      if (err) console.error("Error guardando usuario:", err);
     });
-  }
 
-  // 3. Generar mensaje de motivación (Motivation Reminders)
-  let motivationMessage = "¡Excelente trabajo! Sigue así.";
-  if (user.assignedCluster === 'Comprometido') {
-    motivationMessage = "¡Eres imparable! Tu constancia está dando frutos.";
-  } else if (user.assignedCluster === 'Alto riesgo') {
-    motivationMessage = "No te rindas ahora. Cada paso cuenta para alcanzar tu meta.";
-  }
+    // 2. Guardar el registro de entrenamiento
+    if (log) {
+      db.saveLog(log, (err) => {
+        if (err) console.error("Error guardando entrenamiento:", err);
+      });
+    }
 
-  res.json({
-    success: true,
-    message: 'Entrenamiento registrado en la nube con éxito.',
-    motivation: motivationMessage
-  });
+    // 3. Generar mensaje de motivación (Motivation Reminders)
+    let motivationMessage = "¡Excelente trabajo! Sigue así.";
+    if (user.assignedCluster === 'Comprometido') {
+      motivationMessage = "¡Eres imparable! Tu constancia está dando frutos.";
+    } else if (user.assignedCluster === 'Alto riesgo') {
+      motivationMessage = "No te rindas ahora. Cada paso cuenta para alcanzar tu meta.";
+    }
+
+    res.json({
+      success: true,
+      message: 'Entrenamiento registrado en la nube con éxito.',
+      motivation: motivationMessage
+    });
+  }); // Fin callback db.checkHabilitacion
 });
 
 // Endpoint para registrar asistencia (QR o manual)
@@ -149,7 +271,7 @@ app.get('/api/routines', (req, res) => {
 // Endpoint para descargar la base de datos (Admin Only)
 app.get('/api/admin/download-db', (req, res) => {
   const secret = req.query.secret;
-  
+
   if (secret !== 'admin123') {
     return res.status(403).json({ error: 'Acceso denegado. Contraseña incorrecta.' });
   }
@@ -188,7 +310,7 @@ app.get('/api/asistencia/token', async (req, res) => {
     const JWT_SECRET = process.env.JWT_SECRET || 'AURA_FITNESS_SECRET_KEY';
     // Generar JWT con expiración estricta de 30 segundos
     const token = jwt.sign({ usuario_id }, JWT_SECRET, { expiresIn: '30s' });
-    
+
     // Guardar en memoria con expiración estricta de 30 segundos
     activeTokens.set(token, {
       usuario_id: usuario_id,
@@ -218,32 +340,91 @@ app.post('/api/asistencia/check-in', async (req, res) => {
   // Eliminar el token inmediatamente para evitar re-uso
   activeTokens.delete(token);
 
-    // Verificar margen de 1 hora para evitar duplicados
-    db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+  // Verificar margen de 1 hora para evitar duplicados
+  db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+    if (err) {
+      return res.status(500).json({ error: 'Error consultando asistencia previa' });
+    }
+
+    if (row && row.fecha_hora) {
+      // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+      const lastTime = new Date(row.fecha_hora + 'Z').getTime();
+      const now = new Date().getTime();
+      const diffMs = now - lastTime;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffHours < 1) {
+        return res.status(409).json({ error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+      }
+    }
+
+    // Registrar asistencia en DB
+    db.registrarAsistenciaQR(usuario_id, (err, result) => {
       if (err) {
-        return res.status(500).json({ error: 'Error consultando asistencia previa' });
+        return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
       }
 
-      if (row && row.fecha_hora) {
-        // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
-        const lastTime = new Date(row.fecha_hora + 'Z').getTime(); 
-        const now = new Date().getTime();
-        const diffMs = now - lastTime;
-        const diffHours = diffMs / (1000 * 60 * 60);
-
-        if (diffHours < 1) {
-          return res.status(409).json({ error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+      // Buscar el RUT del usuario y descontar días
+      db.getUserById(usuario_id, (err, rowUser) => {
+        if (!err && rowUser && rowUser.rut) {
+          db.decrementarDiasPermitidos(rowUser.rut, () => {
+            res.json({ success: true, message: 'Acceso Concedido' });
+          });
+        } else {
+          res.json({ success: true, message: 'Acceso Concedido' });
         }
-      }
-
-      // Registrar asistencia en DB
-      db.registrarAsistenciaQR(usuario_id, (err, result) => {
-        if (err) {
-          return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
-        }
-        res.json({ success: true, message: 'Acceso Concedido' });
       });
     });
+  });
+});
+
+// --- ENDPOINTS ADMINISTRATIVOS ---
+app.post('/api/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  db.get("SELECT * FROM administradores WHERE username = ?", [username], async (err, admin) => {
+    if (err || !admin) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+
+    const match = await bcrypt.compare(password, admin.password_hash);
+    if (!match) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
+
+    const token = jwt.sign({ username: admin.username, role: 'admin' }, 'TU_SECRET_KEY_AQUI', { expiresIn: '12h' });
+    res.json({ success: true, token });
+  });
+});
+
+app.get('/api/check-habilitacion', (req, res) => {
+  const { rut } = req.query;
+  if (!rut) return res.status(400).json({ valid: false, message: 'RUT requerido' });
+
+  db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [rut], (err, row) => {
+    if (err || !row) return res.json({ valid: false, message: 'RUT no habilitado.' });
+    if (row.dias_permitidos <= 0 && !row.es_exento) return res.json({ valid: false, message: 'Sin días disponibles.' });
+    res.json({ valid: true });
+  });
+});
+
+// Middleware de autenticación (Debes poner esto arriba de las rutas protegidas)
+const authenticateAdmin = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ success: false, error: 'Token requerido' });
+  const token = authHeader.split(' ')[1];
+  jwt.verify(token, 'TU_SECRET_KEY_AQUI', (err, decoded) => {
+    if (err) return res.status(403).json({ success: false, error: 'Token inválido' });
+    req.admin = decoded;
+    next();
+  });
+};
+
+app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
+  const { rut, dias_permitidos, es_exento } = req.body;
+  db.run(
+    "INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento) VALUES (?, ?, ?)",
+    [rut, dias_permitidos, es_exento ? 1 : 0],
+    (err) => {
+      if (err) return res.status(500).json({ success: false, error: 'Error BD' });
+      res.json({ success: true });
+    }
+  );
 });
 
 // Start Server

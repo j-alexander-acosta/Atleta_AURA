@@ -66,9 +66,18 @@
                     <h2 class="onboarding-title">Cuéntanos sobre ti</h2>
                 </div>
                 <div class="onboarding-content">
-                    <div class="form-group">
-                        <label for="input-name">Nombre o Nickname</label>
-                        <input type="text" id="input-name" placeholder="Ej. Alexander" required>
+                    <div class="form-row">
+                        <!-- NUEVO CAMPO RUT -->
+                        <div class="form-group">
+                            <label for="input-rut">RUT</label>
+                            <input type="text" id="input-rut" placeholder="Ej. 12345678-9" required>
+                            <small id="rut-error-msg"
+                                style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 4px;"></small>
+                        </div>
+                        <div class="form-group">
+                            <label for="input-name">Nombre o Nickname</label>
+                            <input type="text" id="input-name" placeholder="Ej. Alexander" required>
+                        </div>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -551,126 +560,183 @@
 
                 <!-- TAB: ADMINISTRACIÓN -->
                 <section id="tab-admin" class="tab-pane">
-                    <header class="tab-header">
-                        <div>
-                            <span class="text-secondary text-xs font-mono uppercase tracking-widest">GYM_UCN CONTROL
-                                CENTER</span>
-                            <h1 class="welcome-title">Panel de Administración</h1>
-                        </div>
-                    </header>
 
-                    <!-- IA Engine Controls & Summary -->
-                    <div class="admin-ai-panel">
-                        <div class="admin-ai-header">
-                            <div class="ai-title-group">
-                                <span class="ai-pulse-dot"></span>
-                                <h3>Motor de IA (K-Means Clustering)</h3>
-                            </div>
-                            <button id="btn-run-clustering" class="btn btn-primary btn-sm btn-glow">Ejecutar Motor
-                                IA</button>
+                    <!-- Admin Login Overlay -->
+                    <div id="admin-login-overlay"
+                        style="display: flex; flex-direction: column; gap: 15px; padding: 20px; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 20px;">
+                        <h3 class="panel-section-title text-center" style="margin: 0;">Acceso Restringido</h3>
+                        <div class="form-group">
+                            <label for="admin-username">Usuario</label>
+                            <input type="text" id="admin-username" placeholder="Admin">
                         </div>
-                        <div class="ai-stats-summary">
-                            <div class="ai-stat-box">
-                                <span class="ai-stat-lbl">Iteraciones</span>
-                                <span class="ai-stat-val" id="admin-ai-iterations">--</span>
-                            </div>
-                            <div class="ai-stat-box">
-                                <span class="ai-stat-lbl">Comprometidos</span>
-                                <span class="ai-stat-val cluster-val-committed" id="admin-count-committed">0</span>
-                            </div>
-                            <div class="ai-stat-box">
-                                <span class="ai-stat-lbl">Irregulares</span>
-                                <span class="ai-stat-val cluster-val-irregular" id="admin-count-irregular">0</span>
-                            </div>
-                            <div class="ai-stat-box">
-                                <span class="ai-stat-lbl">Alto Riesgo</span>
-                                <span class="ai-stat-val cluster-val-highrisk" id="admin-count-highrisk">0</span>
-                            </div>
+                        <div class="form-group">
+                            <label for="admin-password">Contraseña</label>
+                            <input type="password" id="admin-password" placeholder="••••••••">
                         </div>
+                        <button id="btn-admin-login" class="btn btn-primary">Iniciar Sesión</button>
+                        <small id="admin-login-error"
+                            style="color: var(--color-danger); display: none; text-align: center;"></small>
                     </div>
 
-                    <!-- Tabla de Usuarios Registrados -->
-                    <div class="admin-table-section">
-                        <div class="admin-table-header">
-                            <h3 class="panel-section-title">Atletas Registrados</h3>
-                            <div class="filter-wrapper">
-                                <select id="admin-filter-cluster" class="admin-select-filter">
-                                    <option value="all">Todos los clústeres</option>
-                                    <option value="Comprometido">Comprometidos</option>
-                                    <option value="Irregular">Irregulares</option>
-                                    <option value="Alto riesgo">Alto Riesgo</option>
-                                </select>
+                    <!-- Contenedor Administrativo (Oculto por defecto) -->
+                    <div id="admin-content-wrapper" style="display: none;">
+                        <header class="tab-header"
+                            style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <span class="text-secondary text-xs font-mono uppercase tracking-widest">GYM_UCN CONTROL
+                                    CENTER</span>
+                                <h1 class="welcome-title">Panel de Administración</h1>
+                            </div>
+                            <button id="btn-admin-logout" class="btn btn-secondary btn-sm"
+                                style="border: 1px solid var(--border-color); background: transparent;">Cerrar
+                                Sesión</button>
+                        </header>
+
+                        <!-- NUEVO PANEL: Gestión de Habilitados -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px;">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <h3>Habilitar Estudiantes / Atletas</h3>
+                                </div>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="admin-hab-rut">RUT del Atleta</label>
+                                    <input type="text" id="admin-hab-rut" placeholder="12345678-9">
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-hab-dias">Días de Acceso</label>
+                                    <input type="number" id="admin-hab-dias" placeholder="Ej. 30" value="30">
+                                </div>
+                                <div class="form-group"
+                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 2;">
+                                    <input type="checkbox" id="admin-hab-exento" style="width: 20px; height: 20px;">
+                                    <label for="admin-hab-exento"
+                                        style="margin: 0; cursor: pointer; color: var(--text-secondary);">Atleta Élite
+                                        Exento (Ignora límite de días)</label>
+                                </div>
+                                <button id="btn-admin-habilitar" class="btn btn-primary btn-glow"
+                                    style="grid-column: span 2;">Otorgar Acceso</button>
+                            </div>
+                            <small id="admin-hab-msg"
+                                style="display: block; margin-top: 10px; text-align: center; font-weight: bold;"></small>
+                        </div>
+
+                        <!-- IA Engine Controls & Summary -->
+                        <div class="admin-ai-panel">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot"></span>
+                                    <h3>Motor de IA (K-Means Clustering)</h3>
+                                </div>
+                                <button id="btn-run-clustering" class="btn btn-primary btn-sm btn-glow">Ejecutar Motor
+                                    IA</button>
+                            </div>
+                            <div class="ai-stats-summary">
+                                <div class="ai-stat-box">
+                                    <span class="ai-stat-lbl">Iteraciones</span>
+                                    <span class="ai-stat-val" id="admin-ai-iterations">--</span>
+                                </div>
+                                <div class="ai-stat-box">
+                                    <span class="ai-stat-lbl">Comprometidos</span>
+                                    <span class="ai-stat-val cluster-val-committed" id="admin-count-committed">0</span>
+                                </div>
+                                <div class="ai-stat-box">
+                                    <span class="ai-stat-lbl">Irregulares</span>
+                                    <span class="ai-stat-val cluster-val-irregular" id="admin-count-irregular">0</span>
+                                </div>
+                                <div class="ai-stat-box">
+                                    <span class="ai-stat-lbl">Alto Riesgo</span>
+                                    <span class="ai-stat-val cluster-val-highrisk" id="admin-count-highrisk">0</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>ATLETA</th>
-                                        <th>PERFIL / NIVEL</th>
-                                        <th>MÉTRICAS MANUALES</th>
-                                        <th>GRASA / IMC</th>
-                                        <th>ESTADO MÉDICO</th>
-                                        <th>CLUSTER / RACHA</th>
-                                        <th>ASISTENCIA</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-users-table-body">
-                                    <!-- Generado dinámicamente por JS -->
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
 
-                    <!-- Simulador Escáner QR de Asistencia -->
-                    <div class="admin-ai-panel" style="margin-bottom: 20px; border-color: rgba(0, 245, 212, 0.25);">
-                        <div class="admin-ai-header">
-                            <div class="ai-title-group">
-                                <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
-                                <h3>Simulador de Escáner QR de Asistencia</h3>
+                        <!-- Tabla de Usuarios Registrados -->
+                        <div class="admin-table-section">
+                            <div class="admin-table-header">
+                                <h3 class="panel-section-title">Atletas Registrados</h3>
+                                <div class="filter-wrapper">
+                                    <select id="admin-filter-cluster" class="admin-select-filter">
+                                        <option value="all">Todos los clústeres</option>
+                                        <option value="Comprometido">Comprometidos</option>
+                                        <option value="Irregular">Irregulares</option>
+                                        <option value="Alto riesgo">Alto Riesgo</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>ATLETA</th>
+                                            <th>PERFIL / NIVEL</th>
+                                            <th>MÉTRICAS MANUALES</th>
+                                            <th>GRASA / IMC</th>
+                                            <th>ESTADO MÉDICO</th>
+                                            <th>CLUSTER / RACHA</th>
+                                            <th>ASISTENCIA</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-table-body">
+                                        <!-- Generado dinámicamente por JS -->
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
-                            <p class="text-secondary text-xs" style="margin: 0;">Simula la lectura de un código QR de
-                                acceso desde el dispositivo de un atleta.</p>
-                            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                                <select id="admin-barcode-select-user"
-                                    style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                                    <!-- Cargado dinámicamente -->
-                                </select>
-                                <button id="btn-simulate-barcode-scan" class="btn btn-primary btn-sm btn-glow">Simular
-                                    Escaneo Código</button>
+
+                        <!-- Simulador Escáner QR de Asistencia -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px; border-color: rgba(0, 245, 212, 0.25);">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
+                                    <h3>Simulador de Escáner QR de Asistencia</h3>
+                                </div>
+                            </div>
+                            <div style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
+                                <p class="text-secondary text-xs" style="margin: 0;">Simula la lectura de un código QR
+                                    de
+                                    acceso desde el dispositivo de un atleta.</p>
+                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                    <select id="admin-barcode-select-user"
+                                        style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                        <!-- Cargado dinámicamente -->
+                                    </select>
+                                    <button id="btn-simulate-barcode-scan"
+                                        class="btn btn-primary btn-sm btn-glow">Simular
+                                        Escaneo Código</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <!-- Registro de Asistencias Recientes -->
-                    <div class="admin-table-section" style="margin-bottom: 20px;">
-                        <h3 class="panel-section-title">Historial de Asistencia del Día</h3>
-                        <div class="table-responsive">
-                            <table class="admin-table">
-                                <thead>
-                                    <tr>
-                                        <th>HORA</th>
-                                        <th>ATLETA</th>
-                                        <th>TIPO PERFIL</th>
-                                        <th>TIPO INGRESO</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="admin-attendance-table-body">
-                                    <!-- Cargado dinámicamente -->
-                                </tbody>
-                            </table>
+                        <!-- Registro de Asistencias Recientes -->
+                        <div class="admin-table-section" style="margin-bottom: 20px;">
+                            <h3 class="panel-section-title">Historial de Asistencia del Día</h3>
+                            <div class="table-responsive">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>HORA</th>
+                                            <th>ATLETA</th>
+                                            <th>TIPO PERFIL</th>
+                                            <th>TIPO INGRESO</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-attendance-table-body">
+                                        <!-- Cargado dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Panel de Alertas y Notificaciones -->
-                    <div class="admin-notifications-section">
-                        <h3 class="panel-section-title">Notificaciones de Recuperación Automatizadas</h3>
-                        <div id="admin-notifications-container" class="admin-notifications-list">
-                            <!-- Generado dinámicamente por JS -->
+                        <!-- Panel de Alertas y Notificaciones -->
+                        <div class="admin-notifications-section">
+                            <h3 class="panel-section-title">Notificaciones de Recuperación Automatizadas</h3>
+                            <div id="admin-notifications-container" class="admin-notifications-list">
+                                <!-- Generado dinámicamente por JS -->
+                            </div>
                         </div>
-                    </div>
+                    </div> <!-- Cierre del admin-content-wrapper -->
                 </section>
 
             </main>

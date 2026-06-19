@@ -1,6 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcrypt');
 
 const dbPath = path.resolve(__dirname, 'aura_database.sqlite');
 const db = new sqlite3.Database(dbPath);
@@ -34,6 +35,27 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN skeletalMuscle REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN injured INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE users ADD COLUMN injuryDetails TEXT DEFAULT ''", () => {});
+    db.run("ALTER TABLE users ADD COLUMN rut TEXT", () => {});
+
+    // Tabla de Usuarios Habilitados
+    db.run(`
+      CREATE TABLE IF NOT EXISTS usuarios_habilitados (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        rut TEXT UNIQUE NOT NULL,
+        dias_permitidos INTEGER DEFAULT 0,
+        fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
+        es_exento BOOLEAN DEFAULT 0
+      )
+    `);
+
+    // Tabla de Administradores
+    db.run(`
+      CREATE TABLE IF NOT EXISTS administradores (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL
+      )
+    `);
 
     // Tabla Workouts / Logs
     db.run(`
@@ -119,8 +141,19 @@ function initDb() {
       seedDatabaseIfNeeded();
     });
 
-    console.log('Base de datos inicializada correctamente.');
-  });
+      console.log('Base de datos inicializada correctamente.');
+
+      // Crear usuario administrador por defecto si no existe
+      db.get("SELECT * FROM administradores WHERE username = 'admin'", async (err, row) => {
+        if (!row) {
+          const salt = await bcrypt.genSalt(10);
+          const hash = await bcrypt.hash('admin123', salt);
+          db.run("INSERT INTO administradores (username, password_hash) VALUES (?, ?)", ['admin', hash], (err) => {
+            if (!err) console.log("Usuario administrador por defecto creado (admin:admin123).");
+          });
+        }
+      });
+    });
 }
 
 function seedDatabaseIfNeeded() {
@@ -805,6 +838,49 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
   });
 }
 
+// Nuevas funciones para Usuarios Habilitados
+function addUsuarioHabilitado(rut, dias_permitidos, es_exento, callback) {
+  const stmt = db.prepare(`
+    INSERT INTO usuarios_habilitados (rut, dias_permitidos, es_exento)
+    VALUES (?, ?, ?)
+    ON CONFLICT(rut) DO UPDATE SET 
+      dias_permitidos = excluded.dias_permitidos,
+      es_exento = excluded.es_exento
+  `);
+  stmt.run([rut, dias_permitidos, es_exento ? 1 : 0], function(err) {
+    callback(err);
+  });
+  stmt.finalize();
+}
+
+function checkHabilitacion(rut, callback) {
+  db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [rut], (err, row) => {
+    callback(err, row);
+  });
+}
+
+function getAdminByUsername(username, callback) {
+  db.get("SELECT * FROM administradores WHERE username = ?", [username], (err, row) => {
+    callback(err, row);
+  });
+}
+
+function decrementarDiasPermitidos(rut, callback) {
+  db.run(`
+    UPDATE usuarios_habilitados 
+    SET dias_permitidos = dias_permitidos - 1 
+    WHERE rut = ? AND dias_permitidos > 0 AND es_exento = 0
+  `, [rut], function(err) {
+    callback(err);
+  });
+}
+
+function getUserById(id, callback) {
+  db.get("SELECT * FROM users WHERE id = ?", [id], (err, row) => {
+    callback(err, row);
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -814,5 +890,10 @@ module.exports = {
   getAttendanceList,
   getRoutinesWithExercisesAndMachines,
   registrarAsistenciaQR,
-  obtenerUltimaAsistenciaUsuario
+  obtenerUltimaAsistenciaUsuario,
+  addUsuarioHabilitado,
+  checkHabilitacion,
+  getAdminByUsername,
+  decrementarDiasPermitidos,
+  getUserById
 };

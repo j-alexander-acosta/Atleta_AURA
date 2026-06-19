@@ -291,20 +291,62 @@ function initEventListeners() {
         });
     }
 
-    DOM.btnOnboardingTo3.addEventListener('click', () => {
-        if (validateStep2()) {
-            tempProfile.name = DOM.inputName.value.trim();
-            tempProfile.age = parseInt(DOM.inputAge.value);
-            tempProfile.weight = parseFloat(DOM.inputWeight.value);
-            tempProfile.height = parseInt(DOM.inputHeight.value);
-            tempProfile.waist = parseFloat(DOM.inputWaist.value);
-            tempProfile.neck = parseFloat(DOM.inputNeck.value);
-            tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
-            tempProfile.muscleMass = parseFloat(DOM.inputMuscleMass.value) || 0.0;
-            tempProfile.skeletalMuscle = parseFloat(DOM.inputSkeletalMuscle.value) || 0.0;
-            showOnboardingStep(3);
+    DOM.btnOnboardingTo3.addEventListener('click', async () => {
+        const rutInput = document.getElementById('input-rut');
+        const rutErrorMsg = document.getElementById('rut-error-msg');
+        
+        if (validateStep2() && rutInput && rutInput.value.trim() !== '') {
+            const rutValue = rutInput.value.trim();
+            
+            // 1. Validación Módulo 11 (cliente)
+            if (!isValidRut(rutValue)) {
+                rutErrorMsg.textContent = 'RUT inválido. Verifica el formato y dígito.';
+                rutErrorMsg.style.display = 'block';
+                return;
+            }
+            
+            // 2. Validación en Servidor
+            DOM.btnOnboardingTo3.disabled = true;
+            DOM.btnOnboardingTo3.textContent = 'Validando Acceso...';
+            
+            try {
+                const response = await fetch(`${window.location.origin}/api/check-habilitacion?rut=${rutValue}`);
+                const data = await response.json();
+                
+                if (!data.valid) {
+                    rutErrorMsg.textContent = data.message || 'RUT no habilitado o sin días.';
+                    rutErrorMsg.style.display = 'block';
+                    DOM.btnOnboardingTo3.disabled = false;
+                    DOM.btnOnboardingTo3.textContent = 'Continuar';
+                    return;
+                }
+                
+                rutErrorMsg.style.display = 'none';
+                tempProfile.rut = rutValue;
+                tempProfile.name = DOM.inputName.value.trim();
+                tempProfile.age = parseInt(DOM.inputAge.value);
+                tempProfile.weight = parseFloat(DOM.inputWeight.value);
+                tempProfile.height = parseInt(DOM.inputHeight.value);
+                tempProfile.waist = parseFloat(DOM.inputWaist.value);
+                tempProfile.neck = parseFloat(DOM.inputNeck.value);
+                tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
+                tempProfile.muscleMass = parseFloat(DOM.inputMuscleMass.value) || 0.0;
+                tempProfile.skeletalMuscle = parseFloat(DOM.inputSkeletalMuscle.value) || 0.0;
+                
+                DOM.btnOnboardingTo3.disabled = false;
+                DOM.btnOnboardingTo3.textContent = 'Continuar';
+                showOnboardingStep(3);
+                
+            } catch (err) {
+                console.error("FAIL-FAST [Check Habilitación]:", err);
+                rutErrorMsg.textContent = 'Error de red al validar.';
+                rutErrorMsg.style.display = 'block';
+                DOM.btnOnboardingTo3.disabled = false;
+                DOM.btnOnboardingTo3.textContent = 'Continuar';
+            }
+            
         } else {
-            alert("Por favor completa todos tus datos físicos y antropométricos requeridos.");
+            alert("Por favor completa tu RUT y todos tus datos físicos.");
         }
     });
 
@@ -399,7 +441,7 @@ function initEventListeners() {
             if (targetTab === 'dashboard') renderDashboard();
             if (targetTab === 'routines') renderRoutinesTab();
             if (targetTab === 'profile') renderProfileTab();
-            if (targetTab === 'admin') renderAdminTab();
+            if (targetTab === 'admin') window.checkAdminAuth();
         });
     });
 
@@ -2113,4 +2155,112 @@ function renderAttendanceHistory() {
         .catch(err => {
             console.error("Error obteniendo asistencia:", err);
         });
+}
+
+// Función global para validar RUT
+function isValidRut(rut) {
+    if (typeof rut !== 'string') return false;
+    const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+    if (cleanRut.length < 2) return false;
+    const body = cleanRut.slice(0, -1);
+    const dv = cleanRut.slice(-1);
+    let sum = 0, multiplier = 2;
+    for (let i = body.length - 1; i >= 0; i--) {
+        sum += parseInt(body.charAt(i)) * multiplier;
+        multiplier = multiplier < 7 ? multiplier + 1 : 2;
+    }
+    const expectedDv = 11 - (sum % 11);
+    const calculatedDv = expectedDv === 11 ? '0' : expectedDv === 10 ? 'K' : expectedDv.toString();
+    return dv === calculatedDv;
+}
+
+// LÓGICA DE PANEL DE ADMINISTRADOR (Auth & JWT)
+window.checkAdminAuth = function() {
+    const adminLoginOverlay = document.getElementById('admin-login-overlay');
+    const adminContentWrapper = document.getElementById('admin-content-wrapper');
+    if(!adminLoginOverlay || !adminContentWrapper) return;
+    
+    const token = sessionStorage.getItem('aura_admin_token');
+    if (token) {
+        adminLoginOverlay.style.display = 'none';
+        adminContentWrapper.style.display = 'block';
+        if(typeof renderAdminTab === 'function') renderAdminTab();
+    } else {
+        adminLoginOverlay.style.display = 'flex';
+        adminContentWrapper.style.display = 'none';
+    }
+};
+
+const btnAdminLogin = document.getElementById('btn-admin-login');
+if (btnAdminLogin) {
+    btnAdminLogin.addEventListener('click', async () => {
+        const user = document.getElementById('admin-username').value;
+        const pass = document.getElementById('admin-password').value;
+        const errorMsg = document.getElementById('admin-login-error');
+        
+        try {
+            const res = await fetch(`${window.location.origin}/api/admin/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: user, password: pass })
+            });
+            const data = await res.json();
+            if (data.success && data.token) {
+                sessionStorage.setItem('aura_admin_token', data.token);
+                errorMsg.style.display = 'none';
+                document.getElementById('admin-password').value = '';
+                window.checkAdminAuth();
+            } else {
+                errorMsg.textContent = data.error || 'Credenciales incorrectas';
+                errorMsg.style.display = 'block';
+            }
+        } catch (err) {
+            console.error("Login Admin Error:", err);
+            errorMsg.textContent = 'Error de conexión';
+            errorMsg.style.display = 'block';
+        }
+    });
+}
+
+const btnAdminLogout = document.getElementById('btn-admin-logout');
+if (btnAdminLogout) {
+    btnAdminLogout.addEventListener('click', () => {
+        sessionStorage.removeItem('aura_admin_token');
+        window.checkAdminAuth();
+    });
+}
+
+const btnAdminHabilitar = document.getElementById('btn-admin-habilitar');
+if (btnAdminHabilitar) {
+    btnAdminHabilitar.addEventListener('click', async () => {
+        const token = sessionStorage.getItem('aura_admin_token');
+        const rut = document.getElementById('admin-hab-rut').value;
+        const dias = document.getElementById('admin-hab-dias').value;
+        const exento = document.getElementById('admin-hab-exento').checked;
+        const msg = document.getElementById('admin-hab-msg');
+        
+        try {
+            const res = await fetch(`${window.location.origin}/api/admin/habilitar-usuario`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ rut, dias_permitidos: dias, es_exento: exento })
+            });
+            const data = await res.json();
+            if (data.success) {
+                msg.style.color = 'var(--color-neon-teal)';
+                msg.textContent = '¡Estudiante habilitado con éxito!';
+                document.getElementById('admin-hab-rut').value = '';
+            } else {
+                msg.style.color = 'var(--color-danger)';
+                msg.textContent = data.error || 'Fallo al habilitar';
+            }
+        } catch (err) {
+            msg.style.color = 'var(--color-danger)';
+            msg.textContent = 'Error de red';
+        }
+        setTimeout(() => { msg.textContent = ''; }, 4000);
+    });
 }
