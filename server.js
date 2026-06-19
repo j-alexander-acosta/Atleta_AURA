@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const db = require('./database');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -177,21 +178,28 @@ setInterval(() => {
 
 // 1. Endpoint para generar el token corto dinámico
 app.get('/api/asistencia/token', async (req, res) => {
-  const usuario_id = req.query.usuario_id;
-  if (!usuario_id) {
-    return res.status(400).json({ error: 'usuario_id es requerido' });
+  try {
+    const usuario_id = req.query.usuario_id;
+    if (!usuario_id) {
+      console.error("Error: Petición de token sin usuario_id");
+      return res.status(400).json({ success: false, error: 'usuario_id es requerido' });
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET || 'AURA_FITNESS_SECRET_KEY';
+    // Generar JWT con expiración estricta de 30 segundos
+    const token = jwt.sign({ usuario_id }, JWT_SECRET, { expiresIn: '30s' });
+    
+    // Guardar en memoria con expiración estricta de 30 segundos
+    activeTokens.set(token, {
+      usuario_id: usuario_id,
+      expiresAt: Date.now() + 30000
+    });
+
+    res.json({ success: true, token });
+  } catch (error) {
+    console.error("Error crítico al generar JWT:", error);
+    res.status(500).json({ success: false, error: 'Error interno del servidor al generar el token' });
   }
-
-  // Generar token corto alfanumérico seguro (8 caracteres)
-  const token = crypto.randomBytes(4).toString('hex').toUpperCase();
-  
-  // Guardar en memoria con expiración estricta de 30 segundos
-  activeTokens.set(token, {
-    usuario_id: usuario_id,
-    expiresAt: Date.now() + 30000
-  });
-
-  res.json({ success: true, token });
 });
 
 // 2. Endpoint exclusivo para recepción para escanear y hacer check-in

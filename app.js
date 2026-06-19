@@ -162,7 +162,8 @@ const DOM = {
     inputMuscleMass: document.getElementById('input-muscle-mass'),
     inputSkeletalMuscle: document.getElementById('input-skeletal-muscle'),
     dashboardAlerts: document.getElementById('dashboard-alerts'),
-    btnShowQr: document.getElementById('btn-show-qr'),
+    btnShowAccess: document.getElementById('btn-show-access'),
+    qrContainer: document.getElementById('barcode-placeholder'),
     formUpdateMetrics: document.getElementById('form-update-metrics'),
     profileInputWeight: document.getElementById('profile-input-weight'),
     profileInputHeight: document.getElementById('profile-input-height'),
@@ -513,61 +514,114 @@ function initEventListeners() {
         });
     }
 
-    let barcodeRefreshInterval = null;
+    let qrRefreshInterval = null;
+
+    async function generarTokenAsistencia() {
+        try {
+            const response = await fetch(`${window.location.origin}/api/asistencia/token?usuario_id=${AppState.user.id}`);
+            
+            if (!response.ok) {
+                throw new Error(`Error de red: HTTP ${response.status}`);
+            }
+            
+            const data = await response.json();
+            
+            if (!data.success || !data.token) {
+                throw new Error(data.error || 'Estructura de respuesta inválida desde el servidor');
+            }
+            
+            return data.token;
+        } catch (error) {
+            console.error("FAIL-FAST [generarTokenAsistencia]:", error);
+            throw error;
+        }
+    }
+
+    function renderizarQR(token) {
+        if (!DOM.qrContainer) {
+            console.error("FAIL-FAST [renderizarQR]: Contenedor del QR no está presente en el DOM.");
+            return;
+        }
+
+        DOM.qrContainer.innerHTML = '';
+        
+        if (typeof QRCode === 'undefined') {
+            console.error("FAIL-FAST [renderizarQR]: La librería qrcode.min.js no está instanciada.");
+            DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Fallo al cargar módulo QR.</p>';
+            return;
+        }
+
+        new QRCode(DOM.qrContainer, {
+            text: token,
+            width: 160,
+            height: 160,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }
+
+    async function iniciarGeneracionQR() {
+        try {
+            if (DOM.qrContainer) {
+                DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center">Autenticando acceso seguro...</p>';
+            }
+
+            if (qrRefreshInterval) {
+                clearInterval(qrRefreshInterval);
+            }
+
+            const tokenInicial = await generarTokenAsistencia();
+            renderizarQR(tokenInicial);
+
+            qrRefreshInterval = setInterval(async () => {
+                try {
+                    const newToken = await generarTokenAsistencia();
+                    renderizarQR(newToken);
+                } catch (err) {
+                    console.error("Error regenerando código QR dinámico:", err);
+                }
+            }, 30000); 
+            
+        } catch (error) {
+            console.error("Fallo general en la vista del QR:", error);
+            if (DOM.qrContainer) {
+                DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">No se pudo establecer conexión de acceso.</p>';
+            }
+        }
+    }
 
     // 10. Acciones de Código de Barras y Actualización de Métricas del Perfil
     if (DOM.btnShowAccess) {
         DOM.btnShowAccess.addEventListener('click', async (e) => {
             e.preventDefault();
-            if (!AppState || !AppState.user) return;
+            if (!AppState || !AppState.user) {
+                console.error("FAIL-FAST: Intentando abrir modal QR sin usuario activo en AppState.");
+                return;
+            }
             
+            if (!DOM.accessModal) {
+                console.error("FAIL-FAST: El DOM no tiene el contenedor 'access-modal'.");
+                return;
+            }
+
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
             if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
             
-            // Mostrar modal de inmediato para dar feedback al usuario
-            if (DOM.accessModal) DOM.accessModal.classList.remove('hidden');
-            if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Generando acceso seguro...</p>';
-            
-            const refreshBarcode = async () => {
-                try {
-                    const response = await fetch(window.location.origin + `/api/asistencia/token?usuario_id=${AppState.user.id}`);
-                    const data = await response.json();
-                    
-                    if (data.success && data.token) {
-                        if (typeof JsBarcode !== 'undefined') {
-                            // Retraso minúsculo para asegurar que la modal es visible antes de medir el SVG
-                            setTimeout(() => {
-                                JsBarcode("#barcode-svg", data.token, {
-                                    format: "CODE128",
-                                    lineColor: "#000",
-                                    width: 3,
-                                    height: 80,
-                                    displayValue: true,
-                                    fontSize: 24,
-                                    margin: 10
-                                });
-                            }, 50);
-                        } else {
-                            if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Librería Barcode no disponible.</p>';
-                        }
-                    } else {
-                        if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Error al obtener token de asistencia.</p>';
-                    }
-                } catch (err) {
-                    console.error("Error generating Barcode:", err);
-                    if (DOM.barcodePlaceholder) DOM.barcodePlaceholder.innerHTML = '<p class="text-secondary text-xs text-center">Error de red.</p>';
-                }
-            };
+            DOM.accessModal.classList.remove('hidden');
 
-            await refreshBarcode();
-            if (barcodeRefreshInterval) clearInterval(barcodeRefreshInterval);
-            barcodeRefreshInterval = setInterval(refreshBarcode, 30000);
+            await iniciarGeneracionQR();
         });
+    } else {
+        console.error("FAIL-FAST: DOM.btnShowAccess no se encontró al inicializar los listeners.");
     }
 
     const closeAccessModal = () => {
         if (DOM.accessModal) DOM.accessModal.classList.add('hidden');
-        if (barcodeRefreshInterval) clearInterval(barcodeRefreshInterval);
+        if (qrRefreshInterval) {
+            clearInterval(qrRefreshInterval);
+            qrRefreshInterval = null;
+        }
     };
     if (DOM.btnAccessModalClose) DOM.btnAccessModalClose.addEventListener('click', closeAccessModal);
     if (DOM.accessModalOverlay) DOM.accessModalOverlay.addEventListener('click', closeAccessModal);
