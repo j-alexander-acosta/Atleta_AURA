@@ -378,42 +378,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
   });
 });
 
-// --- ENDPOINTS ADMINISTRATIVOS ---
-app.post('/api/admin/login', (req, res) => {
-  const { username, password } = req.body;
-  db.get("SELECT * FROM administradores WHERE username = ?", [username], async (err, admin) => {
-    if (err || !admin) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
-
-    const match = await bcrypt.compare(password, admin.password_hash);
-    if (!match) return res.status(401).json({ success: false, error: 'Credenciales incorrectas' });
-
-    const token = jwt.sign({ username: admin.username, role: 'admin' }, 'TU_SECRET_KEY_AQUI', { expiresIn: '12h' });
-    res.json({ success: true, token });
-  });
-});
-
-app.get('/api/check-habilitacion', (req, res) => {
-  const { rut } = req.query;
-  if (!rut) return res.status(400).json({ valid: false, message: 'RUT requerido' });
-
-  db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [rut], (err, row) => {
-    if (err || !row) return res.json({ valid: false, message: 'RUT no habilitado.' });
-    if (row.dias_permitidos <= 0 && !row.es_exento) return res.json({ valid: false, message: 'Sin días disponibles.' });
-    res.json({ valid: true });
-  });
-});
-
-app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
-  const { rut, dias_permitidos, es_exento } = req.body;
-  db.run(
-    "INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento) VALUES (?, ?, ?)",
-    [rut, dias_permitidos, es_exento ? 1 : 0],
-    (err) => {
-      if (err) return res.status(500).json({ success: false, error: 'Error BD' });
-      res.json({ success: true });
-    }
-  );
-});
+// (Endpoints limpios y consolidados arriba)
 
 // Start Server
 app.listen(PORT, () => {

@@ -841,11 +841,8 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 // Nuevas funciones para Usuarios Habilitados
 function addUsuarioHabilitado(rut, dias_permitidos, es_exento, callback) {
   const stmt = db.prepare(`
-    INSERT INTO usuarios_habilitados (rut, dias_permitidos, es_exento)
+    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento)
     VALUES (?, ?, ?)
-    ON CONFLICT(rut) DO UPDATE SET 
-      dias_permitidos = excluded.dias_permitidos,
-      es_exento = excluded.es_exento
   `);
   stmt.run([rut, dias_permitidos, es_exento ? 1 : 0], function(err) {
     callback(err);
