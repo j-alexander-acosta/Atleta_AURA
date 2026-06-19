@@ -403,6 +403,31 @@ function initEventListeners() {
         });
     });
 
+    // 3b. Dropdown Navigation (Mobile Optimization)
+    const globalAvatarBtn = document.getElementById('global-avatar-btn');
+    const userDropdownMenu = document.getElementById('user-dropdown-menu');
+
+    if (globalAvatarBtn && userDropdownMenu) {
+        globalAvatarBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            userDropdownMenu.classList.toggle('hidden');
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!globalAvatarBtn.contains(e.target) && !userDropdownMenu.contains(e.target)) {
+                userDropdownMenu.classList.add('hidden');
+            }
+        });
+        
+        // Hide dropdown on nav item click
+        DOM.navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                userDropdownMenu.classList.add('hidden');
+            });
+        });
+    }
+
     // 4. Acciones del Dashboard
     DOM.btnStartWorkout.addEventListener('click', () => {
         startWorkoutSession();

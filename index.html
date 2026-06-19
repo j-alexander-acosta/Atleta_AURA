@@ -222,6 +222,47 @@
 
         <!-- 2. MAQUETACIÓN PRINCIPAL (PANELES CON NAV BAR DEBAJO) -->
         <div id="main-layout" class="screen">
+            
+            <!-- Global Avatar and Menu -->
+            <div style="position: absolute; top: 24px; right: 20px; z-index: 100;">
+                <div class="header-avatar" id="global-avatar-btn" style="cursor: pointer; position: relative; transition: transform 0.2s ease;">
+                    <span id="avatar-initials">A</span>
+                </div>
+                <!-- Dropdown Menu -->
+                <div id="user-dropdown-menu" class="hidden" style="position: absolute; top: 54px; right: 0; background: rgba(18, 18, 22, 0.95); border: 1px solid var(--border-color); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 4px; backdrop-filter: blur(20px); min-width: 180px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); transform-origin: top right; transition: all 0.2s ease;">
+                    <button class="nav-item active" data-tab="dashboard" style="display: flex; align-items: center; justify-content: flex-start; padding: 12px; width: 100%; border-radius: 10px; flex-direction: row; gap: 14px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <rect x="3" y="3" width="7" height="9" rx="1"></rect>
+                            <rect x="14" y="3" width="7" height="5" rx="1"></rect>
+                            <rect x="14" y="12" width="7" height="9" rx="1"></rect>
+                            <rect x="3" y="16" width="7" height="5" rx="1"></rect>
+                        </svg>
+                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Dashboard</span>
+                    </button>
+                    <button class="nav-item" data-tab="routines" style="display: flex; align-items: center; justify-content: flex-start; padding: 12px; width: 100%; border-radius: 10px; flex-direction: row; gap: 14px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M12 20h9"></path>
+                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+                        </svg>
+                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Rutinas</span>
+                    </button>
+                    <button class="nav-item" data-tab="profile" style="display: flex; align-items: center; justify-content: flex-start; padding: 12px; width: 100%; border-radius: 10px; flex-direction: row; gap: 14px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Perfil</span>
+                    </button>
+                    <button class="nav-item" data-tab="admin" id="nav-item-admin" style="display: flex; align-items: center; justify-content: flex-start; padding: 12px; width: 100%; border-radius: 10px; flex-direction: row; gap: 14px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Admin</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- Contenido Principal Dinámico -->
             <main id="main-content">
 
@@ -231,9 +272,6 @@
                         <div>
                             <span class="text-secondary text-xs font-mono uppercase tracking-widest">GYM_UCN WORKSPACE</span>
                             <h1 id="user-greeting" class="welcome-title">Hola, Atleta</h1>
-                        </div>
-                        <div class="header-avatar">
-                            <span id="avatar-initials">A</span>
                         </div>
                     </header>
 
@@ -557,38 +595,7 @@
             </main>
 
             <!-- Bottom Navigation Bar -->
-            <nav id="bottom-nav">
-                <button class="nav-item active" data-tab="dashboard">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="7" height="9" rx="1"></rect>
-                        <rect x="14" y="3" width="7" height="5" rx="1"></rect>
-                        <rect x="14" y="12" width="7" height="9" rx="1"></rect>
-                        <rect x="3" y="16" width="7" height="5" rx="1"></rect>
-                    </svg>
-                    <span class="nav-lbl">Dashboard</span>
-                </button>
-                <button class="nav-item" data-tab="routines">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 20h9"></path>
-                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-                    </svg>
-                    <span class="nav-lbl">Rutinas</span>
-                </button>
-                <button class="nav-item" data-tab="profile">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    <span class="nav-lbl">Perfil</span>
-                </button>
-                <button class="nav-item" data-tab="admin" id="nav-item-admin">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                    </svg>
-                    <span class="nav-lbl">Admin</span>
-                </button>
-            </nav>
+            <!-- Bottom Navigation Bar Removed in favor of Avatar Menu -->
         </div>
 
         <!-- 3. REPRODUCTOR DE ENTRENAMIENTO ACTIVADO (PANTALLA COMPLETA OVERLAY) -->
