@@ -27,13 +27,13 @@ const DOM = {
     screenMainLayout: document.getElementById('main-layout'),
     screenActiveWorkout: document.getElementById('screen-workout-active'),
     screenSummary: document.getElementById('screen-workout-summary'),
-    
+
     // Onboarding Steps
     onboardingStep1: document.getElementById('onboarding-step-1'),
     onboardingStep2: document.getElementById('onboarding-step-2'),
     onboardingStep3: document.getElementById('onboarding-step-3'),
     onboardingStep4: document.getElementById('onboarding-step-4'),
-    
+
     // Onboarding Buttons
     btnOnboardingStart: document.getElementById('btn-onboarding-start'),
     btnOnboardingTo3: document.getElementById('btn-onboarding-to-3'),
@@ -41,7 +41,7 @@ const DOM = {
     btnOnboardingFinalize: document.getElementById('btn-onboarding-finalize'),
     btnOnboardingBackTo2: document.getElementById('btn-onboarding-back-to-2'),
     btnOnboardingBackTo3: document.getElementById('btn-onboarding-back-to-3'),
-    
+
     // Onboarding Inputs
     inputName: document.getElementById('input-name'),
     inputAge: document.getElementById('input-age'),
@@ -52,11 +52,11 @@ const DOM = {
     btnDayOptions: document.querySelectorAll('.day-btn'),
     routinePreviewBox: document.getElementById('routine-preview-box'),
     routineDistributionDesc: document.getElementById('routine-distribution-desc'),
-    
+
     // Main Tabs Nav & Panels
     navItems: document.querySelectorAll('.nav-item'),
     tabPanes: document.querySelectorAll('.tab-pane'),
-    
+
     // Dashboard Elements
     userGreeting: document.getElementById('user-greeting'),
     avatarInitials: document.getElementById('avatar-initials'),
@@ -67,10 +67,10 @@ const DOM = {
     todayWorkoutDetails: document.getElementById('today-workout-details'),
     todayWorkoutTag: document.getElementById('today-workout-tag'),
     btnStartWorkout: document.getElementById('btn-start-workout'),
-    
+
     // Routines Tab
     routinesContainer: document.getElementById('routines-container'),
-    
+
     // Profile Tab
     profileInitials: document.getElementById('profile-initials'),
     profileName: document.getElementById('profile-name'),
@@ -79,7 +79,7 @@ const DOM = {
     profileTotalSets: document.getElementById('profile-total-sets'),
     historyItemsContainer: document.getElementById('history-items-container'),
     btnResetData: document.getElementById('btn-reset-data'),
-    
+
     // Active Workout Screen
     activeWorkoutName: document.getElementById('active-workout-name'),
     activeWorkoutTimer: document.getElementById('active-workout-timer'),
@@ -97,13 +97,13 @@ const DOM = {
     btnPrevExercise: document.getElementById('btn-prev-exercise'),
     btnNextExercise: document.getElementById('btn-next-exercise'),
     btnExerciseVideo: document.getElementById('btn-exercise-video'),
-    
+
     // Rest Timer Panel
     restTimerOverlay: document.getElementById('rest-timer-overlay'),
     restTimerCountdown: document.getElementById('rest-timer-countdown'),
     btnRestAdd30: document.getElementById('btn-rest-add-30'),
     btnRestSkip: document.getElementById('btn-rest-skip'),
-    
+
     // Summary Screen
     summaryConfetti: document.getElementById('summary-confetti'),
     summaryDuration: document.getElementById('summary-stat-duration'),
@@ -111,7 +111,7 @@ const DOM = {
     summarySets: document.getElementById('summary-stat-sets'),
     summaryBadgeText: document.getElementById('summary-badge-text'),
     btnSummaryDone: document.getElementById('btn-summary-done'),
-    
+
     // Video Modal
     videoModal: document.getElementById('video-modal'),
     videoModalTitle: document.getElementById('video-modal-title'),
@@ -213,7 +213,7 @@ let tempProfile = {
    ========================================================================== */
 window.addEventListener('DOMContentLoaded', () => {
     loadLocalData();
-    
+
     // Inicializar base de datos de IA
     try {
         AURA_AI.loadDB();
@@ -223,9 +223,9 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
         console.error("Error al inicializar AURA_AI:", err);
     }
-    
+
     initEventListeners();
-    
+
     // Cargar rutinas y máquinas desde el servidor
     fetchRoutinesFromServer(() => {
         if (AppState.user) {
@@ -238,7 +238,7 @@ window.addEventListener('DOMContentLoaded', () => {
             showOnboardingStep(1);
         }
     });
-    
+
     // Registrar Service Worker
     registerServiceWorker();
 });
@@ -265,7 +265,7 @@ function fetchRoutinesFromServer(callback) {
 function loadLocalData() {
     const cachedProfile = localStorage.getItem('aura_user_profile');
     const cachedHistory = localStorage.getItem('aura_workout_history');
-    
+
     if (cachedProfile) {
         AppState.user = JSON.parse(cachedProfile);
     }
@@ -278,7 +278,7 @@ function loadLocalData() {
 function initEventListeners() {
     // 1. Navegación Onboarding
     DOM.btnOnboardingStart.addEventListener('click', () => showOnboardingStep(2));
-    
+
     // Escuchador para control segmentado de Tipo de Perfil en Onboarding
     if (DOM.profileTypeControl) {
         const typeBtns = DOM.profileTypeControl.querySelectorAll('.segment-btn');
@@ -307,14 +307,14 @@ function initEventListeners() {
             alert("Por favor completa todos tus datos físicos y antropométricos requeridos.");
         }
     });
-    
+
     DOM.btnOnboardingTo4.addEventListener('click', () => {
         showOnboardingStep(4);
     });
-    
+
     DOM.btnOnboardingBackTo2.addEventListener('click', () => showOnboardingStep(2));
     DOM.btnOnboardingBackTo3.addEventListener('click', () => showOnboardingStep(3));
-    
+
     DOM.btnOnboardingFinalize.addEventListener('click', () => {
         saveOnboardingProfile();
     });
@@ -386,7 +386,7 @@ function initEventListeners() {
         item.addEventListener('click', () => {
             DOM.navItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
-            
+
             const targetTab = item.dataset.tab;
             DOM.tabPanes.forEach(pane => {
                 if (pane.id === `tab-${targetTab}`) {
@@ -395,7 +395,7 @@ function initEventListeners() {
                     pane.classList.remove('active');
                 }
             });
-            
+
             if (targetTab === 'dashboard') renderDashboard();
             if (targetTab === 'routines') renderRoutinesTab();
             if (targetTab === 'profile') renderProfileTab();
@@ -419,7 +419,7 @@ function initEventListeners() {
                 userDropdownMenu.classList.add('hidden');
             }
         });
-        
+
         // Hide dropdown on nav item click
         DOM.navItems.forEach(item => {
             item.addEventListener('click', () => {
@@ -500,7 +500,7 @@ function initEventListeners() {
     DOM.btnExerciseVideo.addEventListener('click', () => {
         openVideoModal();
     });
-    
+
     DOM.btnVideoModalClose.addEventListener('click', closeVideoModal);
     DOM.videoModalCloseOverlay.addEventListener('click', closeVideoModal);
 
@@ -544,17 +544,17 @@ function initEventListeners() {
     async function generarTokenAsistencia() {
         try {
             const response = await fetch(`${window.location.origin}/api/asistencia/token?usuario_id=${AppState.user.id}`);
-            
+
             if (!response.ok) {
                 throw new Error(`Error de red: HTTP ${response.status}`);
             }
-            
+
             const data = await response.json();
-            
+
             if (!data.success || !data.token) {
                 throw new Error(data.error || 'Estructura de respuesta inválida desde el servidor');
             }
-            
+
             return data.token;
         } catch (error) {
             console.error("FAIL-FAST [generarTokenAsistencia]:", error);
@@ -563,27 +563,62 @@ function initEventListeners() {
     }
 
     function renderizarQR(token) {
-        if (!DOM.qrContainer) {
+        // En lugar de llamar a qrContainer de DOM, obtenemos el nuevo Div del HTML directamente
+        const container = document.getElementById('qrcode-container');
+
+        if (!container) {
             console.error("FAIL-FAST [renderizarQR]: Contenedor del QR no está presente en el DOM.");
             return;
         }
 
-        DOM.qrContainer.innerHTML = '';
-        
+        container.innerHTML = '';
+
         if (typeof QRCode === 'undefined') {
             console.error("FAIL-FAST [renderizarQR]: La librería qrcode.min.js no está instanciada.");
-            DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Fallo al cargar módulo QR.</p>';
+            container.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Fallo al cargar módulo QR.</p>';
             return;
         }
 
-        new QRCode(DOM.qrContainer, {
+        new QRCode(container, {
             text: token,
             width: 160,
             height: 160,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
         });
+    }
+
+    async function iniciarGeneracionQR() {
+        const container = document.getElementById('qrcode-container');
+
+        try {
+            if (container) {
+                container.innerHTML = '<p class="text-secondary text-xs text-center">Autenticando acceso seguro...</p>';
+            }
+
+            if (qrRefreshInterval) {
+                clearInterval(qrRefreshInterval);
+            }
+
+            const tokenInicial = await generarTokenAsistencia();
+            renderizarQR(tokenInicial);
+
+            qrRefreshInterval = setInterval(async () => {
+                try {
+                    const newToken = await generarTokenAsistencia();
+                    renderizarQR(newToken);
+                } catch (err) {
+                    console.error("Error regenerando código QR dinámico:", err);
+                }
+            }, 30000);
+
+        } catch (error) {
+            console.error("Fallo general en la vista del QR:", error);
+            if (container) {
+                container.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">No se pudo establecer conexión de acceso.</p>';
+            }
+        }
     }
 
     async function iniciarGeneracionQR() {
@@ -606,8 +641,8 @@ function initEventListeners() {
                 } catch (err) {
                     console.error("Error regenerando código QR dinámico:", err);
                 }
-            }, 30000); 
-            
+            }, 30000);
+
         } catch (error) {
             console.error("Fallo general en la vista del QR:", error);
             if (DOM.qrContainer) {
@@ -624,7 +659,7 @@ function initEventListeners() {
                 console.error("FAIL-FAST: Intentando abrir modal QR sin usuario activo en AppState.");
                 return;
             }
-            
+
             if (!DOM.accessModal) {
                 console.error("FAIL-FAST: El DOM no tiene el contenedor 'access-modal'.");
                 return;
@@ -632,7 +667,7 @@ function initEventListeners() {
 
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
             if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
-            
+
             DOM.accessModal.classList.remove('hidden');
 
             await iniciarGeneracionQR();
@@ -655,7 +690,7 @@ function initEventListeners() {
         DOM.formUpdateMetrics.addEventListener('submit', (e) => {
             e.preventDefault();
             if (!AppState.user) return;
-            
+
             AppState.user.weight = parseFloat(DOM.profileInputWeight.value) || AppState.user.weight;
             AppState.user.height = parseFloat(DOM.profileInputHeight.value) || AppState.user.height;
             AppState.user.muscleMass = parseFloat(DOM.profileInputMuscleMass.value) || AppState.user.muscleMass;
@@ -663,10 +698,10 @@ function initEventListeners() {
             if (DOM.profileInputType) {
                 AppState.user.profileType = DOM.profileInputType.value || AppState.user.profileType;
             }
-            
+
             // Recalcular IMC
             AppState.user.imc = parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1));
-            
+
             saveActiveUserToDatabase();
             renderProfileTab();
             renderDashboard();
@@ -679,16 +714,16 @@ function initEventListeners() {
     if (DOM.btnSubmitInjury) {
         DOM.btnSubmitInjury.addEventListener('click', () => {
             if (!AppState.user || AppState.user.profileType !== 'deportista_seleccionado') return;
-            
+
             const details = DOM.inputInjuryDetails.value.trim();
             if (!details) {
                 alert("Por favor detalla la lesión antes de enviar el reporte.");
                 return;
             }
-            
+
             AppState.user.injured = 1;
             AppState.user.injuryDetails = details;
-            
+
             saveActiveUserToDatabase();
             DOM.inputInjuryDetails.value = '';
             renderProfileTab();
@@ -738,13 +773,13 @@ function showOnboardingStep(stepNum) {
 // Validar Datos Físicos
 function validateStep2() {
     const baseValid = DOM.inputName.value.trim() !== '' &&
-                      DOM.inputAge.value !== '' &&
-                      DOM.inputWeight.value !== '' &&
-                      DOM.inputHeight.value !== '' &&
-                      DOM.inputWaist.value !== '' &&
-                      DOM.inputNeck.value !== '' &&
-                      DOM.inputMuscleMass.value !== '' &&
-                      DOM.inputSkeletalMuscle.value !== '';
+        DOM.inputAge.value !== '' &&
+        DOM.inputWeight.value !== '' &&
+        DOM.inputHeight.value !== '' &&
+        DOM.inputWaist.value !== '' &&
+        DOM.inputNeck.value !== '' &&
+        DOM.inputMuscleMass.value !== '' &&
+        DOM.inputSkeletalMuscle.value !== '';
     if (tempProfile.sex === 'female') {
         return baseValid && DOM.inputHip.value !== '';
     }
@@ -758,30 +793,30 @@ function updateIMCOnboarding() {
     const waist = parseFloat(DOM.inputWaist.value);
     const neck = parseFloat(DOM.inputNeck.value);
     const hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
-    
+
     if (weight > 0 && height > 0) {
         const heightM = height / 100;
         const imc = weight / (heightM * heightM);
         const imcFormatted = imc.toFixed(1);
-        
+
         if (DOM.imcValue) DOM.imcValue.textContent = imcFormatted;
         tempProfile.imc = parseFloat(imcFormatted);
-        
+
         // Determinar clasificación
         let category = "Normal";
         let badgeClass = "normal";
         let desc = "¡Excelente! Tienes una relación de masa saludable.";
-        
+
         const minHealthyWeight = (18.5 * Math.pow(height / 100, 2)).toFixed(1);
         const maxHealthyWeight = (24.9 * Math.pow(height / 100, 2)).toFixed(1);
-        
+
         if (DOM.imcHealthyRangeText) {
             DOM.imcHealthyRangeText.textContent = `${minHealthyWeight} - ${maxHealthyWeight} kg`;
         }
-        
+
         let statusText = '';
         let statusColor = '';
-        
+
         if (imc < 18.5) {
             category = "Bajo Peso";
             badgeClass = "bajo";
@@ -810,18 +845,18 @@ function updateIMCOnboarding() {
             statusText = `Sobrepeso severo (obesidad) por ${diff} kg`;
             statusColor = 'var(--color-danger)';
         }
-        
+
         if (DOM.imcWeightStatusText) {
             DOM.imcWeightStatusText.textContent = statusText;
             DOM.imcWeightStatusText.style.color = statusColor;
         }
-        
+
         // Calcular porcentaje del slider (rango del IMC de 15 a 35)
         const percentage = Math.min(Math.max(((imc - 15) / 20) * 100, 0), 100);
         if (DOM.imcSliderIndicator) {
             DOM.imcSliderIndicator.style.left = `calc(${percentage}% - 6px)`;
         }
-        
+
         if (DOM.imcBadge) {
             DOM.imcBadge.textContent = category;
             DOM.imcBadge.className = `imc-category-badge ${badgeClass}`;
@@ -836,7 +871,7 @@ function updateIMCOnboarding() {
         } else {
             if (DOM.bfpValue) DOM.bfpValue.textContent = '--';
         }
-        
+
         if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.remove('hidden');
     } else {
         if (DOM.imcPreviewBox) DOM.imcPreviewBox.classList.add('hidden');
@@ -849,7 +884,7 @@ function updateOnboardingDaysPreview() {
     if (count > 0) {
         DOM.routinePreviewBox.classList.remove('hidden');
         DOM.btnOnboardingFinalize.disabled = false;
-        
+
         let descText = '';
         if (count === 2 || count === 4) {
             descText = `División Balanceada: Alternancia de entrenamientos combinados (Día A: Torso + Abdomen, Día B: Piernas + Abdomen) para optimizar la recuperación muscular.`;
@@ -891,10 +926,10 @@ function saveOnboardingProfile() {
         injured: tempProfile.injured || 0,
         injuryDetails: tempProfile.injuryDetails || ""
     };
-    
+
     localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
     showScreen('main-layout');
-    
+
     // Ir a pestaña del Dashboard
     DOM.navItems[0].click();
 }
@@ -904,44 +939,44 @@ function saveOnboardingProfile() {
    ========================================================================== */
 function getTodayWorkout() {
     if (!AppState.user) return { rest: true };
-    
+
     let targetBlock = 'upper';
     let isManual = false;
-    
+
     if (AppState.manualWorkoutSelection && AppState.manualWorkoutSelection !== 'auto') {
         targetBlock = AppState.manualWorkoutSelection;
         isManual = true;
     } else {
         if (AppState.user.days.length === 0) return { rest: true };
-        
+
         const today = new Date().getDay(); // 0 = Domingo, 1 = Lunes, etc.
         const isTrainingDay = AppState.user.days.includes(today);
-        
+
         if (!isTrainingDay) {
             return { rest: true, name: "Día de Descanso / Recuperación", desc: "El músculo crece durante el descanso. Mantente hidratado." };
         }
-        
+
         const totalCompleted = AppState.history.length;
         targetBlock = (totalCompleted % 2 === 0) ? 'upper' : 'lower';
     }
-    
+
     const isSelectedAthlete = (AppState.user.profileType === 'deportista_seleccionado');
     const baseKey = isSelectedAthlete ? `${targetBlock}_selected` : targetBlock;
     const coreKey = isSelectedAthlete ? 'core_selected' : 'core';
-    
+
     const baseRoutine = WORKOUT_DATABASE[baseKey] || WORKOUT_DATABASE[targetBlock];
     const coreRoutine = WORKOUT_DATABASE[coreKey] || WORKOUT_DATABASE['core'];
-    
+
     const combinedName = `${baseRoutine.name} + ${coreRoutine.name}`;
     const baseMin = parseInt(baseRoutine.duration) || 30;
     const coreMin = parseInt(coreRoutine.duration) || 15;
     const combinedDuration = `${baseMin + coreMin} min`;
-    
+
     const combinedExercises = [
         ...JSON.parse(JSON.stringify(baseRoutine.exercises)),
         ...JSON.parse(JSON.stringify(coreRoutine.exercises))
     ];
-    
+
     return {
         rest: false,
         key: targetBlock,
@@ -959,13 +994,13 @@ function getTodayWorkout() {
 // Renderizar Dashboard Principal
 function renderDashboard() {
     if (!AppState.user) return;
-    
+
     // Sincronizar botones de selección manual
     const selection = AppState.manualWorkoutSelection || 'auto';
     if (DOM.btnSelectAuto) DOM.btnSelectAuto.classList.toggle('active', selection === 'auto');
     if (DOM.btnSelectUpper) DOM.btnSelectUpper.classList.toggle('active', selection === 'upper');
     if (DOM.btnSelectLower) DOM.btnSelectLower.classList.toggle('active', selection === 'lower');
-    
+
     // Renderizar banners de alerta en el Dashboard
     let alertsHtml = '';
     const statusInfo = getWeightStatusInfo(AppState.user.weight, AppState.user.height);
@@ -984,7 +1019,7 @@ function renderDashboard() {
             </div>
         `;
     }
-    
+
     if (AppState.user.profileType === 'deportista_seleccionado' && AppState.user.injured) {
         alertsHtml += `
             <div class="routine-preview-card" style="border-color: rgba(255, 71, 87, 0.4); background: rgba(255, 71, 87, 0.08); display: flex; flex-direction: column; gap: 4px;">
@@ -1000,26 +1035,26 @@ function renderDashboard() {
             </div>
         `;
     }
-    
+
     if (DOM.dashboardAlerts) {
         DOM.dashboardAlerts.innerHTML = alertsHtml;
     }
-    
+
     // 1. Bienvenida y datos básicos
     DOM.userGreeting.textContent = `Hola, ${AppState.user.name}`;
     DOM.avatarInitials.textContent = AppState.user.name.charAt(0).toUpperCase();
-    
+
     // 2. Racha y porcentaje
     updateStreak();
     DOM.statStreak.textContent = AppState.user.streak;
-    
+
     // Meta Semanal Completados
     const weeklyCompletion = calculateWeeklyMetaPercentage();
     DOM.statCompletion.textContent = `${weeklyCompletion}%`;
-    
+
     // 3. Grid de días semanales
     renderWeeklyDots();
-    
+
     // 4. Tarjeta de rutina de Hoy
     const todayWorkout = getTodayWorkout();
     if (todayWorkout.rest) {
@@ -1042,29 +1077,29 @@ function renderWeeklyDots() {
     DOM.weeklyDaysDots.innerHTML = '';
     const daysName = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
     const today = new Date().getDay();
-    
+
     // Obtener entrenamientos de esta semana
     const thisWeekCompletedDays = getThisWeekCompletedDays();
-    
+
     // Renderizar Lunes a Domingo (orden clásico: L, M, M, J, V, S, D)
     const renderOrder = [1, 2, 3, 4, 5, 6, 0];
-    
+
     renderOrder.forEach(dayIndex => {
         const dot = document.createElement('div');
         dot.className = 'weekly-day-dot';
-        
+
         const isToday = (dayIndex === today);
         const isCompleted = thisWeekCompletedDays.includes(dayIndex);
-        
+
         if (isToday) dot.classList.add('today');
         if (isCompleted) dot.classList.add('completed');
         if (AppState.user.days.includes(dayIndex)) dot.classList.add('active');
-        
+
         dot.innerHTML = `
             <span class="weekly-day-lbl">${daysName[dayIndex]}</span>
             <div class="weekly-dot-circle">${isCompleted ? '✓' : daysName[dayIndex]}</div>
         `;
-        
+
         DOM.weeklyDaysDots.appendChild(dot);
     });
 }
@@ -1078,7 +1113,7 @@ function getThisWeekCompletedDays() {
     const monday = new Date(today);
     monday.setDate(today.getDate() + distanceToMonday);
     monday.setHours(0, 0, 0, 0);
-    
+
     const completedDays = [];
     AppState.history.forEach(log => {
         const logDate = new Date(log.date);
@@ -1086,7 +1121,7 @@ function getThisWeekCompletedDays() {
             completedDays.push(logDate.getDay());
         }
     });
-    
+
     return completedDays;
 }
 
@@ -1095,7 +1130,7 @@ function calculateWeeklyMetaPercentage() {
     if (!AppState.user) return 0;
     const daysToTrainThisWeek = AppState.user.days.length;
     if (daysToTrainThisWeek === 0) return 0;
-    
+
     const completedThisWeek = getThisWeekCompletedDays().length;
     const percentage = Math.round((completedThisWeek / daysToTrainThisWeek) * 100);
     return Math.min(percentage, 100);
@@ -1104,16 +1139,16 @@ function calculateWeeklyMetaPercentage() {
 // Actualizar Racha Diaria (Streak)
 function updateStreak() {
     if (!AppState.user || !AppState.user.lastWorkoutDate) return;
-    
+
     const lastWorkout = new Date(AppState.user.lastWorkoutDate);
     lastWorkout.setHours(0, 0, 0, 0);
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const diffTime = Math.abs(today - lastWorkout);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays > 1) {
         // Se rompió la racha (más de 24h sin entrenar)
         AppState.user.streak = 0;
@@ -1124,7 +1159,7 @@ function updateStreak() {
 // Renderizar Pestaña de Rutinas Completa
 function renderRoutinesTab() {
     DOM.routinesContainer.innerHTML = '';
-    
+
     const isSelectedAthlete = (AppState.user && AppState.user.profileType === 'deportista_seleccionado');
     const keys = ['upper', 'lower', 'core'];
     keys.forEach(key => {
@@ -1132,7 +1167,7 @@ function renderRoutinesTab() {
         const routine = WORKOUT_DATABASE[dbKey] || WORKOUT_DATABASE[key];
         const card = document.createElement('div');
         card.className = 'routine-block-card';
-        
+
         let exercisesHtml = '';
         routine.exercises.forEach(ex => {
             const machineName = ex.machine ? ex.machine.name : 'Peso Corporal';
@@ -1146,7 +1181,7 @@ function renderRoutinesTab() {
                 </div>
             `;
         });
-        
+
         card.innerHTML = `
             <div class="routine-block-header">
                 <h2 class="routine-block-title">${routine.name}</h2>
@@ -1157,7 +1192,7 @@ function renderRoutinesTab() {
                 ${exercisesHtml}
             </div>
         `;
-        
+
         DOM.routinesContainer.appendChild(card);
     });
 }
@@ -1165,28 +1200,28 @@ function renderRoutinesTab() {
 // Renderizar Pestaña de Perfil
 function renderProfileTab() {
     if (!AppState.user) return;
-    
+
     DOM.profileInitials.textContent = AppState.user.name.charAt(0).toUpperCase();
     DOM.profileName.textContent = AppState.user.name;
-    
+
     const imcVal = AppState.user.imc || (AppState.user.weight && AppState.user.height ? parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1)) : null);
     const imcText = imcVal ? ` • IMC: ${imcVal}` : '';
     const bfpVal = AppState.user.bodyFat || (AppState.user.weight && AppState.user.height ? parseFloat(AURA_AI.calculateNavySealBFP(AppState.user.sex || 'male', AppState.user.height, AppState.user.waist || 80, AppState.user.neck || 36, AppState.user.hip || 0).toFixed(1)) : null);
     const bfpText = bfpVal ? ` • Grasa: ${bfpVal}%` : '';
-    
+
     const typeLabel = AppState.user.profileType === 'deportista_seleccionado' ? 'SELECCIONADO' : 'ESTUDIANTE';
     const muscleText = AppState.user.muscleMass ? ` • M. Muscular: ${AppState.user.muscleMass}%` : '';
     const skeletalText = AppState.user.skeletalMuscle ? ` • M. Esquelética: ${AppState.user.skeletalMuscle}%` : '';
-    
+
     DOM.profileStatsSummary.textContent = `Perfil: ${typeLabel} • Objetivo: ${AppState.user.goal.toUpperCase()} • Peso: ${AppState.user.weight} kg • Estatura: ${AppState.user.height} cm${imcText}${bfpText}${muscleText}${skeletalText}`;
-    
+
     // Poblar inputs del formulario de actualización manual de métricas
     if (DOM.profileInputWeight) DOM.profileInputWeight.value = AppState.user.weight || '';
     if (DOM.profileInputHeight) DOM.profileInputHeight.value = AppState.user.height || '';
     if (DOM.profileInputMuscleMass) DOM.profileInputMuscleMass.value = AppState.user.muscleMass || '';
     if (DOM.profileInputSkeletalMuscle) DOM.profileInputSkeletalMuscle.value = AppState.user.skeletalMuscle || '';
     if (DOM.profileInputType) DOM.profileInputType.value = AppState.user.profileType || 'estudiante';
-    
+
     // Mostrar u ocultar panel de kinesiología
     if (AppState.user.profileType === 'deportista_seleccionado') {
         DOM.profileKinesiologyPanel.classList.remove('hidden');
@@ -1194,36 +1229,36 @@ function renderProfileTab() {
     } else {
         DOM.profileKinesiologyPanel.classList.add('hidden');
     }
-    
+
     // Estadísticas
     DOM.profileTotalWorkouts.textContent = AppState.history.length;
-    
+
     let totalSets = 0;
     AppState.history.forEach(log => totalSets += log.setsCount || 0);
     DOM.profileTotalSets.textContent = totalSets;
-    
+
     // Render Historial Reciente
     DOM.historyItemsContainer.innerHTML = '';
-    
+
     if (AppState.history.length === 0) {
         DOM.historyItemsContainer.innerHTML = `<p class="text-secondary text-sm text-center" style="padding: 20px 0;">No hay entrenamientos registrados todavía.</p>`;
         return;
     }
-    
+
     // Mostrar últimos 5 entrenamientos ordenados por fecha descendente
     const sortedHistory = [...AppState.history].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
-    
+
     sortedHistory.forEach(log => {
         const item = document.createElement('div');
         item.className = 'history-item';
-        
+
         const dateFormatted = new Date(log.date).toLocaleDateString('es-ES', {
             day: 'numeric',
             month: 'short',
             hour: '2-digit',
             minute: '2-digit'
         });
-        
+
         item.innerHTML = `
             <div class="history-item-left">
                 <span class="history-item-title">${log.routineName}</span>
@@ -1234,7 +1269,7 @@ function renderProfileTab() {
                 <span class="history-item-duration">${log.duration || '00:00'}</span>
             </div>
         `;
-        
+
         DOM.historyItemsContainer.appendChild(item);
     });
 }
@@ -1247,13 +1282,13 @@ function renderProfileTab() {
 function startWorkoutSession() {
     const todayWorkout = getTodayWorkout();
     if (todayWorkout.rest) return;
-    
+
     AppState.currentWorkout = todayWorkout;
     AppState.workoutActive = true;
     AppState.activeExerciseIndex = 0;
     AppState.workoutSecondsElapsed = 0;
     AppState.workoutStartTime = new Date();
-    
+
     // Inicializar pesos de los sets cargados
     AppState.currentWorkout.exercises.forEach(ex => {
         ex.sets.forEach(set => {
@@ -1261,10 +1296,10 @@ function startWorkoutSession() {
             set.completed = false;
         });
     });
-    
+
     showScreen('screen-workout-active');
     renderActiveExercise();
-    
+
     // Iniciar temporizador del entrenamiento
     clearInterval(AppState.workoutTimerInterval);
     AppState.workoutTimerInterval = setInterval(() => {
@@ -1286,13 +1321,13 @@ function quitActiveWorkout() {
 function renderActiveExercise() {
     const workout = AppState.currentWorkout;
     const exercise = workout.exercises[AppState.activeExerciseIndex];
-    
+
     // Info General
     DOM.activeWorkoutName.textContent = workout.name;
     DOM.activeWorkoutIndex.textContent = `${AppState.activeExerciseIndex + 1} / ${workout.exercises.length}`;
     DOM.exerciseTargetMuscle.textContent = exercise.muscle;
     DOM.exerciseActiveName.textContent = exercise.name;
-    
+
     // Renderizar Info de la Máquina
     if (exercise.machine) {
         DOM.exerciseMachineBadge.textContent = `🔧 ${exercise.machine.name}`;
@@ -1305,12 +1340,12 @@ function renderActiveExercise() {
         DOM.exerciseMachineBadge.classList.remove('hidden');
         DOM.exerciseMachineInfo.classList.add('hidden');
     }
-    
+
     // Renderizar Ilustración del Ejercicio (CSS/SVG Animado)
     DOM.exerciseIllustration.innerHTML = `<div class="${exercise.animationClass}">
         ${getAnimationExtraElements(exercise.animationClass)}
     </div>`;
-    
+
     // Renderizar Instrucciones
     DOM.exerciseInstructionsList.innerHTML = '';
     exercise.instructions.forEach((step, idx) => {
@@ -1318,10 +1353,10 @@ function renderActiveExercise() {
         stepEl.innerHTML = `<span class="text-cyan font-mono">${idx + 1}.</span> ${step}`;
         DOM.exerciseInstructionsList.appendChild(stepEl);
     });
-    
+
     // Controles de Footer
     DOM.btnPrevExercise.disabled = (AppState.activeExerciseIndex === 0);
-    
+
     if (AppState.activeExerciseIndex === workout.exercises.length - 1) {
         DOM.btnNextExercise.textContent = "Finalizar";
         DOM.btnNextExercise.className = "btn btn-primary btn-half btn-glow";
@@ -1329,7 +1364,7 @@ function renderActiveExercise() {
         DOM.btnNextExercise.textContent = "Siguiente";
         DOM.btnNextExercise.className = "btn btn-primary btn-half btn-glow";
     }
-    
+
     // Renderizar Filas de Registro de Series
     renderSetsRows(exercise);
 }
@@ -1387,11 +1422,11 @@ function getAnimationExtraElements(animationClass) {
 // Renderizar Filas de Series
 function renderSetsRows(exercise) {
     DOM.setsRowsContainer.innerHTML = '';
-    
+
     exercise.sets.forEach((set, idx) => {
         const row = document.createElement('div');
         row.className = `set-row ${set.completed ? 'completed' : ''}`;
-        
+
         row.innerHTML = `
             <span class="set-num">${idx + 1}</span>
             <span class="set-obj">${set.reps} reps</span>
@@ -1405,7 +1440,7 @@ function renderSetsRows(exercise) {
                 <div class="set-checkbox" data-index="${idx}"></div>
             </div>
         `;
-        
+
         // Escuchadores de eventos para campos y checkbox
         const weightInput = row.querySelector('.weight-input');
         weightInput.addEventListener('change', (e) => {
@@ -1421,7 +1456,7 @@ function renderSetsRows(exercise) {
         checkbox.addEventListener('click', () => {
             toggleSetCompletion(exercise, idx, row);
         });
-        
+
         DOM.setsRowsContainer.appendChild(row);
     });
 }
@@ -1430,16 +1465,16 @@ function renderSetsRows(exercise) {
 function toggleSetCompletion(exercise, setIndex, rowElement) {
     const set = exercise.sets[setIndex];
     set.completed = !set.completed;
-    
+
     if (set.completed) {
         rowElement.classList.add('completed');
         playBeep(880, 0.15); // Sonido Beep Afilado de Éxito
-        
+
         // No abrir descanso en el último ejercicio, último set
         const workout = AppState.currentWorkout;
         const isLastExercise = AppState.activeExerciseIndex === workout.exercises.length - 1;
         const isLastSet = setIndex === exercise.sets.length - 1;
-        
+
         if (!(isLastExercise && isLastSet)) {
             openRestTimer();
         }
@@ -1455,16 +1490,16 @@ function playBeep(frequency, duration) {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
-        
+
         oscillator.connect(gainNode);
         gainNode.connect(audioCtx.destination);
-        
+
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-        
+
         gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        
+
         oscillator.start(audioCtx.currentTime);
         oscillator.stop(audioCtx.currentTime + duration);
     } catch (e) {
@@ -1479,16 +1514,16 @@ function openRestTimer() {
     AppState.restSecondsRemaining = AppState.restTotalDuration;
     DOM.restTimerCountdown.textContent = AppState.restSecondsRemaining;
     DOM.restTimerOverlay.classList.remove('hidden');
-    
+
     clearInterval(AppState.restTimerInterval);
     AppState.restTimerInterval = setInterval(() => {
         AppState.restSecondsRemaining--;
         DOM.restTimerCountdown.textContent = AppState.restSecondsRemaining;
-        
+
         if (AppState.restSecondsRemaining <= 3 && AppState.restSecondsRemaining > 0) {
             playBeep(600, 0.1); // Beep previo
         }
-        
+
         if (AppState.restSecondsRemaining <= 0) {
             playBeep(1200, 0.35); // Beep largo final
             skipRestTimer();
@@ -1507,10 +1542,10 @@ function skipRestTimer() {
 function finishWorkoutSession() {
     clearInterval(AppState.workoutTimerInterval);
     AppState.workoutActive = false;
-    
+
     // Calcular Estadísticas
     const duration = formatTime(AppState.workoutSecondsElapsed);
-    
+
     let volume = 0;
     let setsCount = 0;
     AppState.currentWorkout.exercises.forEach(ex => {
@@ -1522,16 +1557,16 @@ function finishWorkoutSession() {
             }
         });
     });
-    
+
     // Actualizar Racha de Usuario en LocalStorage
     const todayStr = new Date().toISOString();
-    
+
     let isStreakUpdated = false;
     if (AppState.user) {
         const lastWorkout = AppState.user.lastWorkoutDate ? new Date(AppState.user.lastWorkoutDate) : null;
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        
+
         if (!lastWorkout) {
             AppState.user.streak = 1;
             isStreakUpdated = true;
@@ -1539,7 +1574,7 @@ function finishWorkoutSession() {
             lastWorkout.setHours(0, 0, 0, 0);
             const diffTime = Math.abs(today - lastWorkout);
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            
+
             if (diffDays === 1) {
                 AppState.user.streak += 1;
                 isStreakUpdated = true;
@@ -1548,11 +1583,11 @@ function finishWorkoutSession() {
                 isStreakUpdated = true;
             }
         }
-        
+
         AppState.user.lastWorkoutDate = todayStr;
         localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
     }
-    
+
     // Guardar en Historial
     const loggedSets = [];
     AppState.currentWorkout.exercises.forEach(ex => {
@@ -1581,21 +1616,21 @@ function finishWorkoutSession() {
     };
     AppState.history.push(log);
     localStorage.setItem('aura_workout_history', JSON.stringify(AppState.history));
-    
+
     // Sincronizar en la Nube (Cloud Database & Motivation Reminders)
     fetch('/api/workouts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: AppState.user, log: log })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success && data.motivation) {
-            console.log("Sincronización en la Nube exitosa");
-            DOM.summaryBadgeText.innerHTML += `<br><br><span style="color:var(--aura-cyan); font-weight:bold;">${data.motivation}</span>`;
-        }
-    })
-    .catch(err => console.error("Error sincronizando con la Nube:", err));
+        .then(res => res.json())
+        .then(data => {
+            if (data.success && data.motivation) {
+                console.log("Sincronización en la Nube exitosa");
+                DOM.summaryBadgeText.innerHTML += `<br><br><span style="color:var(--aura-cyan); font-weight:bold;">${data.motivation}</span>`;
+            }
+        })
+        .catch(err => console.error("Error sincronizando con la Nube:", err));
 
     // Sincronizar en base de datos multiusuario
     try {
@@ -1610,17 +1645,17 @@ function finishWorkoutSession() {
     } catch (err) {
         console.error("Error al sincronizar con AURA_AI:", err);
     }
-    
+
     // Mostrar Pantalla de Éxito
     DOM.summaryDuration.textContent = duration;
     DOM.summaryVolume.textContent = `${volume} kg`;
     DOM.summarySets.textContent = setsCount;
-    DOM.summaryBadgeText.textContent = isStreakUpdated 
+    DOM.summaryBadgeText.textContent = isStreakUpdated
         ? `🔥 ¡Aumentaste tu racha de constancia a ${AppState.user.streak} días!`
         : `💪 ¡Gran trabajo! Sigue constante en tu rutina diaria.`;
-        
+
     showScreen('screen-workout-summary');
-    
+
     // Ejecutar Confetti
     runConfetti(DOM.summaryConfetti);
 }
@@ -1633,10 +1668,10 @@ function runConfetti(canvas) {
     const container = canvas.parentElement;
     canvas.width = container.clientWidth;
     canvas.height = container.clientHeight;
-    
+
     let particles = [];
     const colors = ['#7b2cbf', '#00f5d4', '#ff007f', '#00b4d8', '#ffffff'];
-    
+
     for (let i = 0; i < 90; i++) {
         particles.push({
             x: Math.random() * canvas.width,
@@ -1649,22 +1684,22 @@ function runConfetti(canvas) {
             tiltAngle: 0
         });
     }
-    
+
     let animationFrameId;
     function draw() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
+
         let remaining = false;
         particles.forEach((p, idx) => {
             p.tiltAngle += p.tiltAngleIncremental;
             p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
             p.x += Math.sin(p.tiltAngle);
             p.tilt = Math.sin(p.tiltAngle - idx / 3) * 15;
-            
+
             if (p.y < canvas.height) {
                 remaining = true;
             }
-            
+
             ctx.beginPath();
             ctx.lineWidth = p.r;
             ctx.strokeStyle = p.color;
@@ -1672,12 +1707,12 @@ function runConfetti(canvas) {
             ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 2);
             ctx.stroke();
         });
-        
+
         if (remaining) {
             animationFrameId = requestAnimationFrame(draw);
         }
     }
-    
+
     draw();
     setTimeout(() => {
         cancelAnimationFrame(animationFrameId);
@@ -1691,7 +1726,7 @@ function runConfetti(canvas) {
 function openVideoModal() {
     const workout = AppState.currentWorkout;
     const exercise = workout.exercises[AppState.activeExerciseIndex];
-    
+
     DOM.videoModalTitle.textContent = `Guía: ${exercise.name}`;
     DOM.videoIframePlaceholder.innerHTML = `<iframe 
         src="${exercise.videoUrl}" 
@@ -1699,7 +1734,7 @@ function openVideoModal() {
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
         allowfullscreen>
     </iframe>`;
-    
+
     DOM.videoModal.classList.remove('hidden');
 }
 
@@ -1715,10 +1750,10 @@ function formatTime(totalSeconds) {
     const hrs = Math.floor(totalSeconds / 3600);
     const mins = Math.floor((totalSeconds - (hrs * 3600)) / 60);
     const secs = totalSeconds % 60;
-    
+
     const formattedMins = mins < 10 ? '0' + mins : mins;
     const formattedSecs = secs < 10 ? '0' + secs : secs;
-    
+
     if (hrs > 0) {
         const formattedHrs = hrs < 10 ? '0' + hrs : hrs;
         return `${formattedHrs}:${formattedMins}:${formattedSecs}`;
@@ -1729,33 +1764,33 @@ function formatTime(totalSeconds) {
 // Registrar Service Worker para PWA Offline
 function registerServiceWorker() {
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (let registration of registrations) {
                 registration.unregister();
             }
         });
-        caches.keys().then(function(names) {
+        caches.keys().then(function (names) {
             for (let name of names) caches.delete(name);
         });
     }
 }
 
 // Función global para forzar la limpieza completa de la aplicación
-window.forceAppCleanup = function() {
+window.forceAppCleanup = function () {
     console.log("Iniciando limpieza forzada de la aplicación...");
     localStorage.clear();
     sessionStorage.clear();
-    
+
     // Desregistrar el Service Worker para forzar la actualización de red
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-            for(let registration of registrations) {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+            for (let registration of registrations) {
                 registration.unregister();
             }
         });
     }
 
-    caches.keys().then(function(names) {
+    caches.keys().then(function (names) {
         let deletePromises = [];
         for (let name of names) {
             deletePromises.push(caches.delete(name));
@@ -1773,33 +1808,33 @@ window.forceAppCleanup = function() {
 function renderAdminTab() {
     // 1. Obtener usuarios y asegurar sincronización
     const users = AURA_AI.getUsers();
-    
+
     // Contar por clúster (siempre sobre el total)
     let committedCount = 0;
     let irregularCount = 0;
     let highriskCount = 0;
-    
+
     users.forEach(u => {
         if (u.assignedCluster === 'Comprometido') committedCount++;
         else if (u.assignedCluster === 'Irregular') irregularCount++;
         else if (u.assignedCluster === 'Alto riesgo') highriskCount++;
     });
-    
+
     if (DOM.adminCountCommitted) DOM.adminCountCommitted.textContent = committedCount;
     if (DOM.adminCountIrregular) DOM.adminCountIrregular.textContent = irregularCount;
     if (DOM.adminCountHighrisk) DOM.adminCountHighrisk.textContent = highriskCount;
-    
+
     // Correr clustering y obtener iteraciones
     const clusterResult = AURA_AI.runClustering();
     if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
-    
+
     // Obtener valor del filtro
     const filterValue = DOM.adminFilterCluster ? DOM.adminFilterCluster.value : 'all';
     let filteredUsers = clusterResult.users;
     if (filterValue !== 'all') {
         filteredUsers = filteredUsers.filter(u => u.assignedCluster === filterValue);
     }
-    
+
     // Poblar selector para simular QR
     if (DOM.adminQrSelectUser) {
         const selectedVal = DOM.adminQrSelectUser.value;
@@ -1819,17 +1854,17 @@ function renderAdminTab() {
         DOM.adminUsersTableBody.innerHTML = '';
         filteredUsers.forEach(user => {
             const tr = document.createElement('tr');
-            
+
             let clusterClass = 'irregular';
             if (user.assignedCluster === 'Comprometido') clusterClass = 'committed';
             else if (user.assignedCluster === 'Alto riesgo') clusterClass = 'highrisk';
-            
+
             const fatVal = user.bodyFat ? `${user.bodyFat.toFixed(1)}%` : '--';
             const imcVal = user.imc ? user.imc.toFixed(1) : '--';
-            
+
             let stateBadge = '';
             if (user.profileType === 'deportista_seleccionado') {
-                stateBadge = user.injured 
+                stateBadge = user.injured
                     ? `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Lesionado</span>`
                     : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Sano</span>`;
             } else {
@@ -1860,12 +1895,12 @@ function renderAdminTab() {
                     </div>
                 </td>
             `;
-            
+
             // Vincular eventos a los botones creados
             tr.querySelector('.btn-attendance-check').addEventListener('click', () => {
                 registerUserAttendance(user.id, 'standard');
             });
-            
+
             const kBtn = tr.querySelector('.btn-kine');
             if (kBtn) {
                 kBtn.addEventListener('click', () => {
@@ -1876,7 +1911,7 @@ function renderAdminTab() {
             DOM.adminUsersTableBody.appendChild(tr);
         });
     }
-    
+
     // Renderizar historial de ingresos del día
     renderAttendanceHistory();
 
@@ -1884,16 +1919,16 @@ function renderAdminTab() {
     if (DOM.adminNotificationsContainer) {
         DOM.adminNotificationsContainer.innerHTML = '';
         const notifications = AURA_AI.generateNotifications();
-        
+
         if (notifications.length === 0) {
             DOM.adminNotificationsContainer.innerHTML = `<p class="text-secondary text-xs text-center" style="padding: 20px 0;">No hay atletas en "Alto riesgo" actualmente.</p>`;
             return;
         }
-        
+
         notifications.forEach(notif => {
             const card = document.createElement('div');
             card.className = 'admin-notification-card';
-            
+
             card.innerHTML = `
                 <div class="notif-header">
                     <span class="notif-user-tag">${notif.userName}</span>
@@ -1904,7 +1939,7 @@ function renderAdminTab() {
                     <button class="btn-notif-send">Enviar Alerta</button>
                 </div>
             `;
-            
+
             const sendBtn = card.querySelector('.btn-notif-send');
             sendBtn.addEventListener('click', () => {
                 sendBtn.textContent = 'Enviada ✓';
@@ -1912,7 +1947,7 @@ function renderAdminTab() {
                 card.classList.add('sent');
                 playBeep(1000, 0.2);
             });
-            
+
             DOM.adminNotificationsContainer.appendChild(card);
         });
     }
@@ -1925,7 +1960,7 @@ function getWeightStatusInfo(weight, height) {
     const maxWeight = parseFloat((24.9 * heightM * heightM).toFixed(1));
     const isUnderweight = weight < minWeight;
     const diff = isUnderweight ? parseFloat((minWeight - weight).toFixed(1)) : 0.0;
-    
+
     return {
         minWeight,
         maxWeight,
@@ -1937,10 +1972,10 @@ function getWeightStatusInfo(weight, height) {
 // Renderizar el estado de Kinesiología y reportes de lesión
 function renderKinesiologyStatus() {
     if (!AppState.user || AppState.user.profileType !== 'deportista_seleccionado') return;
-    
+
     const viewContainer = DOM.kinesiologyStatusView;
     const formContainer = DOM.kinesiologyReportForm;
-    
+
     if (AppState.user.injured) {
         viewContainer.innerHTML = `
             <div style="background: rgba(255, 71, 87, 0.05); border: 1px solid rgba(255, 71, 87, 0.2); border-radius: 12px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px;">
@@ -1959,7 +1994,7 @@ function renderKinesiologyStatus() {
             </div>
         `;
         formContainer.classList.add('hidden');
-        
+
         // Agregar manejadores
         viewContainer.querySelector('#btn-recovery-clear').addEventListener('click', () => {
             AppState.user.injured = 0;
@@ -1968,7 +2003,7 @@ function renderKinesiologyStatus() {
             renderProfileTab();
             renderDashboard();
         });
-        
+
         viewContainer.querySelector('#btn-kinesiology-checkin').addEventListener('click', () => {
             const att = {
                 userId: 'active-user',
@@ -1976,18 +2011,18 @@ function renderKinesiologyStatus() {
                 type: 'kinesiology',
                 notes: `Sesión de Kinesiología por lesión: ${AppState.user.injuryDetails}`
             };
-            
+
             AURA_AI.addAttendance(att);
             fetch('/api/attendance', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(att)
             })
-            .then(() => {
-                alert("✓ Asistencia a Kinesiología registrada con éxito.");
-                renderAdminTab();
-            })
-            .catch(err => console.error("Error guardando asistencia:", err));
+                .then(() => {
+                    alert("✓ Asistencia a Kinesiología registrada con éxito.");
+                    renderAdminTab();
+                })
+                .catch(err => console.error("Error guardando asistencia:", err));
         });
     } else {
         viewContainer.innerHTML = `
@@ -1998,7 +2033,7 @@ function renderKinesiologyStatus() {
             </div>
         `;
         formContainer.classList.add('hidden');
-        
+
         viewContainer.querySelector('#btn-toggle-injury-form').addEventListener('click', () => {
             formContainer.classList.toggle('hidden');
         });
@@ -2014,9 +2049,9 @@ function saveActiveUserToDatabase() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: AppState.user })
     })
-    .then(res => res.json())
-    .then(data => console.log("Usuario guardado en la nube:", data))
-    .catch(err => console.error("Error sincronizando usuario:", err));
+        .then(res => res.json())
+        .then(data => console.log("Usuario guardado en la nube:", data))
+        .catch(err => console.error("Error sincronizando usuario:", err));
 }
 
 // Registrar asistencia de usuario (Estándar o Kinesiología)
@@ -2024,92 +2059,92 @@ function registerUserAttendance(userId, type = 'standard', notes = '') {
     const users = AURA_AI.getUsers();
     const user = users.find(u => u.id === userId);
     if (!user) return;
-    
+
     const att = {
         userId: userId,
         date: new Date().toISOString(),
         type: type,
         notes: notes || (type === 'kinesiology' ? `Kinesiología: ${user.injuryDetails || 'Lesión'}` : 'Acceso gimnasio general')
     };
-    
+
     // Guardar en la DB local simulada
     AURA_AI.addAttendance(att);
-    
+
     // Guardar en la base de datos de Express (SQLite)
     fetch('/api/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(att)
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            playBeep(600, 0.15); // Sonido de éxito
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                playBeep(600, 0.15); // Sonido de éxito
+                renderAdminTab();
+            }
+        })
+        .catch(err => {
+            console.error("Error sincronizando asistencia:", err);
+            // Fallback local exitoso si no hay red
+            playBeep(600, 0.15);
             renderAdminTab();
-        }
-    })
-    .catch(err => {
-        console.error("Error sincronizando asistencia:", err);
-        // Fallback local exitoso si no hay red
-        playBeep(600, 0.15);
-        renderAdminTab();
-    });
+        });
 }
 
 // Renderizar el historial de ingresos de asistencia
 function renderAttendanceHistory() {
     if (!DOM.adminAttendanceTableBody) return;
-    
+
     fetch('/api/attendance')
-    .then(res => res.json())
-    .then(data => {
-        const list = data.attendance || [];
-        const localAtt = AURA_AI.getAttendance();
-        
-        // Combinar listas sin duplicar
-        const allAtt = [...localAtt];
-        list.forEach(item => {
-            if (!allAtt.some(a => a.id === item.id)) {
-                allAtt.push(item);
-            }
-        });
-        
-        // Ordenar fecha desc
-        allAtt.sort((a, b) => new Date(b.date) - new Date(a.date));
-        
-        DOM.adminAttendanceTableBody.innerHTML = '';
-        if (allAtt.length === 0) {
-            DOM.adminAttendanceTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay ingresos registrados hoy.</td></tr>`;
-            return;
-        }
-        
-        allAtt.forEach(att => {
-            const users = AURA_AI.getUsers();
-            const user = users.find(u => u.id === att.userId);
-            const userName = att.userName || (user ? user.name : 'Atleta Desconocido');
-            const profileType = att.profileType || (user ? user.profileType : 'estudiante');
-            const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
-            
-            const timeStr = new Date(att.date).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit'
+        .then(res => res.json())
+        .then(data => {
+            const list = data.attendance || [];
+            const localAtt = AURA_AI.getAttendance();
+
+            // Combinar listas sin duplicar
+            const allAtt = [...localAtt];
+            list.forEach(item => {
+                if (!allAtt.some(a => a.id === item.id)) {
+                    allAtt.push(item);
+                }
             });
-            
-            const typeLabel = att.type === 'kinesiology'
-                ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
-                : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
-            
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+
+            // Ordenar fecha desc
+            allAtt.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            DOM.adminAttendanceTableBody.innerHTML = '';
+            if (allAtt.length === 0) {
+                DOM.adminAttendanceTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay ingresos registrados hoy.</td></tr>`;
+                return;
+            }
+
+            allAtt.forEach(att => {
+                const users = AURA_AI.getUsers();
+                const user = users.find(u => u.id === att.userId);
+                const userName = att.userName || (user ? user.name : 'Atleta Desconocido');
+                const profileType = att.profileType || (user ? user.profileType : 'estudiante');
+                const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
+
+                const timeStr = new Date(att.date).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const typeLabel = att.type === 'kinesiology'
+                    ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
+                    : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
                 <td class="font-mono" style="font-size: 11px;">${timeStr}</td>
                 <td style="font-weight: 500; font-size: 12px;">${userName}</td>
                 <td style="font-size: 12px; color: var(--text-secondary);">${profileLabel}</td>
                 <td style="font-size: 11px; line-height: 1.3;">${typeLabel}<br><span style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</span></td>
             `;
-            DOM.adminAttendanceTableBody.appendChild(tr);
+                DOM.adminAttendanceTableBody.appendChild(tr);
+            });
+        })
+        .catch(err => {
+            console.error("Error obteniendo asistencia:", err);
         });
-    })
-    .catch(err => {
-        console.error("Error obteniendo asistencia:", err);
-    });
 }
