@@ -812,67 +812,64 @@
                 </div>
                 <div class="modal-body">
                     <div class="video-container">
-                        <!-- El iframe se cargará bajo demanda por seguridad y optimización -->
                         <div id="video-iframe-placeholder"></div>
                     </div>
                 </div>
             </div>
-
-            <!-- Modal Código de Barras de Acceso -->
-            <div id="access-modal" class="modal hidden">
-                <div class="modal-overlay" id="access-modal-overlay"></div>
-                <div class="modal-wrapper" style="max-width: 350px;">
-                    <div class="modal-header">
-                        <h3>Mi Código de Acceso</h3>
-                        <button id="btn-access-modal-close" class="btn-icon-close">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2.5">
-                                <line x1="18" y1="6" x2="6" y2="18"></line>
-                                <line x1="6" y1="6" x2="18" y2="18"></line>
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="modal-body"
-                        style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 20px;">
-                        <p id="access-modal-username" class="text-secondary text-sm" style="font-weight: 600;"></p>
-                        <p id="access-modal-usertype" class="text-primary text-xs"></p>
-                        <div id="barcode-placeholder"
-                            style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; width: 280px; height: 180px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); overflow: hidden;">
-                            <div id="qrcode-container"></div>
+        </div>
+        <div id="access-modal" class="modal hidden">
+            <div class="modal-overlay" id="access-modal-overlay"></div>
+            <div class="modal-wrapper" style="max-width: 350px;">
+                <div class="modal-header">
+                    <h3>Mi Código de Acceso</h3>
+                    <button id="btn-access-modal-close" class="btn-icon-close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body"
+                    style="display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 24px 20px;">
+                    <p id="access-modal-username" class="text-secondary text-sm" style="font-weight: 600;"></p>
+                    <p id="access-modal-usertype" class="text-primary text-xs"></p>
+                    <div id="barcode-placeholder"
+                        style="background: white; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center; width: 280px; height: 180px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); overflow: hidden;">
+                        <div id="qrcode-container"
+                            style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
                         </div>
-                        <p class="text-secondary text-xs text-center">Este código caducará automáticamente en 30
-                            segundos.</p>
+                    </div>
+                    <p class="text-secondary text-xs text-center">Este código caducará automáticamente en 30 segundos.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div id="confirm-modal" class="modal hidden">
+            <div class="modal-overlay" id="confirm-modal-overlay"></div>
+            <div class="modal-wrapper">
+                <div class="modal-header">
+                    <h3 id="confirm-modal-title"
+                        style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
+                        ⚠️ ADVERTENCIA
+                    </h3>
+                </div>
+                <div class="modal-body text-center" style="padding: 24px 20px;">
+                    <p id="confirm-modal-message" class="text-sm text-secondary"
+                        style="line-height: 1.5; margin-bottom: 24px;">
+                        ATENCIÓN: Esto borrará por completo tu perfil y todo tu historial de entrenamiento de forma
+                        irreversible. ¿Proceder?
+                    </p>
+                    <div class="confirm-modal-actions"
+                        style="display: flex; gap: 16px; justify-content: center; width: 100%;">
+                        <button id="btn-confirm-cancel" class="btn btn-secondary btn-half"
+                            style="text-transform: uppercase;">Cancelar</button>
+                        <button id="btn-confirm-accept" class="btn btn-primary btn-half btn-glow"
+                            style="background: var(--color-danger); color: white; text-transform: uppercase; box-shadow: 0 0 15px rgba(255, 71, 87, 0.25);">Aceptar</button>
                     </div>
                 </div>
             </div>
-
-            <!-- 6. MODAL DE CONFIRMACIÓN PERSONALIZADO -->
-            <div id="confirm-modal" class="modal hidden">
-                <div class="modal-overlay" id="confirm-modal-overlay"></div>
-                <div class="modal-wrapper">
-                    <div class="modal-header">
-                        <h3 id="confirm-modal-title"
-                            style="color: var(--color-danger); display: flex; align-items: center; gap: 8px;">
-                            ⚠️ ADVERTENCIA
-                        </h3>
-                    </div>
-                    <div class="modal-body text-center" style="padding: 24px 20px;">
-                        <p id="confirm-modal-message" class="text-sm text-secondary"
-                            style="line-height: 1.5; margin-bottom: 24px;">
-                            ATENCIÓN: Esto borrará por completo tu perfil y todo tu historial de entrenamiento de forma
-                            irreversible. ¿Proceder?
-                        </p>
-                        <div class="confirm-modal-actions"
-                            style="display: flex; gap: 16px; justify-content: center; width: 100%;">
-                            <button id="btn-confirm-cancel" class="btn btn-secondary btn-half"
-                                style="text-transform: uppercase;">Cancelar</button>
-                            <button id="btn-confirm-accept" class="btn btn-primary btn-half btn-glow"
-                                style="background: var(--color-danger); color: white; text-transform: uppercase; box-shadow: 0 0 15px rgba(255, 71, 87, 0.25);">Aceptar</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
         <!-- JS Aplicación -->

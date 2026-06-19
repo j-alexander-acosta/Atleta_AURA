@@ -163,7 +163,7 @@ const DOM = {
     inputSkeletalMuscle: document.getElementById('input-skeletal-muscle'),
     dashboardAlerts: document.getElementById('dashboard-alerts'),
     btnShowAccess: document.getElementById('btn-show-access'),
-    qrContainer: document.getElementById('barcode-placeholder'),
+    qrContainer: document.getElementById('qrcode-container'),
     formUpdateMetrics: document.getElementById('form-update-metrics'),
     profileInputWeight: document.getElementById('profile-input-weight'),
     profileInputHeight: document.getElementById('profile-input-height'),
@@ -544,17 +544,9 @@ function initEventListeners() {
     async function generarTokenAsistencia() {
         try {
             const response = await fetch(`${window.location.origin}/api/asistencia/token?usuario_id=${AppState.user.id}`);
-
-            if (!response.ok) {
-                throw new Error(`Error de red: HTTP ${response.status}`);
-            }
-
+            if (!response.ok) throw new Error(`Error de red: HTTP ${response.status}`);
             const data = await response.json();
-
-            if (!data.success || !data.token) {
-                throw new Error(data.error || 'Estructura de respuesta inválida desde el servidor');
-            }
-
+            if (!data.success || !data.token) throw new Error(data.error || 'Estructura inválida');
             return data.token;
         } catch (error) {
             console.error("FAIL-FAST [generarTokenAsistencia]:", error);
@@ -563,9 +555,7 @@ function initEventListeners() {
     }
 
     function renderizarQR(token) {
-        // En lugar de llamar a qrContainer de DOM, obtenemos el nuevo Div del HTML directamente
         const container = document.getElementById('qrcode-container');
-
         if (!container) {
             console.error("FAIL-FAST [renderizarQR]: Contenedor del QR no está presente en el DOM.");
             return;
@@ -591,15 +581,9 @@ function initEventListeners() {
 
     async function iniciarGeneracionQR() {
         const container = document.getElementById('qrcode-container');
-
         try {
-            if (container) {
-                container.innerHTML = '<p class="text-secondary text-xs text-center">Autenticando acceso seguro...</p>';
-            }
-
-            if (qrRefreshInterval) {
-                clearInterval(qrRefreshInterval);
-            }
+            if (container) container.innerHTML = '<p class="text-secondary text-xs text-center">Autenticando acceso seguro...</p>';
+            if (qrRefreshInterval) clearInterval(qrRefreshInterval);
 
             const tokenInicial = await generarTokenAsistencia();
             renderizarQR(tokenInicial);
@@ -612,43 +596,25 @@ function initEventListeners() {
                     console.error("Error regenerando código QR dinámico:", err);
                 }
             }, 30000);
-
         } catch (error) {
-            console.error("Fallo general en la vista del QR:", error);
-            if (container) {
-                container.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">No se pudo establecer conexión de acceso.</p>';
-            }
+            console.error("Fallo en la vista del QR:", error);
+            if (container) container.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">Fallo de conexión.</p>';
         }
     }
 
-    async function iniciarGeneracionQR() {
-        try {
-            if (DOM.qrContainer) {
-                DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center">Autenticando acceso seguro...</p>';
-            }
+    // 10. Acciones de Código de Barras
+    if (DOM.btnShowAccess) {
+        DOM.btnShowAccess.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (!AppState || !AppState.user) return;
+            if (!DOM.accessModal) return;
 
-            if (qrRefreshInterval) {
-                clearInterval(qrRefreshInterval);
-            }
+            if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
+            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
 
-            const tokenInicial = await generarTokenAsistencia();
-            renderizarQR(tokenInicial);
-
-            qrRefreshInterval = setInterval(async () => {
-                try {
-                    const newToken = await generarTokenAsistencia();
-                    renderizarQR(newToken);
-                } catch (err) {
-                    console.error("Error regenerando código QR dinámico:", err);
-                }
-            }, 30000);
-
-        } catch (error) {
-            console.error("Fallo general en la vista del QR:", error);
-            if (DOM.qrContainer) {
-                DOM.qrContainer.innerHTML = '<p class="text-secondary text-xs text-center" style="color:var(--color-danger)">No se pudo establecer conexión de acceso.</p>';
-            }
-        }
+            DOM.accessModal.classList.remove('hidden');
+            await iniciarGeneracionQR();
+        });
     }
 
     // 10. Acciones de Código de Barras y Actualización de Métricas del Perfil
