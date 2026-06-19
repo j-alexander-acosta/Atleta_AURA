@@ -403,18 +403,6 @@ app.get('/api/check-habilitacion', (req, res) => {
   });
 });
 
-// Middleware de autenticación (Debes poner esto arriba de las rutas protegidas)
-const authenticateAdmin = (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) return res.status(401).json({ success: false, error: 'Token requerido' });
-  const token = authHeader.split(' ')[1];
-  jwt.verify(token, 'TU_SECRET_KEY_AQUI', (err, decoded) => {
-    if (err) return res.status(403).json({ success: false, error: 'Token inválido' });
-    req.admin = decoded;
-    next();
-  });
-};
-
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
   const { rut, dias_permitidos, es_exento } = req.body;
   db.run(
