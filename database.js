@@ -788,6 +788,16 @@ function getAttendanceList(callback) {
   });
 }
 
+function getAttendanceHistory(callback) {
+  db.all(`
+    SELECT * FROM attendance 
+    ORDER BY date DESC
+  `, (err, rows) => {
+    callback(err, rows);
+  });
+}
+
+
 function getRoutinesWithExercisesAndMachines(callback) {
   const query = `
     SELECT 
@@ -885,6 +895,7 @@ module.exports = {
   saveLog,
   saveAttendance,
   getAttendanceList,
+  getAttendanceHistory,
   getRoutinesWithExercisesAndMachines,
   registrarAsistenciaQR,
   obtenerUltimaAsistenciaUsuario,

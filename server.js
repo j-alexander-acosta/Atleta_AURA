@@ -207,6 +207,17 @@ app.get('/api/attendance', (req, res) => {
   });
 });
 
+// Endpoint Histórico de Asistencia (Admin)
+app.get('/api/admin/attendance-history', authenticateAdmin, (req, res) => {
+  db.getAttendanceHistory((err, rows) => {
+    if (err) {
+      console.error("Error obteniendo histórico de asistencia:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, history: rows });
+  });
+});
+
 // Endpoint para consultar rutinas completas con ejercicios y máquinas (Dinámico)
 app.get('/api/routines', (req, res) => {
   db.getRoutinesWithExercisesAndMachines((err, rows) => {

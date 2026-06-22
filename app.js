@@ -295,6 +295,7 @@ function initEventListeners() {
             const adminNav = document.getElementById('nav-item-admin');
             if (adminNav) adminNav.classList.add('active');
             
+            document.getElementById('app-container').classList.add('admin-mode');
             window.checkAdminAuth();
         });
     }
@@ -461,7 +462,13 @@ function initEventListeners() {
             if (targetTab === 'dashboard') renderDashboard();
             if (targetTab === 'routines') renderRoutinesTab();
             if (targetTab === 'profile') renderProfileTab();
-            if (targetTab === 'admin') window.checkAdminAuth();
+            
+            if (targetTab === 'admin') {
+                document.getElementById('app-container').classList.add('admin-mode');
+                window.checkAdminAuth();
+            } else {
+                document.getElementById('app-container').classList.remove('admin-mode');
+            }
         });
     });
 
@@ -1942,6 +1949,7 @@ function renderAdminTab() {
 
     // Renderizar historial de ingresos del día
     renderAttendanceHistory();
+    renderAttendanceHistoryDashboard();
 
     // 3. Renderizar Notificaciones de Recuperación
     if (DOM.adminNotificationsContainer) {
@@ -2175,6 +2183,48 @@ function renderAttendanceHistory() {
         .catch(err => {
             console.error("Error obteniendo asistencia:", err);
         });
+}
+
+async function renderAttendanceHistoryDashboard() {
+    const token = sessionStorage.getItem('aura_admin_token');
+    if (!token) return;
+
+    try {
+        const res = await fetch('/api/admin/attendance-history', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const tableBody = document.getElementById('admin-attendance-history-table-body');
+            if (!tableBody) return;
+            tableBody.innerHTML = '';
+            
+            if (!data.history || data.history.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay historial de asistencia.</td></tr>`;
+                return;
+            }
+
+            data.history.forEach(att => {
+                const tr = document.createElement('tr');
+                const dateStr = new Date(att.date).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                const typeLabel = att.type === 'kinesiology'
+                    ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
+                    : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
+
+                tr.innerHTML = `
+                    <td class="font-mono" style="font-size: 11px;">${dateStr}</td>
+                    <td style="font-weight: 500; font-size: 12px;">${att.userName || 'Atleta Desconocido'}</td>
+                    <td style="font-size: 11px; line-height: 1.3;">${typeLabel}</td>
+                    <td style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+    } catch (err) {
+        console.error("Error cargando histórico de asistencia:", err);
+    }
 }
 
 // Función global para validar RUT
