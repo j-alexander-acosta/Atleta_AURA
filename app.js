@@ -568,8 +568,8 @@ function initEventListeners() {
 
     // 4c. Acciones de Administración
     if (DOM.btnRunClustering) {
-        DOM.btnRunClustering.addEventListener('click', () => {
-            const result = AURA_AI.runClustering();
+        DOM.btnRunClustering.addEventListener('click', async () => {
+            const result = await AURA_AI.runClustering();
             if (result.success) {
                 playBeep(880, 0.15);
                 renderAdminTab();
@@ -1954,7 +1954,7 @@ async function renderAdminTab() {
     if (DOM.adminCountHighrisk) DOM.adminCountHighrisk.textContent = highriskCount;
 
     // Correr clustering y obtener iteraciones
-    const clusterResult = AURA_AI.runClustering();
+    const clusterResult = await AURA_AI.runClustering();
     if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
 
     // Obtener valor del filtro
