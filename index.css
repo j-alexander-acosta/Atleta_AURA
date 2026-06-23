@@ -265,6 +265,8 @@ label {
 }
 
 input[type="text"],
+input[type="email"],
+input[type="password"],
 input[type="number"] {
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -278,6 +280,8 @@ input[type="number"] {
 }
 
 input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
 input[type="number"]:focus {
     outline: none;
     border-color: var(--color-neon-teal);
