@@ -277,6 +277,17 @@ app.get('/api/admin/attendance-history', authenticateAdmin, (req, res) => {
     res.json({ success: true, history: rows });
   });
 });
+// Endpoint para obtener todos los usuarios de la base de datos real
+app.get('/api/admin/users', authenticateAdmin, (req, res) => {
+  db.getAllUsers((err, rows) => {
+    if (err) {
+      console.error("Error obteniendo usuarios reales:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, users: rows });
+  });
+});
+
 // Endpoint para obtener el estado de todos los usuarios habilitados
 app.get('/api/admin/users-status', authenticateAdmin, (req, res) => {
   db.getAllHabilitaciones((err, rows) => {

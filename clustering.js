@@ -328,9 +328,9 @@ const AURA_AI = (() => {
     };
 
     // 2. Algoritmo K-Means para Clustering de Usuarios (3D: Frecuencia, Volumen/Progresión, Grasa Corporal)
-    const runClustering = async () => {
+    const runClustering = async (backendUsers) => {
         loadDB();
-        const users = getUsers(); // Asegurar sincronización
+        const users = backendUsers || getUsers(); // Usa usuarios reales si se pasan, sino fallback
         const logs = db.logs;
         const today = new Date();
 
@@ -512,8 +512,14 @@ const AURA_AI = (() => {
 
         // Guardar asignaciones finales en los perfiles
         dataPoints.forEach((point, idx) => {
-            const user = db.users.find(u => u.id === point.userId);
             const finalCluster = labelMap[assignments[idx]];
+            
+            // Actualizar en el arreglo pasado como parámetro (los reales del backend si corresponde)
+            const memoryUser = users.find(u => u.id === point.userId);
+            if (memoryUser) memoryUser.assignedCluster = finalCluster;
+            
+            // Actualizar en la DB local (mock)
+            const user = db.users.find(u => u.id === point.userId);
             if (user) {
                 user.assignedCluster = finalCluster;
             }
@@ -532,7 +538,7 @@ const AURA_AI = (() => {
         return {
             success: true,
             iterations: iterations,
-            users: db.users
+            users: users
         };
     };
 

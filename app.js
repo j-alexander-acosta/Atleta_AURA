@@ -1920,13 +1920,37 @@ window.forceAppCleanup = function () {
    Admin Pane Render Logic
    ========================================================================== */
 async function renderAdminTab() {
-    // 1. Obtener usuarios y asegurar sincronización
     AURA_AI.loadDB();
-    const users = AURA_AI.getUsers();
+    
+    // 1. Obtener usuarios desde SQLite backend
+    let users = [];
+    const token = sessionStorage.getItem('aura_admin_token');
+    
+    if (token) {
+        try {
+            const resUsers = await fetch('/api/admin/users', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const dataUsers = await resUsers.json();
+            if (dataUsers.success && dataUsers.users) {
+                users = dataUsers.users;
+            } else {
+                users = AURA_AI.getUsers(); // Fallback local
+            }
+        } catch (err) {
+            console.error("Error fetching users:", err);
+            users = AURA_AI.getUsers(); // Fallback local
+        }
+    } else {
+        users = AURA_AI.getUsers();
+    }
+
+    // Correr clustering y obtener iteraciones (actualiza assignedCluster en los objetos users)
+    const clusterResult = await AURA_AI.runClustering(users);
+    if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
 
     // Fetch habilitaciones from server
     let habilitaciones = [];
-    const token = sessionStorage.getItem('aura_admin_token');
     if (token) {
         try {
             const res = await fetch('/api/admin/users-status', {
@@ -1955,10 +1979,6 @@ async function renderAdminTab() {
     if (DOM.adminCountCommitted) DOM.adminCountCommitted.textContent = committedCount;
     if (DOM.adminCountIrregular) DOM.adminCountIrregular.textContent = irregularCount;
     if (DOM.adminCountHighrisk) DOM.adminCountHighrisk.textContent = highriskCount;
-
-    // Correr clustering y obtener iteraciones
-    const clusterResult = await AURA_AI.runClustering();
-    if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
 
     // Obtener valor del filtro
     const filterValue = DOM.adminFilterCluster ? DOM.adminFilterCluster.value : 'all';
@@ -2238,15 +2258,13 @@ function saveActiveUserToDatabase() {
 
 // Registrar asistencia de usuario (Estándar o Kinesiología)
 function registerUserAttendance(userId, type = 'standard', notes = '') {
-    const users = AURA_AI.getUsers();
-    const user = users.find(u => u.id === userId);
-    if (!user) return;
+    if (!userId) return;
 
     const att = {
         userId: userId,
         date: new Date().toISOString(),
         type: type,
-        notes: notes || (type === 'kinesiology' ? `Kinesiología: ${user.injuryDetails || 'Lesión'}` : 'Acceso gimnasio general')
+        notes: notes || 'Acceso gimnasio general'
     };
 
     // Guardar en la DB local simulada
@@ -2301,10 +2319,8 @@ function renderAttendanceHistory() {
             }
 
             allAtt.forEach(att => {
-                const users = AURA_AI.getUsers();
-                const user = users.find(u => u.id === att.userId);
-                const userName = att.userName || (user ? user.name : 'Atleta Desconocido');
-                const profileType = att.profileType || (user ? user.profileType : 'estudiante');
+                const userName = att.userName || 'Atleta Desconocido';
+                const profileType = att.profileType || 'estudiante';
                 const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
 
                 const timeStr = new Date(att.date).toLocaleTimeString('es-ES', {
