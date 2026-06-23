@@ -2465,6 +2465,7 @@ if (btnAdminHabilitar) {
                 msg.style.color = 'var(--color-neon-teal)';
                 msg.textContent = '¡Estudiante habilitado con éxito!';
                 document.getElementById('admin-hab-rut').value = '';
+                if(typeof renderAdminTab === 'function') renderAdminTab();
             } else {
                 msg.style.color = 'var(--color-danger)';
                 msg.textContent = data.error || 'Fallo al habilitar';

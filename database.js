@@ -920,6 +920,12 @@ function getUserById(id, callback) {
   });
 }
 
+function getUserByRut(rut, callback) {
+  db.get("SELECT * FROM users WHERE rut = ?", [rut], (err, row) => {
+    callback(err, row);
+  });
+}
+
 function saveWebNotification(user_id, message, callback) {
   const stmt = db.prepare(`
     INSERT INTO notificaciones_web (user_id, message) 
@@ -984,6 +990,7 @@ module.exports = {
   getAdminByUsername,
   decrementarDiasPermitidos,
   getUserById,
+  getUserByRut,
   saveWebNotification,
   getUnreadNotifications,
   markNotificationAsRead,

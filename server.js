@@ -117,7 +117,38 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
 
   db.addUsuarioHabilitado(cleanRut, dias, es_exento, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
-    res.json({ success: true, message: 'Usuario habilitado correctamente.' });
+    
+    // Check if user exists in users table
+    db.getUserByRut(cleanRut, (err, user) => {
+      if (err) {
+        console.error("Error verificando usuario:", err);
+        return res.status(500).json({ error: 'Error interno verificando usuario.' });
+      }
+
+      if (!user) {
+        // Create initial record
+        const newUser = {
+          id: 'user-' + Date.now(),
+          name: 'Nuevo Atleta',
+          age: 0,
+          sex: 'male',
+          weight: 0,
+          height: 0,
+          goal: '',
+          level: 'principiante',
+          streak: 0,
+          assignedCluster: 'Pendiente',
+          profileType: 'estudiante',
+          rut: cleanRut
+        };
+        db.saveUser(newUser, (saveErr) => {
+          if (saveErr) console.error("Error creating initial user:", saveErr);
+          res.json({ success: true, message: 'Usuario habilitado y registrado correctamente.' });
+        });
+      } else {
+        res.json({ success: true, message: 'Usuario habilitado correctamente.' });
+      }
+    });
   });
 });
 
