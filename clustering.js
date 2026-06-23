@@ -26,7 +26,7 @@ const AURA_AI = (() => {
     // 1. Base de Datos Simulada Multi-Usuario (para demostración del Panel Admin)
     const getInitialMockDB = () => {
         const today = new Date();
-        
+
         // Helper para crear fechas relativas a hoy
         const daysAgo = (days) => {
             const date = new Date(today);
@@ -241,14 +241,14 @@ const AURA_AI = (() => {
         // Sincronizar el usuario activo de la SPA si existe en localStorage
         const activeProfile = localStorage.getItem('aura_user_profile');
         const activeLogs = localStorage.getItem('aura_workout_history');
-        
+
         if (activeProfile) {
             const userObj = JSON.parse(activeProfile);
             const userLogs = activeLogs ? JSON.parse(activeLogs) : [];
-            
+
             // Buscar si ya existe en db
             const idx = db.users.findIndex(u => u.id === "active-user" || u.name.startsWith(userObj.name));
-            
+
             const bfp = userObj.bodyFat || calculateNavySealBFP(
                 userObj.sex,
                 userObj.height,
@@ -317,7 +317,7 @@ const AURA_AI = (() => {
             ...logData
         };
         db.logs.push(newLog);
-        
+
         // Actualizar la última fecha de entrenamiento en el usuario
         const user = db.users.find(u => u.id === userId);
         if (user) {
@@ -337,7 +337,7 @@ const AURA_AI = (() => {
         // Calcular características para cada usuario
         const userFeatures = await Promise.all(users.map(async (user) => {
             const userLogs = logs.filter(l => l.userId === user.id);
-            
+
             // Frecuencia: Entrenamientos en los últimos 14 días
             const logsLast14Days = userLogs.filter(l => {
                 const diffTime = Math.abs(today - new Date(l.date));
@@ -359,15 +359,15 @@ const AURA_AI = (() => {
                         if (!exercises[p.exercise_name]) exercises[p.exercise_name] = [];
                         exercises[p.exercise_name].push(p.weight);
                     });
-                    
+
                     let totalSlope = 0;
                     let count = 0;
                     for (const ex in exercises) {
                         const w = exercises[ex].slice(0, 3).reverse(); // cronológico
                         if (w.length > 1) {
                             let slope = 0;
-                            for(let i=1; i<w.length; i++) {
-                                slope += (w[i] - w[i-1]); 
+                            for (let i = 1; i < w.length; i++) {
+                                slope += (w[i] - w[i - 1]);
                             }
                             totalSlope += slope;
                             count++;
@@ -375,7 +375,7 @@ const AURA_AI = (() => {
                     }
                     const avgSlope = count > 0 ? totalSlope / count : 0;
                     // Modificador IA: Aumentar la métrica si hay tendencia positiva de sobrecarga progresiva
-                    volume += (avgSlope * 100); 
+                    volume += (avgSlope * 100);
                 }
             } catch (e) {
                 console.error("Error analizando progresión para IA:", e);
@@ -451,8 +451,8 @@ const AURA_AI = (() => {
 
                 centroids.forEach((c, cIdx) => {
                     const dist = Math.sqrt(
-                        Math.pow(point.x - c.x, 2) + 
-                        Math.pow(point.y - c.y, 2) + 
+                        Math.pow(point.x - c.x, 2) +
+                        Math.pow(point.y - c.y, 2) +
                         Math.pow(point.z - c.z, 2)
                     );
                     if (dist < minDist) {
@@ -497,8 +497,8 @@ const AURA_AI = (() => {
         // Menos activo -> Alto riesgo (Riesgo de abandono)
         const clusterStats = [0, 1, 2].map(cIdx => {
             const points = dataPoints.filter((p, pIdx) => assignments[pIdx] === cIdx);
-            const avgFreq = points.length > 0 
-                ? points.reduce((sum, p) => sum + p.raw.frequency, 0) / points.length 
+            const avgFreq = points.length > 0
+                ? points.reduce((sum, p) => sum + p.raw.frequency, 0) / points.length
                 : (2 - cIdx);
             return { cIdx, avgFreq };
         });
@@ -549,9 +549,9 @@ const AURA_AI = (() => {
                 const userLogs = logs.filter(l => l.userId === user.id);
                 const sortedLogs = [...userLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
                 const lastLog = sortedLogs[0];
-                
+
                 // Sugerir la rutina alterna
-                let rutinaSugerida = "Tren Superior"; 
+                let rutinaSugerida = "Tren Superior";
                 if (lastLog) {
                     if (lastLog.routineName.toLowerCase().includes("superior")) {
                         rutinaSugerida = "Tren Inferior";
@@ -559,7 +559,7 @@ const AURA_AI = (() => {
                 }
 
                 // Calcular inactividad
-                let daysInactive = 3; 
+                let daysInactive = 3;
                 if (user.lastWorkoutDate) {
                     const today = new Date();
                     const diffTime = Math.abs(today - new Date(user.lastWorkoutDate));
@@ -568,7 +568,7 @@ const AURA_AI = (() => {
 
                 // Requerimiento de notificación específico
                 const message = `Notamos que llevas ${daysInactive} días sin entrenar, tu rutina de ${rutinaSugerida} te espera con ajuste de carga de -10%.`;
-                
+
                 notifications.push({
                     userId: user.id,
                     userName: user.name,
@@ -585,7 +585,7 @@ const AURA_AI = (() => {
     const sugerirAjusteCarga = async (userId) => {
         loadDB();
         const userLogs = db.logs.filter(l => l.userId === userId).sort((a, b) => new Date(b.date) - new Date(a.date));
-        
+
         if (userLogs.length < 4) {
             return null; // Se requieren al menos el log actual y 3 anteriores
         }
@@ -643,3 +643,11 @@ const AURA_AI = (() => {
         addAttendance
     };
 })();
+
+// Añade esto al final de tu objeto exportado en clustering.js
+const calcularTendenciaPeso = (userId, exerciseId) => {
+    const logs = db.logs.filter(l => l.userId === userId);
+    // Lógica para comparar el peso de los últimos 3 entrenamientos
+    // Si la tendencia es positiva, sugerir incremento del 5%
+    return { sugerencia: "Incremento del 5% recomendado" };
+};
