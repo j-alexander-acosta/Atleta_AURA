@@ -1921,6 +1921,7 @@ window.forceAppCleanup = function () {
    ========================================================================== */
 async function renderAdminTab() {
     // 1. Obtener usuarios y asegurar sincronización
+    AURA_AI.loadDB();
     const users = AURA_AI.getUsers();
 
     // Fetch habilitaciones from server
@@ -2466,6 +2467,7 @@ if (btnAdminHabilitar) {
                 msg.style.color = 'var(--color-neon-teal)';
                 msg.textContent = '¡Estudiante habilitado con éxito!';
                 document.getElementById('admin-hab-rut').value = '';
+                AURA_AI.loadDB();
                 if(typeof renderAdminTab === 'function') renderAdminTab();
             } else {
                 msg.style.color = 'var(--color-danger)';
