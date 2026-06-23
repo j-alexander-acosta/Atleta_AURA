@@ -1701,11 +1701,11 @@ function finishWorkoutSession() {
     }
 
     // Guardar en Historial
-    const loggedSets = [];
+    const esfuerzo_real = [];
     AppState.currentWorkout.exercises.forEach(ex => {
         ex.sets.forEach((set, setIdx) => {
             if (set.completed) {
-                loggedSets.push({
+                esfuerzo_real.push({
                     exerciseName: ex.name,
                     setIndex: setIdx,
                     reps: set.reps,
@@ -1724,7 +1724,8 @@ function finishWorkoutSession() {
         duration: duration,
         volume: volume,
         setsCount: setsCount,
-        sets: loggedSets
+        esfuerzo_real: esfuerzo_real,
+        sets: esfuerzo_real
     };
     AppState.history.push(log);
     localStorage.setItem('aura_workout_history', JSON.stringify(AppState.history));
@@ -1751,7 +1752,8 @@ function finishWorkoutSession() {
             duration: duration,
             volume: volume,
             setsCount: setsCount,
-            sets: loggedSets
+            esfuerzo_real: esfuerzo_real,
+            sets: esfuerzo_real
         });
         AURA_AI.runClustering();
     } catch (err) {

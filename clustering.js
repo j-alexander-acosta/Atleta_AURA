@@ -582,6 +582,33 @@ const AURA_AI = (() => {
         return notifications;
     };
 
+    const sugerirAjusteCarga = async (userId) => {
+        loadDB();
+        const userLogs = db.logs.filter(l => l.userId === userId).sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        if (userLogs.length < 4) {
+            return null; // Se requieren al menos el log actual y 3 anteriores
+        }
+
+        const todayVolume = userLogs[0].volume || 0;
+        const previous3Logs = userLogs.slice(1, 4);
+        const avgPreviousVolume = previous3Logs.reduce((sum, l) => sum + (l.volume || 0), 0) / 3;
+
+        if (avgPreviousVolume > 0 && todayVolume >= avgPreviousVolume) { // 100% de cumplimiento
+            return {
+                cumplimiento: (todayVolume / avgPreviousVolume * 100).toFixed(1) + '%',
+                sugerencia: 'Incremento del 5% en la carga',
+                mensaje: 'Has superado o igualado tu volumen promedio. ¡Excelente trabajo! Te recomendamos subir la carga un 5%.'
+            };
+        }
+
+        return {
+            cumplimiento: avgPreviousVolume > 0 ? (todayVolume / avgPreviousVolume * 100).toFixed(1) + '%' : '0%',
+            sugerencia: 'Mantener carga',
+            mensaje: 'Continúa trabajando para consolidar este peso antes de subir.'
+        };
+    };
+
     const getAttendance = () => {
         loadDB();
         if (!db.attendance) {
@@ -609,6 +636,7 @@ const AURA_AI = (() => {
         addLog,
         runClustering,
         generateNotifications,
+        sugerirAjusteCarga,
         loadDB,
         calculateNavySealBFP,
         getAttendance,
