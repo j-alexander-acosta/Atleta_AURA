@@ -1,0 +1,3 @@
+node_modules/
+aura_database.sqlite
+.DS_Store
