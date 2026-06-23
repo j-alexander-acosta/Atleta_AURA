@@ -112,7 +112,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
   }
 
-  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  const cleanRut = rut.split('-')[0].replace(/\./g, '');
   const dias = parseInt(dias_permitidos) || 0;
 
   db.addUsuarioHabilitado(cleanRut, dias, es_exento, (err) => {
@@ -159,7 +159,7 @@ app.get('/api/check-habilitacion', (req, res) => {
     return res.status(400).json({ valid: false, error: 'RUT inválido' });
   }
 
-  const cleanRut = rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  const cleanRut = rut.split('-')[0].replace(/\./g, '');
   db.checkHabilitacion(cleanRut, (err, row) => {
     if (err) return res.status(500).json({ valid: false, error: 'Error de servidor' });
 
@@ -183,7 +183,7 @@ app.post('/api/workouts', (req, res) => {
     return res.status(400).json({ error: 'Faltan datos del usuario o RUT' });
   }
 
-  const cleanRut = user.rut.replace(/[^0-9kK]/g, '').toUpperCase();
+  const cleanRut = user.rut.split('-')[0].replace(/\./g, '');
 
   // Validar contra usuarios_habilitados antes de guardar el usuario
   db.checkHabilitacion(cleanRut, (err, habilitado) => {

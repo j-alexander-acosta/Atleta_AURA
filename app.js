@@ -2017,7 +2017,8 @@ async function renderAdminTab() {
             let es_exento = false;
             
             if (user.rut && habilitaciones.length > 0) {
-                const hab = habilitaciones.find(h => h.rut === user.rut);
+                const userRutBody = user.rut.toString().split('-')[0].replace(/\./g, '');
+                const hab = habilitaciones.find(h => h.rut === userRutBody);
                 if (hab) {
                     dias = hab.dias_permitidos;
                     es_exento = hab.es_exento;
