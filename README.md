@@ -1,33 +1,48 @@
-# ⚡ AURA Fitness - Premium Workout PWA
+# ⚡ AURA Fitness - Premium Workout PWA & Cloud AI
 
-AURA es una **Progressive Web App (PWA)** de acondicionamiento físico de alto rendimiento, diseñada con una estética de última generación en modo ultra-dark con acentos neón (violeta/cian), inspirada en perfiles de fitness élite de Instagram como *Demicstory* y *Jongkeun Gil*. 
+AURA es una **Progressive Web App (PWA)** de acondicionamiento físico de alto rendimiento. Comenzó como una experiencia *offline-first* para entrenar, pero ha evolucionado hacia una robusta arquitectura Full-Stack impulsada por Inteligencia Artificial, un backend en Node.js y un completo panel de control para la administración de gimnasios y recintos deportivos.
 
-Ofrece una experiencia fluida, rápida y funcional **offline-first** para entrenar con el peso corporal o bandas elásticas.
+Diseñada con una estética de última generación en modo ultra-dark con acentos neón (violeta/cian), ofrece una experiencia fluida e interactiva.
 
 ---
 
 ## 🚀 Características Clave
-*   **Instalación PWA Autónomo (Standalone)**: Instálala directamente en la pantalla de inicio de dispositivos iOS y Android con soporte offline completo mediante *Service Workers*.
-*   **Onboarding Inteligente**: Configuración personalizada de perfil físico, objetivos (Hipertrofia, Fuerza, Resistencia) y nivel, adaptando la división y dosificación automáticamente.
-*   **Distribución Balanceada de Días**: Distribución automatizada con 2 rutinas por día de entrenamiento (Día A: Tren Superior y Abdominales; Día B: Tren Inferior y Abdominales) para un trabajo completo y balanceado.
-*   **Workout Player Interactivo**:
-    *   Registro dinámico de series, peso y repeticiones.
-    *   *Rest Timer* inteligente con barra de progreso circular que se inicia automáticamente al marcar una serie.
-    *   Alertas sonoras nativas con la **Web Audio API** (sin dependencias externas de sonido).
-*   **Ilustraciones Animadas CSS**: Esqueletos procedimentales dinámicos (Sentadillas, Flexiones, Press de Hombros, Glute Bridges, Fondos y Crunches) creados con transformaciones y fotogramas clave en CSS para guiar visualmente la ejecución técnica en tiempo real.
-*   **Panel de Progreso**: Registro automatizado de volumen acumulativo, sets completados e historial, además de una racha activa (Streak) guardada localmente en `localStorage`.
-*   **Celebración de Sesión**: Confeti dinámico renderizado de manera nativa mediante Canvas HTML5 al finalizar con éxito una rutina.
+
+### Experiencia del Atleta (Frontend)
+*   **Instalación PWA Autónoma**: Instálala directamente en la pantalla de inicio de dispositivos iOS y Android.
+*   **Onboarding Inteligente**: Configuración personalizada de perfil físico, objetivos y métricas corporales.
+*   **Workout Player Interactivo con Progresión Real**:
+    *   Registro estricto de series, peso y repeticiones.
+    *   **Historial Dinámico:** Indicadores visuales automáticos que muestran el *"Último peso"* levantado en cada ejercicio para promover la sobrecarga progresiva.
+    *   *Rest Timer* inteligente con barra de progreso circular.
+    *   Alertas sonoras nativas con Web Audio API.
+*   **Notificaciones In-App**: Sistema de mensajería (banners de recuperación y advertencias) recibidas directamente desde la administración.
+*   **Ilustraciones Animadas CSS**: Esqueletos procedimentales dinámicos (Sentadillas, Flexiones, Press de Hombros, etc.) creados con transformaciones y fotogramas clave en CSS puro.
+
+### Administración y Seguridad (Backend & BD)
+*   **Panel de Control Central (Control Center)**: Vista protegida por credenciales para administrar a todos los atletas del recinto.
+*   **Sistema de Acceso QR Dinámico**: Generación segura de Tokens JWT con expiración de 30 segundos en formato QR, para escanear y validar el acceso físico a los gimnasios de forma infalsificable.
+*   **Notificaciones por Correo Electrónico**: Integración con `Nodemailer` para despachar correos electrónicos de alerta a los atletas inactivos o de alto riesgo, enviados directamente desde el Panel de Administración.
+*   **Base de Datos SQLite**: Almacenamiento persistente multi-tabla (`users`, `asistencia`, `progresion_atletas`, `notificaciones_web`, `usuarios_habilitados`).
+
+### 🧠 Motor de Inteligencia Artificial (AURA AI)
+*   **K-Means Clustering en 3D**: Algoritmo matemático que clasifica de forma automática a los usuarios en 3 Clústers (`Comprometido`, `Irregular`, `Alto Riesgo`).
+*   **Análisis de Pendiente de Mejora (Sobrecarga Progresiva)**: La IA no solo evalúa cuántas veces entrena un alumno, sino que analiza matemáticamente el histórico de esfuerzo (peso y repeticiones de los últimos 3 entrenamientos) para medir la **tendencia de progreso**. Si el alumno demuestra progresión de peso, es recompensado en el clúster.
+*   **Salud Física**: Cálculos integrados de Porcentaje de Grasa Corporal (Fórmula Navy Seal) e IMC para asistir en el análisis algorítmico de riesgo de la IA.
 
 ---
 
 ## 🛠️ Stack Tecnológico
-*   **Frontend**: HTML5 Semántico, Vanilla CSS3 (Variables CSS, Efecto Glassmorphism, Keyframe Animations).
-*   **Lógica**: Vanilla JavaScript (ES6+), Web Audio API, Canvas API.
-*   **PWA**: Service Workers (`sw.js`), Web App Manifest (`manifest.json`) e iconos vectoriales SVG.
+*   **Frontend**: HTML5 Semántico, Vanilla CSS3 (Variables CSS, Glassmorphism), Vanilla JavaScript (ES6+), Canvas API.
+*   **Backend**: Node.js, Express.js.
+*   **Base de Datos**: SQLite3 (Persistencia local en archivo binario).
+*   **Autenticación y Seguridad**: JSON Web Tokens (JWT) para QR dinámico, `bcrypt` para hashes de contraseñas, validación por Session Storage.
+*   **Infraestructura Mail**: `Nodemailer`.
 
 ---
 
 ## 📦 Instalación Local
+
 1. Clona el repositorio:
    ```bash
    git clone https://github.com/tu-usuario/aura-fitness.git
@@ -36,8 +51,14 @@ Ofrece una experiencia fluida, rápida y funcional **offline-first** para entren
    ```bash
    cd aura-fitness
    ```
-3. Inicia un servidor web local de tu preferencia (ej. Python):
+3. Instala las dependencias del backend:
    ```bash
-   python3 -m http.server 8080
+   npm install
    ```
-4. Abre en tu navegador la dirección `http://localhost:8080` e instálala en tu dispositivo móvil.
+4. Inicia el servidor de Node.js:
+   ```bash
+   node server.js
+   ```
+5. Abre en tu navegador la dirección `http://localhost:3000`.
+
+*Nota: Para el panel de administrador, puedes ingresar a `/api/admin/login`.*
