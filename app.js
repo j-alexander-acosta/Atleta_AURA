@@ -84,6 +84,12 @@ const DOM = {
     activeWorkoutName: document.getElementById('active-workout-name'),
     activeWorkoutTimer: document.getElementById('active-workout-timer'),
     activeWorkoutIndex: document.getElementById('active-workout-index'),
+
+    // Notificaciones Web
+    userNotificationsBanner: document.getElementById('user-notifications-banner'),
+    userNotificationsText: document.getElementById('user-notifications-text'),
+    btnCloseNotification: document.getElementById('btn-close-notification'),
+
     exerciseTargetMuscle: document.getElementById('exercise-target-muscle'),
     exerciseMachineBadge: document.getElementById('exercise-machine-badge'),
     exerciseMachineInfo: document.getElementById('exercise-machine-info'),
@@ -146,6 +152,10 @@ const DOM = {
 
     // Antropometría
     genderControl: document.getElementById('gender-control'),
+    inputRut: document.getElementById('input-rut'),
+    inputName: document.getElementById('input-name'),
+    inputEmail: document.getElementById('input-email'),
+    inputAge: document.getElementById('input-age'),
     inputWaist: document.getElementById('input-waist'),
     inputNeck: document.getElementById('input-neck'),
     inputHip: document.getElementById('input-hip'),
@@ -211,7 +221,48 @@ let tempProfile = {
 /* ==========================================================================
    Inicialización y Carga de Estado
    ========================================================================== */
-window.addEventListener('DOMContentLoaded', () => {
+// Initialize App on DOM Content Loaded
+document.addEventListener('DOMContentLoaded', initApp);
+
+// ============================================================================
+// Funciones de Notificaciones Web (Atletas)
+// ============================================================================
+
+async function checkPendingNotifications() {
+    if (!AppState.user || !AppState.user.id || !DOM.userNotificationsBanner) return;
+
+    try {
+        const response = await fetch(`${window.location.origin}/api/notifications?userId=${AppState.user.id}`);
+        const data = await response.json();
+
+        if (data.success && data.notifications && data.notifications.length > 0) {
+            // Mostramos la primera notificación pendiente (la más reciente)
+            const notif = data.notifications[0];
+            DOM.userNotificationsText.textContent = notif.message;
+            DOM.userNotificationsBanner.style.display = 'flex';
+            
+            // Configurar el botón para cerrarla
+            DOM.btnCloseNotification.onclick = async () => {
+                try {
+                    await fetch(`${window.location.origin}/api/notifications/read`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ notificationId: notif.id })
+                    });
+                    DOM.userNotificationsBanner.style.display = 'none';
+                } catch (err) {
+                    console.error('Error marcando notificación como leída:', err);
+                }
+            };
+        } else {
+            DOM.userNotificationsBanner.style.display = 'none';
+        }
+    } catch (err) {
+        console.error('Error consultando notificaciones:', err);
+    }
+}
+
+function initApp() {
     loadLocalData();
 
     // Inicializar base de datos de IA
@@ -241,7 +292,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Registrar Service Worker
     registerServiceWorker();
-});
+}
 
 function fetchRoutinesFromServer(callback) {
     fetch('/api/routines')
@@ -345,6 +396,7 @@ function initEventListeners() {
                 rutErrorMsg.style.display = 'none';
                 tempProfile.rut = rutValue;
                 tempProfile.name = DOM.inputName.value.trim();
+                tempProfile.email = DOM.inputEmail ? DOM.inputEmail.value.trim() : '';
                 tempProfile.age = parseInt(DOM.inputAge.value);
                 tempProfile.weight = parseFloat(DOM.inputWeight.value);
                 tempProfile.height = parseInt(DOM.inputHeight.value);
@@ -767,9 +819,9 @@ function initEventListeners() {
         });
     }
 
-    if (DOM.btnSimulateQrScan) {
-        DOM.btnSimulateQrScan.addEventListener('click', () => {
-            const userId = DOM.adminQrSelectUser.value;
+    if (DOM.btnSimulateBarcodeScan) {
+        DOM.btnSimulateBarcodeScan.addEventListener('click', () => {
+            const userId = DOM.adminBarcodeSelectUser.value;
             if (!userId) return;
             registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR');
         });
@@ -1074,6 +1126,9 @@ function renderDashboard() {
     if (DOM.dashboardAlerts) {
         DOM.dashboardAlerts.innerHTML = alertsHtml;
     }
+
+    // 0. Revisar notificaciones web no leídas
+    checkPendingNotifications();
 
     // 1. Bienvenida y datos básicos
     DOM.userGreeting.textContent = `Hola, ${AppState.user.name}`;
@@ -1455,7 +1510,23 @@ function getAnimationExtraElements(animationClass) {
 }
 
 // Renderizar Filas de Series
-function renderSetsRows(exercise) {
+async function renderSetsRows(exercise) {
+    DOM.setsRowsContainer.innerHTML = '<p class="text-xs text-secondary text-center" style="padding: 10px;">Cargando historial...</p>';
+
+    // Fetch previous progression
+    let prevWeight = null;
+    if (AppState.user && AppState.user.id) {
+        try {
+            const res = await fetch(`${window.location.origin}/api/progression?userId=${AppState.user.id}&exerciseName=${encodeURIComponent(exercise.name)}`);
+            const data = await res.json();
+            if (data.success && data.progression && data.progression.length > 0) {
+                prevWeight = data.progression[0].weight; // El más reciente
+            }
+        } catch (e) {
+            console.error("Error fetching progression", e);
+        }
+    }
+
     DOM.setsRowsContainer.innerHTML = '';
 
     exercise.sets.forEach((set, idx) => {
@@ -1465,8 +1536,9 @@ function renderSetsRows(exercise) {
         row.innerHTML = `
             <span class="set-num">${idx + 1}</span>
             <span class="set-obj">${set.reps} reps</span>
-            <div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
                 <input type="number" class="set-input weight-input" data-index="${idx}" value="${set.weight}" min="0">
+                ${prevWeight !== null ? `<span style="font-size: 10px; color: var(--aura-cyan); margin-top: 2px; font-weight: bold;">Última: ${prevWeight}kg</span>` : ''}
             </div>
             <div>
                 <input type="number" class="set-input reps-input" data-index="${idx}" value="${set.reps}" min="1">
@@ -1489,6 +1561,11 @@ function renderSetsRows(exercise) {
 
         const checkbox = row.querySelector('.set-checkbox');
         checkbox.addEventListener('click', () => {
+            const currentWeight = weightInput.value.trim();
+            if (currentWeight === '') {
+                alert("Debes ingresar el peso levantado. Usa 0 si es peso corporal.");
+                return;
+            }
             toggleSetCompletion(exercise, idx, row);
         });
 
@@ -1840,9 +1917,26 @@ window.forceAppCleanup = function () {
 /* ==========================================================================
    Admin Pane Render Logic
    ========================================================================== */
-function renderAdminTab() {
+async function renderAdminTab() {
     // 1. Obtener usuarios y asegurar sincronización
     const users = AURA_AI.getUsers();
+
+    // Fetch habilitaciones from server
+    let habilitaciones = [];
+    const token = sessionStorage.getItem('aura_admin_token');
+    if (token) {
+        try {
+            const res = await fetch('/api/admin/users-status', {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success && data.habilitaciones) {
+                habilitaciones = data.habilitaciones;
+            }
+        } catch (err) {
+            console.error("Error fetching habilitaciones:", err);
+        }
+    }
 
     // Contar por clúster (siempre sobre el total)
     let committedCount = 0;
@@ -1871,17 +1965,17 @@ function renderAdminTab() {
     }
 
     // Poblar selector para simular QR
-    if (DOM.adminQrSelectUser) {
-        const selectedVal = DOM.adminQrSelectUser.value;
-        DOM.adminQrSelectUser.innerHTML = '';
+    if (DOM.adminBarcodeSelectUser) {
+        const selectedVal = DOM.adminBarcodeSelectUser.value;
+        DOM.adminBarcodeSelectUser.innerHTML = '';
         users.forEach(user => {
             const opt = document.createElement('option');
             opt.value = user.id;
             const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Seleccionado' : 'Estudiante';
             opt.textContent = `${user.name} (${profileLabel})`;
-            DOM.adminQrSelectUser.appendChild(opt);
+            DOM.adminBarcodeSelectUser.appendChild(opt);
         });
-        if (selectedVal) DOM.adminQrSelectUser.value = selectedVal;
+        if (selectedVal) DOM.adminBarcodeSelectUser.value = selectedVal;
     }
 
     // 2. Renderizar Tabla de Usuarios
@@ -1916,12 +2010,35 @@ function renderAdminTab() {
                 ? `<button class="btn btn-primary btn-sm btn-kine" style="padding: 4px 6px; font-size: 10px; margin-left: 2px; background: var(--color-neon-purple); border-color: rgba(123, 44, 191, 0.4);" data-id="${user.id}">+ Kine</button>`
                 : '';
 
+            let stateAccessBadge = '';
+            let dias = 0;
+            let es_exento = false;
+            
+            if (user.rut && habilitaciones.length > 0) {
+                const hab = habilitaciones.find(h => h.rut === user.rut);
+                if (hab) {
+                    dias = hab.dias_permitidos;
+                    es_exento = hab.es_exento;
+                }
+            }
+
+            if (es_exento) {
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Exento</span>`;
+            } else if (dias > 3) {
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">${dias} Días (Activo)</span>`;
+            } else if (dias > 0) {
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 165, 0, 0.15); color: orange; border: 1px solid rgba(255, 165, 0, 0.3); font-size:10px;">${dias} Días (Alerta)</span>`;
+            } else {
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Bloqueado</span>`;
+            }
+
             tr.innerHTML = `
                 <td class="user-name-col" style="font-weight:600; font-size:13px;">${user.name}</td>
                 <td><span style="font-size: 12px; font-weight: 500; color:var(--text-primary);">${profileLabel}</span><br><span style="font-size: 11px; color: var(--text-secondary);">${user.level}</span></td>
                 <td style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${metricsText}</td>
                 <td class="font-mono text-neon-pink" style="font-size: 11px; line-height: 1.3;">${bfpImcText}</td>
                 <td>${stateBadge}</td>
+                <td>${stateAccessBadge}</td>
                 <td><span class="cluster-badge ${clusterClass}" style="font-size:10px;">${user.assignedCluster || 'Irregular'}</span><br><span style="font-size: 11px; color: var(--text-secondary);">Racha: 🔥 ${user.streak}</span></td>
                 <td>
                     <div style="display: flex; gap: 4px;">
@@ -1977,11 +2094,36 @@ function renderAdminTab() {
             `;
 
             const sendBtn = card.querySelector('.btn-notif-send');
-            sendBtn.addEventListener('click', () => {
-                sendBtn.textContent = 'Enviada ✓';
+            sendBtn.addEventListener('click', async () => {
+                sendBtn.textContent = 'Enviando...';
                 sendBtn.disabled = true;
-                card.classList.add('sent');
-                playBeep(1000, 0.2);
+
+                try {
+                    const token = sessionStorage.getItem('aura_admin_token') || '';
+                    const res = await fetch(`${window.location.origin}/api/admin/send-alert`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ userId: notif.userId, message: notif.message })
+                    });
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        sendBtn.textContent = 'Enviada ✓';
+                        card.classList.add('sent');
+                        playBeep(1000, 0.2);
+                    } else {
+                        sendBtn.textContent = 'Error';
+                        sendBtn.disabled = false;
+                        alert(data.error || 'Error enviando alerta');
+                    }
+                } catch (err) {
+                    console.error('Error enviando alerta:', err);
+                    sendBtn.textContent = 'Error de red';
+                    sendBtn.disabled = false;
+                }
             });
 
             DOM.adminNotificationsContainer.appendChild(card);
@@ -2208,16 +2350,14 @@ async function renderAttendanceHistoryDashboard() {
 
             data.history.forEach(att => {
                 const tr = document.createElement('tr');
-                const dateStr = new Date(att.date).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-                const typeLabel = att.type === 'kinesiology'
-                    ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
-                    : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
+                const dateStr = new Date(att.fecha_hora).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+                const typeLabel = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">Ingreso QR</span>`;
 
                 tr.innerHTML = `
                     <td class="font-mono" style="font-size: 11px;">${dateStr}</td>
                     <td style="font-weight: 500; font-size: 12px;">${att.userName || 'Atleta Desconocido'}</td>
                     <td style="font-size: 11px; line-height: 1.3;">${typeLabel}</td>
-                    <td style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</td>
+                    <td style="font-size: 10px; color:var(--text-muted);">-</td>
                 `;
                 tableBody.appendChild(tr);
             });

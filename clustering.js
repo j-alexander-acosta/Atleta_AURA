@@ -327,15 +327,15 @@ const AURA_AI = (() => {
         return newLog;
     };
 
-    // 2. Algoritmo K-Means para Clustering de Usuarios (3D: Frecuencia, Volumen, Grasa Corporal)
-    const runClustering = () => {
+    // 2. Algoritmo K-Means para Clustering de Usuarios (3D: Frecuencia, Volumen/Progresión, Grasa Corporal)
+    const runClustering = async () => {
         loadDB();
         const users = getUsers(); // Asegurar sincronización
         const logs = db.logs;
         const today = new Date();
 
         // Calcular características para cada usuario
-        const userFeatures = users.map(user => {
+        const userFeatures = await Promise.all(users.map(async (user) => {
             const userLogs = logs.filter(l => l.userId === user.id);
             
             // Frecuencia: Entrenamientos en los últimos 14 días
@@ -346,8 +346,40 @@ const AURA_AI = (() => {
             });
             const frequency = logsLast14Days.length;
 
-            // Volumen: Volumen acumulativo en los últimos 14 días
-            const volume = logsLast14Days.reduce((sum, l) => sum + (l.volume || 0), 0);
+            // Volumen Base: Volumen acumulativo en los últimos 14 días
+            let volume = logsLast14Days.reduce((sum, l) => sum + (l.volume || 0), 0);
+
+            // NUEVO: Análisis de Pendiente de Progresión
+            try {
+                const res = await fetch(`${window.location.origin}/api/progression?userId=${user.id}`);
+                const data = await res.json();
+                if (data.success && data.progression) {
+                    const exercises = {};
+                    data.progression.forEach(p => {
+                        if (!exercises[p.exercise_name]) exercises[p.exercise_name] = [];
+                        exercises[p.exercise_name].push(p.weight);
+                    });
+                    
+                    let totalSlope = 0;
+                    let count = 0;
+                    for (const ex in exercises) {
+                        const w = exercises[ex].slice(0, 3).reverse(); // cronológico
+                        if (w.length > 1) {
+                            let slope = 0;
+                            for(let i=1; i<w.length; i++) {
+                                slope += (w[i] - w[i-1]); 
+                            }
+                            totalSlope += slope;
+                            count++;
+                        }
+                    }
+                    const avgSlope = count > 0 ? totalSlope / count : 0;
+                    // Modificador IA: Aumentar la métrica si hay tendencia positiva de sobrecarga progresiva
+                    volume += (avgSlope * 100); 
+                }
+            } catch (e) {
+                console.error("Error analizando progresión para IA:", e);
+            }
 
             // Grasa corporal calculada por Navy Seal
             const bfp = user.bodyFat || calculateNavySealBFP(
@@ -363,7 +395,7 @@ const AURA_AI = (() => {
                 name: user.name,
                 rawFeatures: { frequency, volume, bfp }
             };
-        });
+        }));
 
         // Normalización Min-Max
         const freqs = userFeatures.map(f => f.rawFeatures.frequency);

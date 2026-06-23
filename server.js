@@ -4,6 +4,24 @@ const path = require('path');
 const db = require('./database');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const nodemailer = require('nodemailer');
+
+let transporter;
+nodemailer.createTestAccount((err, account) => {
+  if (err) {
+    console.error('Failed to create a testing account. ' + err.message);
+    return;
+  }
+  transporter = nodemailer.createTransport({
+    host: account.smtp.host,
+    port: account.smtp.port,
+    secure: account.smtp.secure,
+    auth: {
+      user: account.user,
+      pass: account.pass
+    }
+  });
+});
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -162,6 +180,17 @@ app.post('/api/workouts', (req, res) => {
       db.saveLog(log, (err) => {
         if (err) console.error("Error guardando entrenamiento:", err);
       });
+
+      // Guardar detalle de esfuerzo real
+      if (log.sets && Array.isArray(log.sets)) {
+        log.sets.forEach(set => {
+          if (set.completed && set.exerciseName) {
+            db.saveProgression(user.id, set.exerciseName, set.weight || 0, set.reps || 0, (err) => {
+              if (err) console.error("Error guardando progresión:", err);
+            });
+          }
+        });
+      }
     }
 
     // 3. Generar mensaje de motivación (Motivation Reminders)
@@ -217,6 +246,17 @@ app.get('/api/admin/attendance-history', authenticateAdmin, (req, res) => {
     res.json({ success: true, history: rows });
   });
 });
+// Endpoint para obtener el estado de todos los usuarios habilitados
+app.get('/api/admin/users-status', authenticateAdmin, (req, res) => {
+  db.getAllHabilitaciones((err, rows) => {
+    if (err) {
+      console.error("Error obteniendo habilitaciones:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, habilitaciones: rows });
+  });
+});
+
 
 // Endpoint para consultar rutinas completas con ejercicios y máquinas (Dinámico)
 app.get('/api/routines', (req, res) => {
@@ -391,6 +431,73 @@ app.post('/api/asistencia/check-in', async (req, res) => {
 
 // (Endpoints limpios y consolidados arriba)
 
+// Endpoints de Notificaciones
+app.post('/api/admin/send-alert', authenticateAdmin, (req, res) => {
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.status(400).json({ error: 'Faltan datos.' });
+
+  db.getUserById(userId, (err, user) => {
+    if (err || !user) return res.status(404).json({ error: 'Usuario no encontrado.' });
+
+    db.saveWebNotification(userId, message, (err, notifId) => {
+      if (err) return res.status(500).json({ error: 'Error guardando notificación.' });
+
+      if (user.email && transporter) {
+        const mailOptions = {
+          from: '"AURA Admin" <admin@aura.local>',
+          to: user.email,
+          subject: 'Alerta de Recuperación - AURA',
+          text: message,
+          html: `<p>Hola ${user.name},</p><p>${message}</p><p>El Equipo AURA</p>`
+        };
+        transporter.sendMail(mailOptions, (err, info) => {
+          if (err) {
+            console.error('Error enviando correo:', err);
+          } else {
+            console.log('Correo enviado. Preview URL:', nodemailer.getTestMessageUrl(info));
+          }
+        });
+      }
+      res.json({ success: true, message: 'Alerta generada con éxito.', notifId });
+    });
+  });
+});
+
+app.get('/api/notifications', (req, res) => {
+  const { userId } = req.query;
+  if (!userId) return res.status(400).json({ error: 'Falta userId.' });
+
+  db.getUnreadNotifications(userId, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error de base de datos.' });
+    res.json({ success: true, notifications: rows || [] });
+  });
+});
+
+// Endpoint para obtener la progresión (historial de esfuerzo real) de un atleta
+app.get('/api/progression', (req, res) => {
+  const { userId, exerciseName } = req.query;
+  if (!userId) {
+    return res.status(400).json({ error: 'Falta userId' });
+  }
+
+  db.getProgressionHistory(userId, exerciseName, (err, rows) => {
+    if (err) {
+      console.error("Error obteniendo progresión:", err);
+      return res.status(500).json({ error: 'Error interno del servidor' });
+    }
+    res.json({ success: true, progression: rows || [] });
+  });
+});
+
+app.post('/api/notifications/read', (req, res) => {
+  const { notificationId } = req.body;
+  if (!notificationId) return res.status(400).json({ error: 'Falta notificationId.' });
+
+  db.markNotificationAsRead(notificationId, (err) => {
+    if (err) return res.status(500).json({ error: 'Error actualizando notificación.' });
+    res.json({ success: true });
+  });
+});
 // Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Servidor Nube AURA corriendo en http://localhost:${PORT}`);

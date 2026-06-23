@@ -36,6 +36,7 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN injured INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE users ADD COLUMN injuryDetails TEXT DEFAULT ''", () => {});
     db.run("ALTER TABLE users ADD COLUMN rut TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN email TEXT", () => {});
 
     // Tabla de Usuarios Habilitados
     db.run(`
@@ -54,6 +55,29 @@ function initDb() {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL
+      )
+    `);
+
+    // Tabla de Progresión de Atletas
+    db.run(`
+      CREATE TABLE IF NOT EXISTS progresion_atletas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        exercise_name TEXT,
+        weight REAL,
+        reps INTEGER,
+        date DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabla de Notificaciones Web
+    db.run(`
+      CREATE TABLE IF NOT EXISTS notificaciones_web (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        message TEXT NOT NULL,
+        is_read BOOLEAN DEFAULT 0,
+        fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -736,14 +760,14 @@ function seedDatabaseIfNeeded() {
 function saveUser(user, callback) {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO users 
-    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   stmt.run([
     user.id, user.name, user.age, user.sex, user.weight, user.height,
     user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
     user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
-    user.injured ? 1 : 0, user.injuryDetails || ''
+    user.injured ? 1 : 0, user.injuryDetails || '', user.rut || '', user.email || ''
   ], function(err) {
     callback(err);
   });
@@ -790,8 +814,10 @@ function getAttendanceList(callback) {
 
 function getAttendanceHistory(callback) {
   db.all(`
-    SELECT * FROM attendance 
-    ORDER BY date DESC
+    SELECT a.*, u.name as userName 
+    FROM asistencia a 
+    LEFT JOIN users u ON a.usuario_id = u.id 
+    ORDER BY a.fecha_hora DESC
   `, (err, rows) => {
     callback(err, rows);
   });
@@ -866,6 +892,12 @@ function checkHabilitacion(rut, callback) {
   });
 }
 
+function getAllHabilitaciones(callback) {
+  db.all("SELECT * FROM usuarios_habilitados", [], (err, rows) => {
+    callback(err, rows);
+  });
+}
+
 function getAdminByUsername(username, callback) {
   db.get("SELECT * FROM administradores WHERE username = ?", [username], (err, row) => {
     callback(err, row);
@@ -888,6 +920,53 @@ function getUserById(id, callback) {
   });
 }
 
+function saveWebNotification(user_id, message, callback) {
+  const stmt = db.prepare(`
+    INSERT INTO notificaciones_web (user_id, message) 
+    VALUES (?, ?)
+  `);
+  stmt.run([user_id, message], function(err) {
+    callback(err, this ? this.lastID : null);
+  });
+  stmt.finalize();
+}
+
+function getUnreadNotifications(user_id, callback) {
+  db.all("SELECT * FROM notificaciones_web WHERE user_id = ? AND is_read = 0 ORDER BY fecha_hora DESC", [user_id], (err, rows) => {
+    callback(err, rows);
+  });
+}
+
+function markNotificationAsRead(id, callback) {
+  db.run("UPDATE notificaciones_web SET is_read = 1 WHERE id = ?", [id], function(err) {
+    callback(err);
+  });
+}
+
+// ==========================================
+// NUEVO: Progresión de Atletas
+// ==========================================
+function saveProgression(user_id, exercise_name, weight, reps, callback) {
+    const query = `INSERT INTO progresion_atletas (user_id, exercise_name, weight, reps) VALUES (?, ?, ?, ?)`;
+    db.run(query, [user_id, exercise_name, weight, reps], function(err) {
+        if(callback) callback(err, this ? this.lastID : null);
+    });
+}
+
+function getProgressionHistory(user_id, exercise_name, callback) {
+    let query = `SELECT * FROM progresion_atletas WHERE user_id = ?`;
+    let params = [user_id];
+    
+    if (exercise_name) {
+        query += ` AND exercise_name = ?`;
+        params.push(exercise_name);
+    }
+    
+    query += ` ORDER BY date DESC`;
+    
+    db.all(query, params, callback);
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -901,7 +980,13 @@ module.exports = {
   obtenerUltimaAsistenciaUsuario,
   addUsuarioHabilitado,
   checkHabilitacion,
+  getAllHabilitaciones,
   getAdminByUsername,
   decrementarDiasPermitidos,
-  getUserById
+  getUserById,
+  saveWebNotification,
+  getUnreadNotifications,
+  markNotificationAsRead,
+  saveProgression,
+  getProgressionHistory
 };
