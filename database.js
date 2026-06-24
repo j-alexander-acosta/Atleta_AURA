@@ -25,7 +25,15 @@ function initDb() {
         muscleMass REAL DEFAULT 0.0,
         skeletalMuscle REAL DEFAULT 0.0,
         injured INTEGER DEFAULT 0,
-        injuryDetails TEXT DEFAULT ''
+        injuryDetails TEXT DEFAULT '',
+        rut TEXT,
+        email TEXT,
+        imc REAL DEFAULT 0.0,
+        bodyFat REAL DEFAULT 0.0,
+        waist REAL DEFAULT 0.0,
+        neck REAL DEFAULT 0.0,
+        hip REAL DEFAULT 0.0,
+        days TEXT DEFAULT '[]'
       )
     `);
 
@@ -37,6 +45,12 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN injuryDetails TEXT DEFAULT ''", () => {});
     db.run("ALTER TABLE users ADD COLUMN rut TEXT", () => {});
     db.run("ALTER TABLE users ADD COLUMN email TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN imc REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN bodyFat REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN waist REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN neck REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN hip REAL DEFAULT 0.0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN days TEXT DEFAULT '[]'", () => {});
 
     // Tabla de Usuarios Habilitados
     db.run(`
@@ -760,14 +774,20 @@ function seedDatabaseIfNeeded() {
 function saveUser(user, callback) {
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO users 
-    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const newId = user.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+  
+  const daysStr = Array.isArray(user.days) ? JSON.stringify(user.days) : (user.days || '[]');
+
   stmt.run([
-    user.id, user.name, user.age, user.sex, user.weight, user.height,
+    newId, user.name, user.age, user.sex, user.weight, user.height,
     user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
     user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
-    user.injured ? 1 : 0, user.injuryDetails || '', user.rut || '', user.email || ''
+    user.injured ? 1 : 0, user.injuryDetails || '', user.rut || '', user.email || '',
+    user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
+    daysStr
   ], function(err) {
     callback(err);
   });

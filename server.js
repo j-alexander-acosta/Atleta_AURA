@@ -171,7 +171,19 @@ app.get('/api/check-habilitacion', (req, res) => {
       return res.json({ valid: false, message: 'RUT sin días de acceso disponibles.' });
     }
 
-    res.json({ valid: true, message: 'RUT habilitado.' });
+    db.getUserByRut(cleanRut, (err, user) => {
+      if (err) {
+        console.error("Error buscando usuario por RUT:", err);
+        return res.status(500).json({ valid: false, error: 'Error de servidor al validar usuario' });
+      }
+      
+      const userId = user ? user.id : 'user-' + Date.now();
+      res.json({ 
+        valid: true, 
+        message: 'RUT habilitado.', 
+        userId: userId 
+      });
+    });
   });
 });
 

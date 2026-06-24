@@ -1,0 +1,3 @@
+Base de datos inicializada correctamente.
+🚀 Servidor Nube AURA corriendo en http://localhost:3000
+📁 Base de datos administrable en: http://localhost:3000/api/admin/download-db?secret=admin123

@@ -543,9 +543,9 @@ const AURA_AI = (() => {
     };
 
     // 3. Sistema de Notificaciones Inteligentes (Lógica)
-    const generateNotifications = () => {
+    const generateNotifications = (backendUsers) => {
         loadDB();
-        const users = db.users;
+        const users = backendUsers || db.users;
         const logs = db.logs;
         const notifications = [];
 

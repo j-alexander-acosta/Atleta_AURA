@@ -325,6 +325,40 @@ function loadLocalData() {
     }
 }
 
+let confirmActionCallback = null;
+
+function showCustomConfirm(title, message, acceptText, acceptBgColor, onAccept) {
+    if (!DOM.confirmModal) return;
+    
+    const titleEl = document.getElementById('confirm-modal-title');
+    const msgEl = document.getElementById('confirm-modal-message');
+    const acceptBtn = document.getElementById('btn-confirm-accept');
+    
+    if (titleEl) {
+        titleEl.innerHTML = title;
+        if (title.toLowerCase().includes('cancelar')) {
+            titleEl.style.color = 'var(--color-neon-purple)';
+        } else {
+            titleEl.style.color = 'var(--color-danger)';
+        }
+    }
+    if (msgEl) msgEl.textContent = message;
+    
+    if (acceptBtn) {
+        acceptBtn.textContent = acceptText || 'Aceptar';
+        if (acceptBgColor) {
+            acceptBtn.style.background = acceptBgColor;
+            acceptBtn.style.boxShadow = `0 0 15px ${acceptBgColor}40`;
+        } else {
+            acceptBtn.style.background = 'var(--color-danger)';
+            acceptBtn.style.boxShadow = '0 0 15px rgba(255, 71, 87, 0.25)';
+        }
+    }
+    
+    confirmActionCallback = onAccept;
+    DOM.confirmModal.classList.remove('hidden');
+}
+
 // Inicializar Escuchadores de Eventos del UI
 function initEventListeners() {
     // 1. Navegación Onboarding
@@ -394,6 +428,7 @@ function initEventListeners() {
                 }
                 
                 rutErrorMsg.style.display = 'none';
+                tempProfile.id = data.userId;
                 tempProfile.rut = rutValue;
                 tempProfile.name = DOM.inputName.value.trim();
                 tempProfile.email = DOM.inputEmail ? DOM.inputEmail.value.trim() : '';
@@ -585,9 +620,15 @@ function initEventListeners() {
 
     // 5. Controles del Player de Entrenamiento
     DOM.btnWorkoutQuit.addEventListener('click', () => {
-        if (confirm("¿Estás seguro de que quieres cancelar el entrenamiento actual? No se guardará el progreso.")) {
-            quitActiveWorkout();
-        }
+        showCustomConfirm(
+            '⚠️ CANCELAR ENTRENAMIENTO',
+            '¿Estás seguro de que quieres cancelar el entrenamiento actual? No se guardará el progreso.',
+            'Sí, cancelar',
+            'var(--color-danger)',
+            () => {
+                quitActiveWorkout();
+            }
+        );
     });
 
     DOM.btnPrevExercise.addEventListener('click', () => {
@@ -635,9 +676,16 @@ function initEventListeners() {
     DOM.btnResetData.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        setTimeout(() => {
-            if (DOM.confirmModal) DOM.confirmModal.classList.remove('hidden');
-        }, 50);
+        showCustomConfirm(
+            '⚠️ ADVERTENCIA',
+            'ATENCIÓN: Esto borrará por completo tu perfil y todo tu historial de entrenamiento de forma irreversible. ¿Proceder?',
+            'Aceptar',
+            'var(--color-danger)',
+            () => {
+                localStorage.clear();
+                location.reload();
+            }
+        );
     });
 
     // Cancelar en el Modal de Confirmación
@@ -652,11 +700,16 @@ function initEventListeners() {
     if (DOM.btnConfirmCancel) DOM.btnConfirmCancel.addEventListener('click', closeConfirmModal);
     if (DOM.confirmModalOverlay) DOM.confirmModalOverlay.addEventListener('click', closeConfirmModal);
 
-    // Aceptar en el Modal de Confirmación y reiniciar
+    // Aceptar en el Modal de Confirmación y ejecutar acción asociada
     if (DOM.btnConfirmAccept) {
         DOM.btnConfirmAccept.addEventListener('click', () => {
-            localStorage.clear();
-            location.reload();
+            if (confirmActionCallback) {
+                confirmActionCallback();
+            } else {
+                localStorage.clear();
+                location.reload();
+            }
+            if (DOM.confirmModal) DOM.confirmModal.classList.add('hidden');
         });
     }
 
@@ -823,7 +876,20 @@ function initEventListeners() {
         DOM.btnSimulateBarcodeScan.addEventListener('click', () => {
             const userId = DOM.adminBarcodeSelectUser.value;
             if (!userId) return;
-            registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR');
+            
+            let userName = 'Atleta Desconocido';
+            let profileType = 'estudiante';
+            
+            const selectedOpt = DOM.adminBarcodeSelectUser.options[DOM.adminBarcodeSelectUser.selectedIndex];
+            if (selectedOpt) {
+                const text = selectedOpt.textContent;
+                const match = text.match(/^(.*?)\s*\((.*?)\)$/);
+                if (match) {
+                    userName = match[1];
+                    profileType = match[2].toLowerCase().includes('seleccionado') ? 'deportista_seleccionado' : 'estudiante';
+                }
+            }
+            registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR', userName, profileType);
         });
     }
 }
@@ -991,6 +1057,9 @@ function updateOnboardingDaysPreview() {
 function saveOnboardingProfile() {
     // Generar la racha inicial y días de entreno
     AppState.user = {
+        id: tempProfile.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        rut: tempProfile.rut,
+        email: tempProfile.email || '',
         name: tempProfile.name,
         age: tempProfile.age,
         sex: tempProfile.sex,
@@ -1015,6 +1084,10 @@ function saveOnboardingProfile() {
     };
 
     localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
+    
+    // Sincronizar inmediatamente los datos de registro con la base de datos real en el servidor
+    saveActiveUserToDatabase();
+
     showScreen('main-layout');
 
     // Ir a pestaña del Dashboard
@@ -2011,8 +2084,23 @@ async function renderAdminTab() {
             if (user.assignedCluster === 'Comprometido') clusterClass = 'committed';
             else if (user.assignedCluster === 'Alto riesgo') clusterClass = 'highrisk';
 
-            const fatVal = user.bodyFat ? `${user.bodyFat.toFixed(1)}%` : '--';
-            const imcVal = user.imc ? user.imc.toFixed(1) : '--';
+            let userImc = user.imc;
+            if ((!userImc || userImc === 0) && user.weight && user.height) {
+                userImc = parseFloat((user.weight / Math.pow(user.height / 100, 2)).toFixed(1));
+            }
+            const imcVal = userImc ? userImc.toFixed(1) : '--';
+
+            let userBodyFat = user.bodyFat;
+            if ((!userBodyFat || userBodyFat === 0) && user.weight && user.height) {
+                userBodyFat = AURA_AI.calculateNavySealBFP(
+                    user.sex || 'male',
+                    user.height || 170,
+                    user.waist || 80,
+                    user.neck || 36,
+                    user.hip || 0
+                );
+            }
+            const fatVal = userBodyFat ? `${userBodyFat.toFixed(1)}%` : '--';
 
             let stateBadge = '';
             if (user.profileType === 'deportista_seleccionado') {
@@ -2074,13 +2162,13 @@ async function renderAdminTab() {
 
             // Vincular eventos a los botones creados
             tr.querySelector('.btn-attendance-check').addEventListener('click', () => {
-                registerUserAttendance(user.id, 'standard');
+                registerUserAttendance(user.id, 'standard', '', user.name, user.profileType);
             });
 
             const kBtn = tr.querySelector('.btn-kine');
             if (kBtn) {
                 kBtn.addEventListener('click', () => {
-                    registerUserAttendance(user.id, 'kinesiology', `Rehabilitación: ${user.injuryDetails || ''}`);
+                    registerUserAttendance(user.id, 'kinesiology', `Rehabilitación: ${user.injuryDetails || ''}`, user.name, user.profileType);
                 });
             }
 
@@ -2090,12 +2178,11 @@ async function renderAdminTab() {
 
     // Renderizar historial de ingresos del día
     renderAttendanceHistory();
-    renderAttendanceHistoryDashboard();
 
     // 3. Renderizar Notificaciones de Recuperación
     if (DOM.adminNotificationsContainer) {
         DOM.adminNotificationsContainer.innerHTML = '';
-        const notifications = AURA_AI.generateNotifications();
+        const notifications = AURA_AI.generateNotifications(users);
 
         if (notifications.length === 0) {
             DOM.adminNotificationsContainer.innerHTML = `<p class="text-secondary text-xs text-center" style="padding: 20px 0;">No hay atletas en "Alto riesgo" actualmente.</p>`;
@@ -2257,14 +2344,19 @@ function saveActiveUserToDatabase() {
 }
 
 // Registrar asistencia de usuario (Estándar o Kinesiología)
-function registerUserAttendance(userId, type = 'standard', notes = '') {
+function registerUserAttendance(userId, type = 'standard', notes = '', userName = '', profileType = '') {
     if (!userId) return;
 
+    // Generar ID único en el cliente para mantener consistencia con el servidor
+    const attId = 'att-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
     const att = {
+        id: attId,
         userId: userId,
         date: new Date().toISOString(),
         type: type,
-        notes: notes || 'Acceso gimnasio general'
+        notes: notes || 'Acceso gimnasio general',
+        userName: userName || 'Atleta Desconocido',
+        profileType: profileType || 'estudiante'
     };
 
     // Guardar en la DB local simulada
@@ -2347,45 +2439,7 @@ function renderAttendanceHistory() {
         });
 }
 
-async function renderAttendanceHistoryDashboard() {
-    const token = sessionStorage.getItem('aura_admin_token');
-    if (!token) return;
 
-    try {
-        const res = await fetch('/api/admin/attendance-history', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const data = await res.json();
-        if (data.success) {
-            const tableBody = document.getElementById('admin-attendance-history-table-body');
-            if (!tableBody) return;
-            tableBody.innerHTML = '';
-            
-            if (!data.history || data.history.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay historial de asistencia.</td></tr>`;
-                return;
-            }
-
-            data.history.forEach(att => {
-                const tr = document.createElement('tr');
-                const dateStr = new Date(att.fecha_hora).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-                const typeLabel = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">Ingreso QR</span>`;
-
-                tr.innerHTML = `
-                    <td class="font-mono" style="font-size: 11px;">${dateStr}</td>
-                    <td style="font-weight: 500; font-size: 12px;">${att.userName || 'Atleta Desconocido'}</td>
-                    <td style="font-size: 11px; line-height: 1.3;">${typeLabel}</td>
-                    <td style="font-size: 10px; color:var(--text-muted);">-</td>
-                `;
-                tableBody.appendChild(tr);
-            });
-        }
-    } catch (err) {
-        console.error("Error cargando histórico de asistencia:", err);
-    }
-}
 
 // Función global para validar RUT
 function isValidRut(rut) {
