@@ -267,25 +267,51 @@ async function checkPendingNotifications() {
 function initApp() {
     loadLocalData();
 
-    // Limpieza única de registros locales de asistencia corruptos/desconocidos
+    // Limpieza única de registros locales de asistencia corruptos/desconocidos y usuarios ficticios
     try {
         const cached = localStorage.getItem('aura_system_db');
         if (cached) {
             const tempDb = JSON.parse(cached);
-            if (tempDb && tempDb.attendance) {
-                const cleanAttendance = tempDb.attendance.filter(att => {
-                    const userName = att.userName || '';
-                    return userName !== 'Atleta Desconocido' && userName !== '' && att.userId !== 'undefined' && att.userId !== null;
-                });
-                if (cleanAttendance.length !== tempDb.attendance.length) {
-                    tempDb.attendance = cleanAttendance;
-                    localStorage.setItem('aura_system_db', JSON.stringify(tempDb));
-                    console.log("Local storage attendance records cleaned up.");
+            let changed = false;
+            
+            if (tempDb) {
+                if (tempDb.attendance) {
+                    const cleanAttendance = tempDb.attendance.filter(att => {
+                        const userName = att.userName || '';
+                        const isValid = userName !== 'Atleta Desconocido' && userName !== '' && att.userId !== 'undefined' && att.userId !== null;
+                        const isMock = /^user-[1-6]$/.test(att.userId);
+                        return isValid && !isMock;
+                    });
+                    if (cleanAttendance.length !== tempDb.attendance.length) {
+                        tempDb.attendance = cleanAttendance;
+                        changed = true;
+                    }
                 }
+                
+                if (tempDb.users) {
+                    const cleanUsers = tempDb.users.filter(u => u && !/^user-[1-6]$/.test(u.id));
+                    if (cleanUsers.length !== tempDb.users.length) {
+                        tempDb.users = cleanUsers;
+                        changed = true;
+                    }
+                }
+                
+                if (tempDb.logs) {
+                    const cleanLogs = tempDb.logs.filter(l => l && !/^user-[1-6]$/.test(l.userId));
+                    if (cleanLogs.length !== tempDb.logs.length) {
+                        tempDb.logs = cleanLogs;
+                        changed = true;
+                    }
+                }
+            }
+            
+            if (changed) {
+                localStorage.setItem('aura_system_db', JSON.stringify(tempDb));
+                console.log("Local storage database records cleaned up (purged mock users & invalid attendance).");
             }
         }
     } catch (e) {
-        console.error("Error cleaning local attendance storage:", e);
+        console.error("Error cleaning local database storage:", e);
     }
 
     // Inicializar base de datos de IA

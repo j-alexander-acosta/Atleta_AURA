@@ -25,195 +25,7 @@ const AURA_AI = (() => {
 
     // 1. Base de Datos Simulada Multi-Usuario (para demostración del Panel Admin)
     const getInitialMockDB = () => {
-        const today = new Date();
-
-        // Helper para crear fechas relativas a hoy
-        const daysAgo = (days) => {
-            const date = new Date(today);
-            date.setDate(today.getDate() - days);
-            return date.toISOString();
-        };
-
-        const mockUsers = [
-            {
-                id: "user-1",
-                name: "Carlos Mendoza",
-                age: 28,
-                sex: "male",
-                weight: 78.5,
-                height: 176,
-                waist: 84.0,
-                neck: 38.0,
-                hip: 0,
-                goal: "hipertrofia",
-                level: "avanzado",
-                days: [1, 3, 5], // Lun, Mié, Vie
-                streak: 6,
-                lastWorkoutDate: daysAgo(1),
-                assignedCluster: "Comprometido",
-                bodyFat: 16.0,
-                imc: 25.3,
-                profileType: "estudiante",
-                muscleMass: 42.5,
-                skeletalMuscle: 38.0,
-                injured: 0,
-                injuryDetails: ""
-            },
-            {
-                id: "user-2",
-                name: "Laura Gómez",
-                age: 32,
-                sex: "female",
-                weight: 62.0,
-                height: 165,
-                waist: 70.0,
-                neck: 32.0,
-                hip: 94.0,
-                goal: "resistencia",
-                level: "intermedio",
-                days: [2, 4, 6], // Mar, Jue, Sáb
-                streak: 4,
-                lastWorkoutDate: daysAgo(2),
-                assignedCluster: "Comprometido",
-                bodyFat: 24.3,
-                imc: 22.8,
-                profileType: "deportista_seleccionado",
-                muscleMass: 31.0,
-                skeletalMuscle: 28.5,
-                injured: 0,
-                injuryDetails: ""
-            },
-            {
-                id: "user-3",
-                name: "Esteban Ruiz",
-                age: 40,
-                sex: "male",
-                weight: 89.2,
-                height: 180,
-                waist: 96.0,
-                neck: 40.0,
-                hip: 0,
-                goal: "fuerza",
-                level: "principiante",
-                days: [1, 4], // Lun, Jue
-                streak: 0,
-                lastWorkoutDate: daysAgo(4),
-                assignedCluster: "Irregular",
-                bodyFat: 22.6,
-                imc: 27.5,
-                profileType: "deportista_seleccionado",
-                muscleMass: 44.2,
-                skeletalMuscle: 39.1,
-                injured: 1,
-                injuryDetails: "Esguince de Tobillo Grado 2"
-            },
-            {
-                id: "user-4",
-                name: "Daniela Rivas",
-                age: 24,
-                sex: "female",
-                weight: 55.4,
-                height: 160,
-                waist: 68.0,
-                neck: 31.0,
-                hip: 90.0,
-                goal: "hipertrofia",
-                level: "intermedio",
-                days: [1, 3, 5], // Lun, Mié, Vie
-                streak: 1,
-                lastWorkoutDate: daysAgo(5),
-                assignedCluster: "Irregular",
-                bodyFat: 23.0,
-                imc: 21.6,
-                profileType: "estudiante",
-                muscleMass: 27.5,
-                skeletalMuscle: 25.0,
-                injured: 0,
-                injuryDetails: ""
-            },
-            {
-                id: "user-5",
-                name: "Javier Ortega",
-                age: 35,
-                sex: "male",
-                weight: 95.0,
-                height: 182,
-                waist: 104.0,
-                neck: 41.0,
-                hip: 0,
-                goal: "fuerza",
-                level: "principiante",
-                days: [3, 6], // Mié, Sáb
-                streak: 0,
-                lastWorkoutDate: daysAgo(10),
-                assignedCluster: "Alto riesgo",
-                bodyFat: 26.7,
-                imc: 28.7,
-                profileType: "estudiante",
-                muscleMass: 46.0,
-                skeletalMuscle: 41.2,
-                injured: 0,
-                injuryDetails: ""
-            },
-            {
-                id: "user-6",
-                name: "Mónica Silva",
-                age: 29,
-                sex: "female",
-                weight: 68.1,
-                height: 170,
-                waist: 82.0,
-                neck: 33.0,
-                hip: 105.0,
-                goal: "resistencia",
-                level: "principiante",
-                days: [2, 5], // Mar, Vie
-                streak: 0,
-                lastWorkoutDate: daysAgo(8),
-                assignedCluster: "Alto riesgo",
-                bodyFat: 33.9,
-                imc: 23.6,
-                profileType: "estudiante",
-                muscleMass: 30.5,
-                skeletalMuscle: 27.2,
-                injured: 0,
-                injuryDetails: ""
-            }
-        ];
-
-        // Logs de entrenamiento históricos realistas de los últimos 14 días
-        const mockLogs = [
-            // Carlos Mendoza (Muy activo)
-            { id: "log-1", userId: "user-1", date: daysAgo(1), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "45 min", volume: 1200, setsCount: 7, sets: [] },
-            { id: "log-2", userId: "user-1", date: daysAgo(3), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "43 min", volume: 1500, setsCount: 10, sets: [] },
-            { id: "log-3", userId: "user-1", date: daysAgo(5), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "44 min", volume: 1100, setsCount: 7, sets: [] },
-            { id: "log-4", userId: "user-1", date: daysAgo(8), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "45 min", volume: 1600, setsCount: 10, sets: [] },
-            { id: "log-5", userId: "user-1", date: daysAgo(10), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "42 min", volume: 1000, setsCount: 7, sets: [] },
-            { id: "log-6", userId: "user-1", date: daysAgo(12), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "46 min", volume: 1400, setsCount: 10, sets: [] },
-
-            // Laura Gómez (Activa)
-            { id: "log-7", userId: "user-2", date: daysAgo(2), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "42 min", volume: 800, setsCount: 10, sets: [] },
-            { id: "log-8", userId: "user-2", date: daysAgo(4), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "45 min", volume: 900, setsCount: 7, sets: [] },
-            { id: "log-9", userId: "user-2", date: daysAgo(7), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "40 min", volume: 750, setsCount: 10, sets: [] },
-            { id: "log-10", userId: "user-2", date: daysAgo(9), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "43 min", volume: 850, setsCount: 7, sets: [] },
-            { id: "log-11", userId: "user-2", date: daysAgo(11), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "41 min", volume: 700, setsCount: 10, sets: [] },
-
-            // Esteban Ruiz (Irregular - empezó a fallar)
-            { id: "log-12", userId: "user-3", date: daysAgo(4), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "40 min", volume: 600, setsCount: 10, sets: [] },
-            { id: "log-13", userId: "user-3", date: daysAgo(9), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "45 min", volume: 800, setsCount: 7, sets: [] },
-
-            // Daniela Rivas (Irregular - falló recientemente)
-            { id: "log-14", userId: "user-4", date: daysAgo(5), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "44 min", volume: 500, setsCount: 7, sets: [] },
-            { id: "log-15", userId: "user-4", date: daysAgo(11), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "42 min", volume: 550, setsCount: 10, sets: [] },
-
-            // Javier Ortega (Alto Riesgo - Inactivo hace 10 días)
-            { id: "log-16", userId: "user-5", date: daysAgo(10), routineName: "Tren Superior Élite + Abdominales Esculpidos", duration: "45 min", volume: 400, setsCount: 10, sets: [] },
-
-            // Mónica Silva (Alto Riesgo - Inactiva hace 8 días)
-            { id: "log-17", userId: "user-6", date: daysAgo(8), routineName: "Tren Inferior Potencia + Abdominales Esculpidos", duration: "43 min", volume: 300, setsCount: 7, sets: [] }
-        ];
-
-        return { users: mockUsers, logs: mockLogs, attendance: [] };
+        return { users: [], logs: [], attendance: [] };
     };
 
     // Inicializar localStorage si no existe
@@ -221,7 +33,35 @@ const AURA_AI = (() => {
     const loadDB = () => {
         const cached = localStorage.getItem('aura_system_db');
         if (cached) {
-            db = JSON.parse(cached);
+            try {
+                db = JSON.parse(cached);
+                let changed = false;
+                if (db) {
+                    if (db.users) {
+                        const initialLength = db.users.length;
+                        db.users = db.users.filter(u => u && !/^user-[1-6]$/.test(u.id));
+                        if (db.users.length !== initialLength) changed = true;
+                    }
+                    if (db.logs) {
+                        const initialLength = db.logs.length;
+                        db.logs = db.logs.filter(l => l && !/^user-[1-6]$/.test(l.userId));
+                        if (db.logs.length !== initialLength) changed = true;
+                    }
+                    if (db.attendance) {
+                        const initialLength = db.attendance.length;
+                        db.attendance = db.attendance.filter(a => a && !/^user-[1-6]$/.test(a.userId));
+                        if (db.attendance.length !== initialLength) changed = true;
+                    }
+                }
+                if (changed) {
+                    localStorage.setItem('aura_system_db', JSON.stringify(db));
+                    console.log("Mock users (user-1 to user-6) and associated records purged from local database.");
+                }
+            } catch (e) {
+                console.error("Error parsing/cleaning cached local database:", e);
+                db = getInitialMockDB();
+                localStorage.setItem('aura_system_db', JSON.stringify(db));
+            }
         } else {
             db = getInitialMockDB();
             localStorage.setItem('aura_system_db', JSON.stringify(db));
