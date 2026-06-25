@@ -947,7 +947,7 @@ function getUserByRut(rut, callback) {
 }
 
 function getAllUsers(callback) {
-  db.all("SELECT * FROM users", [], (err, rows) => {
+  db.all("SELECT * FROM users WHERE rut IS NOT NULL AND rut != ''", [], (err, rows) => {
     callback(err, rows);
   });
 }

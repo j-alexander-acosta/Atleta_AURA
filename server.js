@@ -6,21 +6,22 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const nodemailer = require('nodemailer');
 
-let transporter;
-nodemailer.createTestAccount((err, account) => {
-  if (err) {
-    console.error('Failed to create a testing account. ' + err.message);
-    return;
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: 'jacinto.acosta@alumnos.ucn.cl',
+    pass: 'npqasuwcthystmwx'
   }
-  transporter = nodemailer.createTransport({
-    host: account.smtp.host,
-    port: account.smtp.port,
-    secure: account.smtp.secure,
-    auth: {
-      user: account.user,
-      pass: account.pass
-    }
-  });
+});
+
+transporter.verify((error, success) => {
+  if (error) {
+    console.error('SMTP Connection Error:', error);
+  } else {
+    console.log('SMTP Server is ready to send messages (jacinto.acosta@alumnos.ucn.cl)');
+  }
 });
 
 const app = express();
@@ -498,21 +499,24 @@ app.post('/api/admin/send-alert', authenticateAdmin, (req, res) => {
 
       if (user.email && transporter) {
         const mailOptions = {
-          from: '"AURA Admin" <admin@aura.local>',
+          from: '"GYM-UCN Admin" <jacinto.acosta@alumnos.ucn.cl>',
           to: user.email,
-          subject: 'Alerta de Recuperación - AURA',
+          subject: 'Alerta de Recuperación - GYM-UCN',
           text: message,
-          html: `<p>Hola ${user.name},</p><p>${message}</p><p>El Equipo AURA</p>`
+          html: `<p>Hola ${user.name},</p><p>${message}</p><p>El Equipo GYM-UCN</p>`
         };
         transporter.sendMail(mailOptions, (err, info) => {
           if (err) {
             console.error('Error enviando correo:', err);
+            return res.status(500).json({ error: 'Error al enviar correo: ' + err.message });
           } else {
-            console.log('Correo enviado. Preview URL:', nodemailer.getTestMessageUrl(info));
+            console.log('Correo enviado con éxito:', info.messageId);
+            return res.json({ success: true, message: 'Alerta y correo enviados con éxito.', notifId });
           }
         });
+      } else {
+        return res.json({ success: true, message: 'Alerta generada en web con éxito (sin correo).', notifId });
       }
-      res.json({ success: true, message: 'Alerta generada con éxito.', notifId });
     });
   });
 });

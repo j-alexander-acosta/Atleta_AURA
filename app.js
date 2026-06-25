@@ -193,7 +193,9 @@ const DOM = {
     accessModalUserType: document.getElementById('access-modal-usertype'),
     adminBarcodeSelectUser: document.getElementById('admin-barcode-select-user'),
     btnSimulateBarcodeScan: document.getElementById('btn-simulate-barcode-scan'),
-    adminAttendanceTableBody: document.getElementById('admin-attendance-table-body')
+    adminAttendanceTableBody: document.getElementById('admin-attendance-table-body'),
+    adminFilterMonth: document.getElementById('admin-filter-month'),
+    adminFilterDay: document.getElementById('admin-filter-day')
 };
 
 // Variables temporales para el onboarding
@@ -264,6 +266,27 @@ async function checkPendingNotifications() {
 
 function initApp() {
     loadLocalData();
+
+    // Limpieza única de registros locales de asistencia corruptos/desconocidos
+    try {
+        const cached = localStorage.getItem('aura_system_db');
+        if (cached) {
+            const tempDb = JSON.parse(cached);
+            if (tempDb && tempDb.attendance) {
+                const cleanAttendance = tempDb.attendance.filter(att => {
+                    const userName = att.userName || '';
+                    return userName !== 'Atleta Desconocido' && userName !== '' && att.userId !== 'undefined' && att.userId !== null;
+                });
+                if (cleanAttendance.length !== tempDb.attendance.length) {
+                    tempDb.attendance = cleanAttendance;
+                    localStorage.setItem('aura_system_db', JSON.stringify(tempDb));
+                    console.log("Local storage attendance records cleaned up.");
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error cleaning local attendance storage:", e);
+    }
 
     // Inicializar base de datos de IA
     try {
@@ -890,6 +913,17 @@ function initEventListeners() {
                 }
             }
             registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR', userName, profileType);
+        });
+    }
+
+    if (DOM.adminFilterMonth) {
+        DOM.adminFilterMonth.addEventListener('change', () => {
+            renderAttendanceHistory();
+        });
+    }
+    if (DOM.adminFilterDay) {
+        DOM.adminFilterDay.addEventListener('change', () => {
+            renderAttendanceHistory();
         });
     }
 }
@@ -2387,6 +2421,9 @@ function registerUserAttendance(userId, type = 'standard', notes = '', userName 
 function renderAttendanceHistory() {
     if (!DOM.adminAttendanceTableBody) return;
 
+    const monthFilter = DOM.adminFilterMonth ? DOM.adminFilterMonth.value : 'all';
+    const dayFilter = DOM.adminFilterDay ? DOM.adminFilterDay.value : 'all';
+
     fetch('/api/attendance')
         .then(res => res.json())
         .then(data => {
@@ -2401,24 +2438,53 @@ function renderAttendanceHistory() {
                 }
             });
 
+            // Filtrar y limpiar de stubs inválidos
+            let filteredAtt = allAtt.filter(att => {
+                const userName = att.userName || '';
+                if (userName === 'Atleta Desconocido' || userName === '' || att.userId === 'undefined' || att.userId === null) {
+                    return false;
+                }
+                
+                const attDate = new Date(att.date);
+                if (isNaN(attDate.getTime())) return false;
+                
+                if (monthFilter !== 'all') {
+                    const month = attDate.getMonth() + 1; // 1-12
+                    if (month.toString() !== monthFilter) return false;
+                }
+                
+                if (dayFilter !== 'all') {
+                    const day = attDate.getDate(); // 1-31
+                    if (day.toString() !== dayFilter) return false;
+                }
+                
+                return true;
+            });
+
             // Ordenar fecha desc
-            allAtt.sort((a, b) => new Date(b.date) - new Date(a.date));
+            filteredAtt.sort((a, b) => new Date(b.date) - new Date(a.date));
 
             DOM.adminAttendanceTableBody.innerHTML = '';
-            if (allAtt.length === 0) {
-                DOM.adminAttendanceTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No hay ingresos registrados hoy.</td></tr>`;
+            if (filteredAtt.length === 0) {
+                DOM.adminAttendanceTableBody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--text-secondary); padding: 12px; font-size:12px;">No se encontraron registros de asistencia.</td></tr>`;
                 return;
             }
 
-            allAtt.forEach(att => {
+            filteredAtt.forEach(att => {
                 const userName = att.userName || 'Atleta Desconocido';
                 const profileType = att.profileType || 'estudiante';
                 const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
 
-                const timeStr = new Date(att.date).toLocaleTimeString('es-ES', {
+                const dateObj = new Date(att.date);
+                const dayStr = dateObj.toLocaleDateString('es-ES', {
+                    day: '2-digit',
+                    month: 'short'
+                });
+                const timeStr = dateObj.toLocaleTimeString('es-ES', {
                     hour: '2-digit',
                     minute: '2-digit'
                 });
+                const displayDateTime = `${dayStr} - ${timeStr}`;
 
                 const typeLabel = att.type === 'kinesiology'
                     ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
@@ -2426,7 +2492,7 @@ function renderAttendanceHistory() {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                <td class="font-mono" style="font-size: 11px;">${timeStr}</td>
+                <td class="font-mono" style="font-size: 11px;">${displayDateTime}</td>
                 <td style="font-weight: 500; font-size: 12px;">${userName}</td>
                 <td style="font-size: 12px; color: var(--text-secondary);">${profileLabel}</td>
                 <td style="font-size: 11px; line-height: 1.3;">${typeLabel}<br><span style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</span></td>
