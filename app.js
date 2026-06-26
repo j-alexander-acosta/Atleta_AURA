@@ -2064,6 +2064,12 @@ async function renderAdminTab() {
             const resUsers = await fetch('/api/admin/users', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            if (resUsers.status === 401 || resUsers.status === 403) {
+                sessionStorage.removeItem('aura_admin_token');
+                window.checkAdminAuth();
+                alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                return;
+            }
             const dataUsers = await resUsers.json();
             if (dataUsers.success && dataUsers.users) {
                 users = dataUsers.users;
@@ -2089,6 +2095,12 @@ async function renderAdminTab() {
             const res = await fetch('/api/admin/users-status', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            if (res.status === 401 || res.status === 403) {
+                sessionStorage.removeItem('aura_admin_token');
+                window.checkAdminAuth();
+                alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                return;
+            }
             const data = await res.json();
             if (data.success && data.habilitaciones) {
                 habilitaciones = data.habilitaciones;
@@ -2279,6 +2291,12 @@ async function renderAdminTab() {
                         },
                         body: JSON.stringify({ userId: notif.userId, message: notif.message })
                     });
+                    if (res.status === 401 || res.status === 403) {
+                        sessionStorage.removeItem('aura_admin_token');
+                        window.checkAdminAuth();
+                        alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                        return;
+                    }
                     const data = await res.json();
                     
                     if (data.success) {
@@ -2550,6 +2568,29 @@ function isValidRut(rut) {
     return dv === calculatedDv;
 }
 
+function getRunFromRut(rut) {
+    if (!rut || typeof rut !== 'string') return '';
+    const clean = rut.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').trim().toUpperCase();
+    if (clean.length < 2) return clean;
+
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+
+    let sum = 0;
+    let mul = 2;
+    for (let i = body.length - 1; i >= 0; i--) {
+        sum += parseInt(body.charAt(i)) * mul;
+        mul = mul === 7 ? 2 : mul + 1;
+    }
+    const expectedDvVal = 11 - (sum % 11);
+    const calculatedDv = expectedDvVal === 11 ? '0' : expectedDvVal === 10 ? 'K' : expectedDvVal.toString();
+
+    if (dv === calculatedDv) {
+        return body;
+    }
+    return clean;
+}
+
 // LÓGICA DE PANEL DE ADMINISTRADOR (Auth & JWT)
 window.checkAdminAuth = function() {
     const adminLoginOverlay = document.getElementById('admin-login-overlay');
@@ -2624,6 +2665,12 @@ if (btnAdminHabilitar) {
                 },
                 body: JSON.stringify({ rut, dias_permitidos: dias, es_exento: exento })
             });
+            if (res.status === 401 || res.status === 403) {
+                sessionStorage.removeItem('aura_admin_token');
+                window.checkAdminAuth();
+                alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                return;
+            }
             const data = await res.json();
             if (data.success) {
                 msg.style.color = 'var(--color-neon-teal)';

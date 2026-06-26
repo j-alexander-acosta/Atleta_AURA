@@ -188,7 +188,10 @@ function initDb() {
           const hash = await bcrypt.hash('admin123', salt);
           db.run("INSERT INTO administradores (username, password_hash) VALUES (?, ?)", ['admin', hash], (err) => {
             if (!err) console.log("Usuario administrador por defecto creado (admin:admin123).");
+            migrateAndNormalizeRuts();
           });
+        } else {
+          migrateAndNormalizeRuts();
         }
       });
     });
@@ -781,11 +784,12 @@ function saveUser(user, callback) {
   
   const daysStr = Array.isArray(user.days) ? JSON.stringify(user.days) : (user.days || '[]');
 
+  const cleanRut = getRunFromRut(user.rut || '');
   stmt.run([
     newId, user.name, user.age, user.sex, user.weight, user.height,
     user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
     user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
-    user.injured ? 1 : 0, user.injuryDetails || '', user.rut || '', user.email || '',
+    user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
     user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
     daysStr
   ], function(err) {
@@ -896,18 +900,20 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 
 // Nuevas funciones para Usuarios Habilitados
 function addUsuarioHabilitado(rut, dias_permitidos, es_exento, callback) {
+  const cleanRut = getRunFromRut(rut);
   const stmt = db.prepare(`
     INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento)
     VALUES (?, ?, ?)
   `);
-  stmt.run([rut, dias_permitidos, es_exento ? 1 : 0], function(err) {
+  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0], function(err) {
     callback(err);
   });
   stmt.finalize();
 }
 
 function checkHabilitacion(rut, callback) {
-  db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [rut], (err, row) => {
+  const cleanRut = getRunFromRut(rut);
+  db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [cleanRut], (err, row) => {
     callback(err, row);
   });
 }
@@ -925,11 +931,12 @@ function getAdminByUsername(username, callback) {
 }
 
 function decrementarDiasPermitidos(rut, callback) {
+  const cleanRut = getRunFromRut(rut);
   db.run(`
     UPDATE usuarios_habilitados 
     SET dias_permitidos = dias_permitidos - 1 
     WHERE rut = ? AND dias_permitidos > 0 AND es_exento = 0
-  `, [rut], function(err) {
+  `, [cleanRut], function(err) {
     callback(err);
   });
 }
@@ -941,7 +948,8 @@ function getUserById(id, callback) {
 }
 
 function getUserByRut(rut, callback) {
-  db.get("SELECT * FROM users WHERE rut = ?", [rut], (err, row) => {
+  const cleanRut = getRunFromRut(rut);
+  db.get("SELECT * FROM users WHERE rut = ?", [cleanRut], (err, row) => {
     callback(err, row);
   });
 }
@@ -997,6 +1005,96 @@ function getProgressionHistory(user_id, exercise_name, callback) {
     query += ` ORDER BY date DESC`;
     
     db.all(query, params, callback);
+}
+
+function getRunFromRut(rut) {
+  if (!rut || typeof rut !== 'string') return '';
+  const clean = rut.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').trim().toUpperCase();
+  if (clean.length < 2) return clean;
+
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+
+  // Calcular dígito verificador esperado para el body
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body.charAt(i)) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const expectedDvVal = 11 - (sum % 11);
+  const calculatedDv = expectedDvVal === 11 ? '0' : expectedDvVal === 10 ? 'K' : expectedDvVal.toString();
+
+  if (dv === calculatedDv) {
+    return body;
+  }
+  return clean;
+}
+
+function migrateAndNormalizeRuts() {
+  db.all("SELECT id, rut, dias_permitidos, es_exento FROM usuarios_habilitados", [], (err, rows) => {
+    if (err) {
+      console.error("Error migrating RUTs in usuarios_habilitados:", err);
+      return;
+    }
+
+    const groups = {};
+    rows.forEach(row => {
+      const norm = getRunFromRut(row.rut);
+      if (!groups[norm]) groups[norm] = [];
+      groups[norm].push(row);
+    });
+
+    db.serialize(() => {
+      for (const norm in groups) {
+        const group = groups[norm];
+        
+        if (group.length === 1) {
+          const row = group[0];
+          if (row.rut !== norm) {
+            db.run("UPDATE usuarios_habilitados SET rut = ? WHERE id = ?", [norm, row.id], (err) => {
+              if (err) console.error(`Error updating rut for id ${row.id} to ${norm}:`, err);
+            });
+          }
+        } else if (group.length > 1) {
+          group.sort((a, b) => {
+            if (a.es_exento !== b.es_exento) {
+              return b.es_exento - a.es_exento;
+            }
+            return b.dias_permitidos - a.dias_permitidos;
+          });
+
+          const mainRow = group[0];
+          
+          for (let i = 1; i < group.length; i++) {
+            const dupRow = group[i];
+            db.run("DELETE FROM usuarios_habilitados WHERE id = ?", [dupRow.id], (err) => {
+              if (err) console.error(`Error deleting duplicate habilitacion for id ${dupRow.id}:`, err);
+            });
+          }
+
+          db.run("UPDATE usuarios_habilitados SET rut = ? WHERE id = ?", [norm, mainRow.id], (err) => {
+            if (err) console.error(`Error updating main rut for id ${mainRow.id} to ${norm}:`, err);
+          });
+
+          console.log(`Merged ${group.length} habilitaciones for RUT ${norm} (kept id ${mainRow.id})`);
+        }
+      }
+      
+      db.all("SELECT id, name, rut FROM users WHERE rut IS NOT NULL AND rut != ''", [], (err, uRows) => {
+        if (!err && uRows) {
+          uRows.forEach(uRow => {
+            const norm = getRunFromRut(uRow.rut);
+            if (uRow.rut !== norm) {
+              db.run("UPDATE users SET rut = ? WHERE id = ?", [norm, uRow.id], (err) => {
+                if (err) console.error(`Error normalizing user rut for ${uRow.name}:`, err);
+              });
+            }
+          });
+        }
+      });
+    });
+  });
 }
 
 module.exports = {

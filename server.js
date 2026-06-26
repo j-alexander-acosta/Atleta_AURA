@@ -72,6 +72,30 @@ function isValidRut(rut) {
   return dv === calculatedDv;
 }
 
+function getRunFromRut(rut) {
+  if (!rut || typeof rut !== 'string') return '';
+  const clean = rut.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').trim().toUpperCase();
+  if (clean.length < 2) return clean;
+
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+
+  // Calcular dígito verificador esperado para el body
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body.charAt(i)) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const expectedDvVal = 11 - (sum % 11);
+  const calculatedDv = expectedDvVal === 11 ? '0' : expectedDvVal === 10 ? 'K' : expectedDvVal.toString();
+
+  if (dv === calculatedDv) {
+    return body;
+  }
+  return clean;
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || 'AURA_FITNESS_SECRET_KEY';
 
 // Middleware de Autenticación de Admin
@@ -113,7 +137,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
   }
 
-  const cleanRut = rut.split('-')[0].replace(/\./g, '');
+  const cleanRut = getRunFromRut(rut);
   const dias = parseInt(dias_permitidos) || 0;
 
   db.addUsuarioHabilitado(cleanRut, dias, es_exento, (err) => {
@@ -160,7 +184,7 @@ app.get('/api/check-habilitacion', (req, res) => {
     return res.status(400).json({ valid: false, error: 'RUT inválido' });
   }
 
-  const cleanRut = rut.split('-')[0].replace(/\./g, '');
+  const cleanRut = getRunFromRut(rut);
   db.checkHabilitacion(cleanRut, (err, row) => {
     if (err) return res.status(500).json({ valid: false, error: 'Error de servidor' });
 
@@ -196,7 +220,7 @@ app.post('/api/workouts', (req, res) => {
     return res.status(400).json({ error: 'Faltan datos del usuario o RUT' });
   }
 
-  const cleanRut = user.rut.split('-')[0].replace(/\./g, '');
+  const cleanRut = getRunFromRut(user.rut);
 
   // Validar contra usuarios_habilitados antes de guardar el usuario
   db.checkHabilitacion(cleanRut, (err, habilitado) => {
@@ -215,6 +239,7 @@ app.post('/api/workouts', (req, res) => {
       user.assignedCluster = 'Alto riesgo';
     }
 
+    user.rut = cleanRut;
     db.saveUser(user, (err) => {
       if (err) console.error("Error guardando usuario:", err);
     });
