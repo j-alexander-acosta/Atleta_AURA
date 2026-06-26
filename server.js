@@ -131,7 +131,7 @@ app.post('/api/admin/login', (req, res) => {
 
 // Endpoint Habilitar Usuario (Protegido)
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
-  const { rut, dias_permitidos, es_exento } = req.body;
+  const { rut, dias_permitidos, es_exento, limite_semanal } = req.body;
 
   if (!rut || !isValidRut(rut)) {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
@@ -139,8 +139,9 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
 
   const cleanRut = getRunFromRut(rut);
   const dias = parseInt(dias_permitidos) || 0;
+  const limite = parseInt(limite_semanal) || 0;
 
-  db.addUsuarioHabilitado(cleanRut, dias, es_exento, (err) => {
+  db.addUsuarioHabilitado(cleanRut, dias, es_exento, limite, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
     
     // Check if user exists in users table
@@ -297,21 +298,33 @@ app.post('/api/attendance', (req, res) => {
       return res.status(409).json({ error: 'Ya has registrado asistencia el día de hoy.' });
     }
 
-    db.saveAttendance(att, (err) => {
+    // Validar límite semanal de asistencia
+    db.checkUserWeeklyLimit(att.userId, (err, limitResult) => {
       if (err) {
-        console.error("Error registrando asistencia:", err);
+        console.error("Error verificando límite semanal:", err);
         return res.status(500).json({ error: 'Error de base de datos' });
       }
-      
-      // Descontar días de acceso al registrar asistencia
-      db.getUserById(att.userId, (err, rowUser) => {
-        if (!err && rowUser && rowUser.rut) {
-          db.decrementarDiasPermitidos(rowUser.rut, () => {
-            res.json({ success: true, message: 'Asistencia registrada con éxito.' });
-          });
-        } else {
-          res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+
+      if (!limitResult.allowed) {
+        return res.status(409).json({ error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+      }
+
+      db.saveAttendance(att, (err) => {
+        if (err) {
+          console.error("Error registrando asistencia:", err);
+          return res.status(500).json({ error: 'Error de base de datos' });
         }
+        
+        // Descontar días de acceso al registrar asistencia
+        db.getUserById(att.userId, (err, rowUser) => {
+          if (!err && rowUser && rowUser.rut) {
+            db.decrementarDiasPermitidos(rowUser.rut, () => {
+              res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+            });
+          } else {
+            res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+          }
+        });
       });
     });
   });
@@ -518,42 +531,54 @@ app.post('/api/asistencia/check-in', async (req, res) => {
       return res.status(409).json({ success: false, error: 'Ya has registrado asistencia el día de hoy.' });
     }
 
-    // 2. Verificar margen de 1 hora para evitar duplicados accidentales
-    db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+    // Verificar límite semanal de asistencia
+    db.checkUserWeeklyLimit(usuario_id, (err, limitResult) => {
       if (err) {
-        return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
+        console.error("Error verificando límite semanal QR:", err);
+        return res.status(500).json({ success: false, error: 'Error de base de datos' });
       }
 
-      if (row && row.fecha_hora) {
-        // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
-        const lastTime = new Date(row.fecha_hora + 'Z').getTime();
-        const now = new Date().getTime();
-        const diffMs = now - lastTime;
-        const diffHours = diffMs / (1000 * 60 * 60);
+      if (!limitResult.allowed) {
+        return res.status(409).json({ success: false, error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+      }
 
-        if (diffHours < 1) {
-          return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+      // 2. Verificar margen de 1 hora para evitar duplicados accidentales
+      db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+        if (err) {
+          return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
         }
-      }
 
-      // Registrar asistencia en DB
-      db.registrarAsistenciaQR(usuario_id, (err, result) => {
-      if (err) {
-        return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
-      }
+        if (row && row.fecha_hora) {
+          // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+          const lastTime = new Date(row.fecha_hora + 'Z').getTime();
+          const now = new Date().getTime();
+          const diffMs = now - lastTime;
+          const diffHours = diffMs / (1000 * 60 * 60);
 
-      // Buscar el RUT del usuario y descontar días
-      db.getUserById(usuario_id, (err, rowUser) => {
-        if (!err && rowUser && rowUser.rut) {
-          db.decrementarDiasPermitidos(rowUser.rut, () => {
-            res.json({ success: true, message: 'Acceso Concedido' });
+          if (diffHours < 1) {
+            return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+          }
+        }
+
+        // Registrar asistencia en DB
+        db.registrarAsistenciaQR(usuario_id, (err, result) => {
+          if (err) {
+            return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
+          }
+
+          // Buscar el RUT del usuario y descontar días
+          db.getUserById(usuario_id, (err, rowUser) => {
+            if (!err && rowUser && rowUser.rut) {
+              db.decrementarDiasPermitidos(rowUser.rut, () => {
+                res.json({ success: true, message: 'Acceso Concedido' });
+              });
+            } else {
+              res.json({ success: true, message: 'Acceso Concedido' });
+            }
           });
-        } else {
-          res.json({ success: true, message: 'Acceso Concedido' });
-        }
+        });
       });
     });
-  });
   });
 });
 

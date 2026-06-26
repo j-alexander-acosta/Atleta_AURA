@@ -609,7 +609,7 @@
                                     <h3>Habilitar Estudiantes / Atletas</h3>
                                 </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
                                 <div class="form-group">
                                     <label for="admin-hab-rut">RUT del Atleta</label>
                                     <input type="text" id="admin-hab-rut" placeholder="12345678-9">
@@ -618,15 +618,25 @@
                                     <label for="admin-hab-dias">Días de Acceso</label>
                                     <input type="number" id="admin-hab-dias" placeholder="Ej. 30" value="30">
                                 </div>
+                                <div class="form-group">
+                                    <label for="admin-hab-semanal">Límite Semanal</label>
+                                    <select id="admin-hab-semanal" required
+                                        style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="0">Ilimitado</option>
+                                        <option value="3">3 días/semana</option>
+                                        <option value="4">4 días/semana</option>
+                                        <option value="5">5 días/semana</option>
+                                    </select>
+                                </div>
                                 <div class="form-group"
-                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 2;">
+                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 3;">
                                     <input type="checkbox" id="admin-hab-exento" style="width: 20px; height: 20px;">
                                     <label for="admin-hab-exento"
                                         style="margin: 0; cursor: pointer; color: var(--text-secondary);">Atleta Élite
                                         Exento (Ignora límite de días)</label>
                                 </div>
                                 <button id="btn-admin-habilitar" class="btn btn-primary btn-glow"
-                                    style="grid-column: span 2;">Otorgar Acceso</button>
+                                    style="grid-column: span 3;">Otorgar Acceso</button>
                             </div>
                             <small id="admin-hab-msg"
                                 style="display: block; margin-top: 10px; text-align: center; font-weight: bold;"></small>

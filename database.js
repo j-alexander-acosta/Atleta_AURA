@@ -51,6 +51,7 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN neck REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN hip REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN days TEXT DEFAULT '[]'", () => {});
+    db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
 
     // Tabla de Usuarios Habilitados
     db.run(`
@@ -59,7 +60,8 @@ function initDb() {
         rut TEXT UNIQUE NOT NULL,
         dias_permitidos INTEGER DEFAULT 0,
         fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
-        es_exento BOOLEAN DEFAULT 0
+        es_exento BOOLEAN DEFAULT 0,
+        limite_semanal INTEGER DEFAULT 0
       )
     `);
 
@@ -899,13 +901,13 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 }
 
 // Nuevas funciones para Usuarios Habilitados
-function addUsuarioHabilitado(rut, dias_permitidos, es_exento, callback) {
+function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, callback) {
   const cleanRut = getRunFromRut(rut);
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento)
-    VALUES (?, ?, ?)
+    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal)
+    VALUES (?, ?, ?, ?)
   `);
-  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0], function(err) {
+  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0], function(err) {
     callback(err);
   });
   stmt.finalize();
@@ -1166,6 +1168,78 @@ function checkUserAttendanceForDate(userId, dateStr, callback) {
   });
 }
 
+function checkUserWeeklyLimit(userId, callback) {
+  getUserById(userId, (err, user) => {
+    if (err) return callback(err);
+    if (!user || !user.rut) return callback(null, { allowed: true });
+
+    const cleanRut = getRunFromRut(user.rut);
+    db.get("SELECT limite_semanal FROM usuarios_habilitados WHERE rut = ?", [cleanRut], (err, hab) => {
+      if (err) return callback(err);
+      if (!hab || !hab.limite_semanal || hab.limite_semanal <= 0) {
+        return callback(null, { allowed: true });
+      }
+
+      const limit = hab.limite_semanal;
+
+      // Obtener todas las asistencias del usuario en ambas tablas
+      db.all("SELECT date FROM attendance WHERE userId = ?", [userId], (err, rowsAtt) => {
+        if (err) return callback(err);
+        db.all("SELECT fecha_hora FROM asistencia WHERE usuario_id = ?", [userId], (err, rowsAsist) => {
+          if (err) return callback(err);
+
+          const dates = [];
+          if (rowsAtt) {
+            rowsAtt.forEach(r => { if (r.date) dates.push(r.date); });
+          }
+          if (rowsAsist) {
+            rowsAsist.forEach(r => {
+              if (r.fecha_hora) {
+                const dateVal = r.fecha_hora.includes('Z') ? r.fecha_hora : r.fecha_hora + 'Z';
+                dates.push(dateVal);
+              }
+            });
+          }
+
+          // Calcular el inicio de la semana actual en hora de Chile
+          const now = new Date();
+          const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+          const santiagoNow = new Date(santiagoStr);
+          const day = santiagoNow.getDay();
+          const daysToSub = day === 0 ? 6 : day - 1;
+          
+          const startOfWeek = new Date(santiagoNow);
+          startOfWeek.setDate(santiagoNow.getDate() - daysToSub);
+          startOfWeek.setHours(0, 0, 0, 0);
+
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 7);
+
+          // Contar asistencias en la semana actual
+          let weekCount = 0;
+          dates.forEach(d => {
+            try {
+              const dStr = new Date(d).toLocaleString("en-US", { timeZone: "America/Santiago" });
+              const localD = new Date(dStr);
+              if (localD >= startOfWeek && localD < endOfWeek) {
+                weekCount++;
+              }
+            } catch (e) {
+              // ignorar
+            }
+          });
+
+          if (weekCount >= limit) {
+            callback(null, { allowed: false, limit: limit, count: weekCount });
+          } else {
+            callback(null, { allowed: true });
+          }
+        });
+      });
+    });
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1191,5 +1265,6 @@ module.exports = {
   saveProgression,
   getProgressionHistory,
   deleteUser,
-  checkUserAttendanceForDate
+  checkUserAttendanceForDate,
+  checkUserWeeklyLimit
 };

@@ -2196,6 +2196,7 @@ async function renderAdminTab() {
             let stateAccessBadge = '';
             let dias = 0;
             let es_exento = false;
+            let limite_semanal = 0;
             
             if (user.rut && habilitaciones.length > 0) {
                 const userRutBody = getRunFromRut(user.rut.toString());
@@ -2203,15 +2204,21 @@ async function renderAdminTab() {
                 if (hab) {
                     dias = hab.dias_permitidos;
                     es_exento = hab.es_exento;
+                    limite_semanal = hab.limite_semanal || 0;
                 }
             }
 
+            let weeklyLimitStr = '';
+            if (limite_semanal > 0) {
+                weeklyLimitStr = ` (${limite_semanal} d/sem)`;
+            }
+
             if (es_exento) {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Exento</span>`;
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Exento${weeklyLimitStr}</span>`;
             } else if (dias > 3) {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">${dias} Días (Activo)</span>`;
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">${dias} Días (Activo)${weeklyLimitStr}</span>`;
             } else if (dias > 0) {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 165, 0, 0.15); color: orange; border: 1px solid rgba(255, 165, 0, 0.3); font-size:10px;">${dias} Días (Alerta)</span>`;
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 165, 0, 0.15); color: orange; border: 1px solid rgba(255, 165, 0, 0.3); font-size:10px;">${dias} Días (Alerta)${weeklyLimitStr}</span>`;
             } else {
                 stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Bloqueado</span>`;
             }
@@ -2689,6 +2696,8 @@ if (btnAdminHabilitar) {
         const rut = document.getElementById('admin-hab-rut').value;
         const dias = document.getElementById('admin-hab-dias').value;
         const exento = document.getElementById('admin-hab-exento').checked;
+        const limiteSemanalSelect = document.getElementById('admin-hab-semanal');
+        const limite_semanal = limiteSemanalSelect ? parseInt(limiteSemanalSelect.value) || 0 : 0;
         const msg = document.getElementById('admin-hab-msg');
         
         try {
@@ -2698,7 +2707,7 @@ if (btnAdminHabilitar) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ rut, dias_permitidos: dias, es_exento: exento })
+                body: JSON.stringify({ rut, dias_permitidos: dias, es_exento: exento, limite_semanal })
             });
             if (res.status === 401 || res.status === 403) {
                 sessionStorage.removeItem('aura_admin_token');
@@ -2711,6 +2720,7 @@ if (btnAdminHabilitar) {
                 msg.style.color = 'var(--color-neon-teal)';
                 msg.textContent = '¡Estudiante habilitado con éxito!';
                 document.getElementById('admin-hab-rut').value = '';
+                if (limiteSemanalSelect) limiteSemanalSelect.value = '0';
                 AURA_AI.loadDB();
                 if(typeof renderAdminTab === 'function') renderAdminTab();
             } else {
