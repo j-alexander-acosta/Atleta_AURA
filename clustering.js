@@ -23,6 +23,50 @@ const AURA_AI = (() => {
         }
     };
 
+    const getRunFromRut = (rut) => {
+        if (!rut) return '';
+        const rutStr = rut.toString();
+        const clean = rutStr.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').trim().toUpperCase();
+        if (clean.length < 2) return clean;
+
+        const body = clean.slice(0, -1);
+        const dv = clean.slice(-1);
+
+        let sum = 0;
+        let mul = 2;
+        for (let i = body.length - 1; i >= 0; i--) {
+            sum += parseInt(body.charAt(i)) * mul;
+            mul = mul === 7 ? 2 : mul + 1;
+        }
+        const expectedDvVal = 11 - (sum % 11);
+        const calculatedDv = expectedDvVal === 11 ? '0' : expectedDvVal === 10 ? 'K' : expectedDvVal.toString();
+
+        if (dv === calculatedDv) {
+            return body;
+        }
+        return clean;
+    };
+
+    const getUserRegistrationDate = (user, habilitaciones = []) => {
+        if (user.rut && habilitaciones && habilitaciones.length > 0) {
+            const userRutBody = getRunFromRut(user.rut.toString());
+            const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
+            if (hab && hab.fecha_registro) {
+                // Reemplazar espacio por T para formato ISO compatible con todos los navegadores
+                const rawDate = hab.fecha_registro.toString();
+                return new Date(rawDate.includes('T') ? rawDate : rawDate.replace(' ', 'T'));
+            }
+        }
+        if (user.id && user.id.startsWith('user-')) {
+            const tsStr = user.id.split('-')[1];
+            const ts = parseInt(tsStr);
+            if (!isNaN(ts) && ts > 1000000000000) {
+                return new Date(ts);
+            }
+        }
+        return new Date(0);
+    };
+
     // 1. Base de Datos Simulada Multi-Usuario (para demostración del Panel Admin)
     const getInitialMockDB = () => {
         return { users: [], logs: [], attendance: [] };
@@ -168,7 +212,7 @@ const AURA_AI = (() => {
     };
 
     // 2. Algoritmo K-Means para Clustering de Usuarios (3D: Frecuencia, Volumen/Progresión, Grasa Corporal)
-    const runClustering = async (backendUsers) => {
+    const runClustering = async (backendUsers, habilitaciones = []) => {
         loadDB();
         const users = backendUsers || getUsers(); // Usa usuarios reales si se pasan, sino fallback
         const logs = db.logs;
@@ -352,11 +396,22 @@ const AURA_AI = (() => {
 
         // Guardar asignaciones finales en los perfiles
         dataPoints.forEach((point, idx) => {
-            const finalCluster = labelMap[assignments[idx]];
+            let finalCluster = labelMap[assignments[idx]];
             
-            // Actualizar en el arreglo pasado como parámetro (los reales del backend si corresponde)
+            // Buscar el usuario y aplicar override si es nuevo (menos de 3 días)
             const memoryUser = users.find(u => u.id === point.userId);
-            if (memoryUser) memoryUser.assignedCluster = finalCluster;
+            if (memoryUser) {
+                if (finalCluster === "Alto riesgo") {
+                    const regDate = getUserRegistrationDate(memoryUser, habilitaciones);
+                    const today = new Date();
+                    const diffTime = Math.abs(today - regDate);
+                    const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                    if (diffDays < 3) {
+                        finalCluster = "Pendiente";
+                    }
+                }
+                memoryUser.assignedCluster = finalCluster;
+            }
             
             // Actualizar en la DB local (mock)
             const user = db.users.find(u => u.id === point.userId);
@@ -383,7 +438,7 @@ const AURA_AI = (() => {
     };
 
     // 3. Sistema de Notificaciones Inteligentes (Lógica)
-    const generateNotifications = (backendUsers) => {
+    const generateNotifications = (backendUsers, habilitaciones = []) => {
         loadDB();
         const users = backendUsers || db.users;
         const logs = db.logs;
@@ -405,23 +460,31 @@ const AURA_AI = (() => {
                 }
 
                 // Calcular inactividad
-                let daysInactive = 3;
+                let daysInactive = 0;
                 if (user.lastWorkoutDate) {
                     const today = new Date();
                     const diffTime = Math.abs(today - new Date(user.lastWorkoutDate));
                     daysInactive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                } else {
+                    // Si nunca ha entrenado, calcular días de inactividad desde su fecha de registro
+                    const regDate = getUserRegistrationDate(user, habilitaciones);
+                    const today = new Date();
+                    const diffTime = Math.abs(today - regDate);
+                    daysInactive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                 }
 
-                // Requerimiento de notificación específico
-                const message = `Notamos que llevas ${daysInactive} días sin entrenar, tu rutina de ${rutinaSugerida} te espera con ajuste de carga de -10%.`;
+                // Solo generar alerta si la inactividad supera o es igual a 3 días
+                if (daysInactive >= 3) {
+                    const message = `Notamos que llevas ${daysInactive} días sin entrenar, tu rutina de ${rutinaSugerida} te espera con ajuste de carga de -10%.`;
 
-                notifications.push({
-                    userId: user.id,
-                    userName: user.name,
-                    daysInactive: daysInactive,
-                    rutinaSugerida: rutinaSugerida,
-                    message: message
-                });
+                    notifications.push({
+                        userId: user.id,
+                        userName: user.name,
+                        daysInactive: daysInactive,
+                        rutinaSugerida: rutinaSugerida,
+                        message: message
+                    });
+                }
             }
         });
 

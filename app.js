@@ -2084,11 +2084,7 @@ async function renderAdminTab() {
         users = AURA_AI.getUsers();
     }
 
-    // Correr clustering y obtener iteraciones (actualiza assignedCluster en los objetos users)
-    const clusterResult = await AURA_AI.runClustering(users);
-    if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
-
-    // Fetch habilitaciones from server
+    // Fetch habilitaciones from server (primero, para alimentar el motor de IA con fechas de registro)
     let habilitaciones = [];
     if (token) {
         try {
@@ -2109,6 +2105,10 @@ async function renderAdminTab() {
             console.error("Error fetching habilitaciones:", err);
         }
     }
+
+    // Correr clustering y obtener iteraciones (actualiza assignedCluster en los objetos users)
+    const clusterResult = await AURA_AI.runClustering(users, habilitaciones);
+    if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
 
     // Contar por clúster (siempre sobre el total)
     let committedCount = 0;
@@ -2198,8 +2198,8 @@ async function renderAdminTab() {
             let es_exento = false;
             
             if (user.rut && habilitaciones.length > 0) {
-                const userRutBody = user.rut.toString().split('-')[0].replace(/\./g, '');
-                const hab = habilitaciones.find(h => h.rut === userRutBody);
+                const userRutBody = getRunFromRut(user.rut.toString());
+                const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
                 if (hab) {
                     dias = hab.dias_permitidos;
                     es_exento = hab.es_exento;
@@ -2287,7 +2287,7 @@ async function renderAdminTab() {
     // 3. Renderizar Notificaciones de Recuperación
     if (DOM.adminNotificationsContainer) {
         DOM.adminNotificationsContainer.innerHTML = '';
-        const notifications = AURA_AI.generateNotifications(users);
+        const notifications = AURA_AI.generateNotifications(users, habilitaciones);
 
         if (notifications.length === 0) {
             DOM.adminNotificationsContainer.innerHTML = `<p class="text-secondary text-xs text-center" style="padding: 20px 0;">No hay atletas en "Alto riesgo" actualmente.</p>`;
