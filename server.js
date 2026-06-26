@@ -302,7 +302,17 @@ app.post('/api/attendance', (req, res) => {
         console.error("Error registrando asistencia:", err);
         return res.status(500).json({ error: 'Error de base de datos' });
       }
-      res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+      
+      // Descontar días de acceso al registrar asistencia
+      db.getUserById(att.userId, (err, rowUser) => {
+        if (!err && rowUser && rowUser.rut) {
+          db.decrementarDiasPermitidos(rowUser.rut, () => {
+            res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+          });
+        } else {
+          res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+        }
+      });
     });
   });
 });
