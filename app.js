@@ -2230,6 +2230,9 @@ async function renderAdminTab() {
                         ${kineButton}
                     </div>
                 </td>
+                <td>
+                    <button class="btn btn-secondary btn-sm btn-delete-athlete" style="padding: 4px 6px; font-size: 10px; background: var(--color-danger); border-color: var(--color-danger);" data-id="${user.id}">Eliminar</button>
+                </td>
             `;
 
             // Vincular eventos a los botones creados
@@ -2243,6 +2246,36 @@ async function renderAdminTab() {
                     registerUserAttendance(user.id, 'kinesiology', `Rehabilitación: ${user.injuryDetails || ''}`, user.name, user.profileType);
                 });
             }
+
+            tr.querySelector('.btn-delete-athlete').addEventListener('click', async () => {
+                if (confirm(`¿Estás seguro de que deseas eliminar permanentemente a ${user.name} y todos sus registros de la base de datos?`)) {
+                    try {
+                        const token = sessionStorage.getItem('aura_admin_token');
+                        const res = await fetch(`/api/admin/users/${user.id}`, {
+                            method: 'DELETE',
+                            headers: { 
+                                'Authorization': `Bearer ${token}` 
+                            }
+                        });
+                        if (res.status === 401 || res.status === 403) {
+                            sessionStorage.removeItem('aura_admin_token');
+                            window.checkAdminAuth();
+                            alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                            return;
+                        }
+                        const data = await res.json();
+                        if (data.success) {
+                            alert("Atleta eliminado correctamente.");
+                            renderAdminTab();
+                        } else {
+                            alert(data.error || "Error al eliminar atleta.");
+                        }
+                    } catch (err) {
+                        console.error("Error al eliminar atleta:", err);
+                        alert("Error de red al intentar eliminar al atleta.");
+                    }
+                }
+            });
 
             DOM.adminUsersTableBody.appendChild(tr);
         });

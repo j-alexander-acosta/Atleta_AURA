@@ -326,6 +326,18 @@ app.get('/api/admin/users', authenticateAdmin, (req, res) => {
   });
 });
 
+// Endpoint para eliminar un usuario y sus datos asociados (Protegido)
+app.delete('/api/admin/users/:id', authenticateAdmin, (req, res) => {
+  const userId = req.params.id;
+  db.deleteUser(userId, (err) => {
+    if (err) {
+      console.error("Error al eliminar usuario:", err);
+      return res.status(500).json({ error: 'Error al eliminar el usuario de la base de datos.' });
+    }
+    res.json({ success: true, message: 'Usuario y sus datos asociados eliminados correctamente.' });
+  });
+});
+
 // Endpoint para obtener el estado de todos los usuarios habilitados
 app.get('/api/admin/users-status', authenticateAdmin, (req, res) => {
   db.getAllHabilitaciones((err, rows) => {

@@ -1097,6 +1097,29 @@ function migrateAndNormalizeRuts() {
   });
 }
 
+function deleteUser(id, callback) {
+  db.get("SELECT rut FROM users WHERE id = ?", [id], (err, row) => {
+    if (err) return callback(err);
+
+    const rut = row ? row.rut : null;
+
+    db.serialize(() => {
+      db.run("DELETE FROM logs WHERE userId = ?", [id]);
+      db.run("DELETE FROM attendance WHERE userId = ?", [id]);
+      db.run("DELETE FROM asistencia WHERE usuario_id = ?", [id]);
+      db.run("DELETE FROM progresion_atletas WHERE user_id = ?", [id]);
+      db.run("DELETE FROM notificaciones_web WHERE user_id = ?", [id]);
+      db.run("DELETE FROM users WHERE id = ?", [id]);
+      if (rut) {
+        db.run("DELETE FROM usuarios_habilitados WHERE rut = ?", [rut]);
+      }
+      db.run("SELECT 1", [], (err) => {
+        callback(err);
+      });
+    });
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1120,5 +1143,6 @@ module.exports = {
   getUnreadNotifications,
   markNotificationAsRead,
   saveProgression,
-  getProgressionHistory
+  getProgressionHistory,
+  deleteUser
 };
