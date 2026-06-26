@@ -506,26 +506,38 @@ app.post('/api/asistencia/check-in', async (req, res) => {
   // Eliminar el token inmediatamente para evitar re-uso
   activeTokens.delete(token);
 
-  // Verificar margen de 1 hora para evitar duplicados
-  db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+  // 1. Verificar si ya registró asistencia el día de hoy (límite diario en zona horaria local)
+  const nowStr = new Date().toISOString();
+  db.checkUserAttendanceForDate(usuario_id, nowStr, (err, hasRegistered) => {
     if (err) {
-      return res.status(500).json({ error: 'Error consultando asistencia previa' });
+      console.error("Error verificando duplicado diario QR:", err);
+      return res.status(500).json({ success: false, error: 'Error de base de datos' });
     }
 
-    if (row && row.fecha_hora) {
-      // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
-      const lastTime = new Date(row.fecha_hora + 'Z').getTime();
-      const now = new Date().getTime();
-      const diffMs = now - lastTime;
-      const diffHours = diffMs / (1000 * 60 * 60);
+    if (hasRegistered) {
+      return res.status(409).json({ success: false, error: 'Ya has registrado asistencia el día de hoy.' });
+    }
 
-      if (diffHours < 1) {
-        return res.status(409).json({ error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+    // 2. Verificar margen de 1 hora para evitar duplicados accidentales
+    db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+      if (err) {
+        return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
       }
-    }
 
-    // Registrar asistencia en DB
-    db.registrarAsistenciaQR(usuario_id, (err, result) => {
+      if (row && row.fecha_hora) {
+        // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+        const lastTime = new Date(row.fecha_hora + 'Z').getTime();
+        const now = new Date().getTime();
+        const diffMs = now - lastTime;
+        const diffHours = diffMs / (1000 * 60 * 60);
+
+        if (diffHours < 1) {
+          return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+        }
+      }
+
+      // Registrar asistencia en DB
+      db.registrarAsistenciaQR(usuario_id, (err, result) => {
       if (err) {
         return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
       }
@@ -541,6 +553,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         }
       });
     });
+  });
   });
 });
 

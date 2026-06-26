@@ -1121,9 +1121,48 @@ function deleteUser(id, callback) {
 }
 
 function checkUserAttendanceForDate(userId, dateStr, callback) {
-  const datePrefix = dateStr.slice(0, 10); // YYYY-MM-DD
-  db.get("SELECT COUNT(*) as count FROM attendance WHERE userId = ? AND substr(date, 1, 10) = ?", [userId, datePrefix], (err, row) => {
-    callback(err, row ? row.count > 0 : false);
+  // 1. Convertir la fecha de consulta a fecha local de Chile (America/Santiago) en formato YYYY-MM-DD
+  let targetLocalDate;
+  try {
+    targetLocalDate = new Date(dateStr).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' });
+  } catch (e) {
+    targetLocalDate = dateStr.slice(0, 10);
+  }
+
+  // 2. Buscar en la tabla de asistencias manuales (attendance)
+  db.all("SELECT date FROM attendance WHERE userId = ?", [userId], (err, rowsAtt) => {
+    if (err) return callback(err);
+
+    // 3. Buscar en la tabla de asistencias QR (asistencia)
+    db.all("SELECT fecha_hora FROM asistencia WHERE usuario_id = ?", [userId], (err, rowsAsist) => {
+      if (err) return callback(err);
+
+      const dates = [];
+      if (rowsAtt) {
+        rowsAtt.forEach(r => { if (r.date) dates.push(r.date); });
+      }
+      if (rowsAsist) {
+        rowsAsist.forEach(r => {
+          if (r.fecha_hora) {
+            // SQLite guarda el timestamp en UTC, añadimos 'Z' para parsearlo correctamente como UTC
+            const dateVal = r.fecha_hora.includes('Z') ? r.fecha_hora : r.fecha_hora + 'Z';
+            dates.push(dateVal);
+          }
+        });
+      }
+
+      // 4. Comparar las fechas resultantes convertidas a la zona horaria America/Santiago
+      const hasRegistered = dates.some(d => {
+        try {
+          const localD = new Date(d).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' });
+          return localD === targetLocalDate;
+        } catch (e) {
+          return false;
+        }
+      });
+
+      callback(null, hasRegistered);
+    });
   });
 }
 
