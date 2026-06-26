@@ -1120,6 +1120,13 @@ function deleteUser(id, callback) {
   });
 }
 
+function checkUserAttendanceForDate(userId, dateStr, callback) {
+  const datePrefix = dateStr.slice(0, 10); // YYYY-MM-DD
+  db.get("SELECT COUNT(*) as count FROM attendance WHERE userId = ? AND substr(date, 1, 10) = ?", [userId, datePrefix], (err, row) => {
+    callback(err, row ? row.count > 0 : false);
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1144,5 +1151,6 @@ module.exports = {
   markNotificationAsRead,
   saveProgression,
   getProgressionHistory,
-  deleteUser
+  deleteUser,
+  checkUserAttendanceForDate
 };

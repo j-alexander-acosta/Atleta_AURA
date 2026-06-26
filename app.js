@@ -2470,9 +2470,6 @@ function registerUserAttendance(userId, type = 'standard', notes = '', userName 
         profileType: profileType || 'estudiante'
     };
 
-    // Guardar en la DB local simulada
-    AURA_AI.addAttendance(att);
-
     // Guardar en la base de datos de Express (SQLite)
     fetch('/api/attendance', {
         method: 'POST',
@@ -2482,13 +2479,18 @@ function registerUserAttendance(userId, type = 'standard', notes = '', userName 
         .then(res => res.json())
         .then(data => {
             if (data.success) {
+                // Guardar en la DB local simulada tras éxito en el servidor
+                AURA_AI.addAttendance(att);
                 playBeep(600, 0.15); // Sonido de éxito
                 renderAdminTab();
+            } else {
+                alert(data.error || "Error al registrar asistencia");
             }
         })
         .catch(err => {
             console.error("Error sincronizando asistencia:", err);
-            // Fallback local exitoso si no hay red
+            // Fallback local exitoso si no hay red (offline mode)
+            AURA_AI.addAttendance(att);
             playBeep(600, 0.15);
             renderAdminTab();
         });

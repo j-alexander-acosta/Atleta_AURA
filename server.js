@@ -285,12 +285,25 @@ app.post('/api/attendance', (req, res) => {
     return res.status(400).json({ error: 'Faltan datos para registrar asistencia' });
   }
 
-  db.saveAttendance(att, (err) => {
+  const dateStr = att.date || new Date().toISOString();
+
+  db.checkUserAttendanceForDate(att.userId, dateStr, (err, hasRegistered) => {
     if (err) {
-      console.error("Error registrando asistencia:", err);
+      console.error("Error validando duplicado de asistencia:", err);
       return res.status(500).json({ error: 'Error de base de datos' });
     }
-    res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+
+    if (hasRegistered) {
+      return res.status(409).json({ error: 'Ya has registrado asistencia el día de hoy.' });
+    }
+
+    db.saveAttendance(att, (err) => {
+      if (err) {
+        console.error("Error registrando asistencia:", err);
+        return res.status(500).json({ error: 'Error de base de datos' });
+      }
+      res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+    });
   });
 });
 
