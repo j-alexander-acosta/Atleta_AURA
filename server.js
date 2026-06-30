@@ -131,17 +131,25 @@ app.post('/api/admin/login', (req, res) => {
 
 // Endpoint Habilitar Usuario (Protegido)
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
-  const { rut, dias_permitidos, es_exento, limite_semanal } = req.body;
+  const { rut, es_exento, limite_semanal, mes, profileType } = req.body;
 
   if (!rut || !isValidRut(rut)) {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
   }
 
   const cleanRut = getRunFromRut(rut);
-  const dias = parseInt(dias_permitidos) || 0;
+  const dias = 0;
   const limite = parseInt(limite_semanal) || 0;
+  const isExento = (es_exento || profileType === 'atleta_elite') ? 1 : 0;
 
-  db.addUsuarioHabilitado(cleanRut, dias, es_exento, limite, (err) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const mesVal = parseInt(mes) || currentMonth;
+  const monthStr = String(mesVal).padStart(2, '0');
+  const customFecha = `${year}-${monthStr}-01 12:00:00`;
+
+  db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
     
     // Check if user exists in users table
@@ -164,7 +172,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
           level: 'principiante',
           streak: 0,
           assignedCluster: 'Pendiente',
-          profileType: 'estudiante',
+          profileType: profileType || 'estudiante',
           rut: cleanRut
         };
         db.saveUser(newUser, (saveErr) => {
@@ -172,7 +180,10 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
           res.json({ success: true, message: 'Usuario habilitado y registrado correctamente.' });
         });
       } else {
-        res.json({ success: true, message: 'Usuario habilitado correctamente.' });
+        db.updateUserProfileType(cleanRut, profileType || 'estudiante', (updateErr) => {
+          if (updateErr) console.error("Error al actualizar tipo de perfil de usuario:", updateErr);
+          res.json({ success: true, message: 'Usuario habilitado correctamente.' });
+        });
       }
     });
   });
@@ -193,8 +204,21 @@ app.get('/api/check-habilitacion', (req, res) => {
       return res.json({ valid: false, message: 'RUT no encontrado en la lista de habilitados.' });
     }
 
-    if (!row.es_exento && row.dias_permitidos <= 0) {
-      return res.json({ valid: false, message: 'RUT sin días de acceso disponibles.' });
+    // Verificar si la habilitación es del mes actual
+    const now = new Date();
+    const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const santiagoNow = new Date(santiagoStr);
+
+    const regDateVal = row.fecha_registro.includes('Z') ? row.fecha_registro : row.fecha_registro + 'Z';
+    const regDate = new Date(regDateVal);
+    const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const regSantiago = new Date(regSantiagoStr);
+
+    const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                           regSantiago.getMonth() === santiagoNow.getMonth();
+
+    if (!row.es_exento && !isCurrentMonth) {
+      return res.json({ valid: false, message: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
     }
 
     db.getUserByRut(cleanRut, (err, user) => {
@@ -207,7 +231,8 @@ app.get('/api/check-habilitacion', (req, res) => {
       res.json({ 
         valid: true, 
         message: 'RUT habilitado.', 
-        userId: userId 
+        userId: userId,
+        profileType: user ? user.profileType : 'estudiante'
       });
     });
   });
@@ -227,8 +252,24 @@ app.post('/api/workouts', (req, res) => {
   db.checkHabilitacion(cleanRut, (err, habilitado) => {
     if (err) return res.status(500).json({ error: 'Error de servidor validando RUT' });
 
-    if (!habilitado || (!habilitado.es_exento && habilitado.dias_permitidos <= 0)) {
-      return res.status(403).json({ error: 'RUT no habilitado o sin días disponibles' });
+    if (!habilitado) {
+      return res.status(403).json({ error: 'RUT no habilitado en el sistema.' });
+    }
+
+    const now = new Date();
+    const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const santiagoNow = new Date(santiagoStr);
+
+    const regDateVal = habilitado.fecha_registro.includes('Z') ? habilitado.fecha_registro : habilitado.fecha_registro + 'Z';
+    const regDate = new Date(regDateVal);
+    const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const regSantiago = new Date(regSantiagoStr);
+
+    const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                           regSantiago.getMonth() === santiagoNow.getMonth();
+
+    if (!habilitado.es_exento && !isCurrentMonth) {
+      return res.status(403).json({ error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
     }
 
     // 1. Guardar o actualizar el usuario
@@ -298,32 +339,62 @@ app.post('/api/attendance', (req, res) => {
       return res.status(409).json({ error: 'Ya has registrado asistencia el día de hoy.' });
     }
 
-    // Validar límite semanal de asistencia
-    db.checkUserWeeklyLimit(att.userId, (err, limitResult) => {
+    db.getUserById(att.userId, (err, rowUser) => {
       if (err) {
-        console.error("Error verificando límite semanal:", err);
-        return res.status(500).json({ error: 'Error de base de datos' });
+        console.error("Error buscando usuario:", err);
+        return res.status(500).json({ error: 'Error interno del servidor' });
       }
 
-      if (!limitResult.allowed) {
-        return res.status(409).json({ error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+      if (!rowUser || !rowUser.rut) {
+        return res.status(403).json({ error: 'Usuario no encontrado o sin RUT asignado.' });
       }
 
-      db.saveAttendance(att, (err) => {
+      const cleanRut = getRunFromRut(rowUser.rut);
+      db.checkHabilitacion(cleanRut, (err, hab) => {
         if (err) {
-          console.error("Error registrando asistencia:", err);
+          console.error("Error verificando habilitación:", err);
           return res.status(500).json({ error: 'Error de base de datos' });
         }
-        
-        // Descontar días de acceso al registrar asistencia
-        db.getUserById(att.userId, (err, rowUser) => {
-          if (!err && rowUser && rowUser.rut) {
-            db.decrementarDiasPermitidos(rowUser.rut, () => {
-              res.json({ success: true, message: 'Asistencia registrada con éxito.' });
-            });
-          } else {
-            res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+
+        if (!hab) {
+          return res.status(403).json({ error: 'Usuario no habilitado en el sistema.' });
+        }
+
+        // Verificar si la habilitación es del mes actual
+        const now = new Date();
+        const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+        const santiagoNow = new Date(santiagoStr);
+
+        const regDateVal = hab.fecha_registro.includes('Z') ? hab.fecha_registro : hab.fecha_registro + 'Z';
+        const regDate = new Date(regDateVal);
+        const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+        const regSantiago = new Date(regSantiagoStr);
+
+        const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                               regSantiago.getMonth() === santiagoNow.getMonth();
+
+        if (!hab.es_exento && !isCurrentMonth) {
+          return res.status(409).json({ error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
+        }
+
+        // Validar límite semanal de asistencia
+        db.checkUserWeeklyLimit(att.userId, (err, limitResult) => {
+          if (err) {
+            console.error("Error verificando límite semanal:", err);
+            return res.status(500).json({ error: 'Error de base de datos' });
           }
+
+          if (!limitResult.allowed) {
+            return res.status(409).json({ error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+          }
+
+          db.saveAttendance(att, (err) => {
+            if (err) {
+              console.error("Error registrando asistencia:", err);
+              return res.status(500).json({ error: 'Error de base de datos' });
+            }
+            res.json({ success: true, message: 'Asistencia registrada con éxito.' });
+          });
         });
       });
     });
@@ -499,7 +570,7 @@ app.get('/api/asistencia/token', async (req, res) => {
     res.json({ success: true, token });
   } catch (error) {
     console.error("Error crítico al generar JWT:", error);
-    res.status(500).json({ success: false, error: 'Error interno del servidor al generar el token' });
+    res.status(500).json({ success: false, error: 'Error interno del servidor' });
   }
 });
 
@@ -531,50 +602,80 @@ app.post('/api/asistencia/check-in', async (req, res) => {
       return res.status(409).json({ success: false, error: 'Ya has registrado asistencia el día de hoy.' });
     }
 
-    // Verificar límite semanal de asistencia
-    db.checkUserWeeklyLimit(usuario_id, (err, limitResult) => {
+    db.getUserById(usuario_id, (err, rowUser) => {
       if (err) {
-        console.error("Error verificando límite semanal QR:", err);
-        return res.status(500).json({ success: false, error: 'Error de base de datos' });
+        console.error("Error buscando usuario:", err);
+        return res.status(500).json({ success: false, error: 'Error interno del servidor' });
       }
 
-      if (!limitResult.allowed) {
-        return res.status(409).json({ success: false, error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+      if (!rowUser || !rowUser.rut) {
+        return res.status(403).json({ success: false, error: 'Usuario no encontrado.' });
       }
 
-      // 2. Verificar margen de 1 hora para evitar duplicados accidentales
-      db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+      const cleanRut = getRunFromRut(rowUser.rut);
+      db.checkHabilitacion(cleanRut, (err, hab) => {
         if (err) {
-          return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
+          console.error("Error verificando habilitación:", err);
+          return res.status(500).json({ success: false, error: 'Error de base de datos' });
         }
 
-        if (row && row.fecha_hora) {
-          // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
-          const lastTime = new Date(row.fecha_hora + 'Z').getTime();
-          const now = new Date().getTime();
-          const diffMs = now - lastTime;
-          const diffHours = diffMs / (1000 * 60 * 60);
-
-          if (diffHours < 1) {
-            return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
-          }
+        if (!hab) {
+          return res.status(403).json({ success: false, error: 'Usuario no habilitado en el sistema.' });
         }
 
-        // Registrar asistencia en DB
-        db.registrarAsistenciaQR(usuario_id, (err, result) => {
+        // Verificar si la habilitación es del mes actual
+        const now = new Date();
+        const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+        const santiagoNow = new Date(santiagoStr);
+
+        const regDateVal = hab.fecha_registro.includes('Z') ? hab.fecha_registro : hab.fecha_registro + 'Z';
+        const regDate = new Date(regDateVal);
+        const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+        const regSantiago = new Date(regSantiagoStr);
+
+        const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                               regSantiago.getMonth() === santiagoNow.getMonth();
+
+        if (!hab.es_exento && !isCurrentMonth) {
+          return res.status(409).json({ success: false, error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
+        }
+
+        // Verificar límite semanal de asistencia
+        db.checkUserWeeklyLimit(usuario_id, (err, limitResult) => {
           if (err) {
-            return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
+            console.error("Error verificando límite semanal QR:", err);
+            return res.status(500).json({ success: false, error: 'Error de base de datos' });
           }
 
-          // Buscar el RUT del usuario y descontar días
-          db.getUserById(usuario_id, (err, rowUser) => {
-            if (!err && rowUser && rowUser.rut) {
-              db.decrementarDiasPermitidos(rowUser.rut, () => {
-                res.json({ success: true, message: 'Acceso Concedido' });
-              });
-            } else {
-              res.json({ success: true, message: 'Acceso Concedido' });
+          if (!limitResult.allowed) {
+            return res.status(409).json({ success: false, error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+          }
+
+          // 2. Verificar margen de 1 hora para evitar duplicados accidentales
+          db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+            if (err) {
+              return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
             }
+
+            if (row && row.fecha_hora) {
+              // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+              const lastTime = new Date(row.fecha_hora + 'Z').getTime();
+              const now = new Date().getTime();
+              const diffMs = now - lastTime;
+              const diffHours = diffMs / (1000 * 60 * 60);
+
+              if (diffHours < 1) {
+                return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+              }
+            }
+
+            // Registrar asistencia en DB
+            db.registrarAsistenciaQR(usuario_id, (err, result) => {
+              if (err) {
+                return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
+              }
+              res.json({ success: true, message: 'Acceso Concedido' });
+            });
           });
         });
       });

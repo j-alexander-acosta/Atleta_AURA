@@ -479,6 +479,7 @@ function initEventListeners() {
                 rutErrorMsg.style.display = 'none';
                 tempProfile.id = data.userId;
                 tempProfile.rut = rutValue;
+                tempProfile.profileType = data.profileType || 'estudiante';
                 tempProfile.name = DOM.inputName.value.trim();
                 tempProfile.email = DOM.inputEmail ? DOM.inputEmail.value.trim() : '';
                 tempProfile.age = parseInt(DOM.inputAge.value);
@@ -833,7 +834,10 @@ function initEventListeners() {
             if (!DOM.accessModal) return;
 
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
-            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
+            let typeLabel = 'Estudiante';
+            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel = 'Deportista Seleccionado';
+            else if (AppState.user.profileType === 'funcionario') typeLabel = 'Funcionario';
+            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = typeLabel;
 
             DOM.accessModal.classList.remove('hidden');
             await iniciarGeneracionQR();
@@ -855,7 +859,10 @@ function initEventListeners() {
             }
 
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
-            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = AppState.user.profileType === 'deportista_seleccionado' ? 'Deportista Seleccionado' : 'Estudiante';
+            let typeLabel2 = 'Estudiante';
+            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel2 = 'Deportista Seleccionado';
+            else if (AppState.user.profileType === 'funcionario') typeLabel2 = 'Funcionario';
+            if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = typeLabel2;
 
             DOM.accessModal.classList.remove('hidden');
 
@@ -884,9 +891,6 @@ function initEventListeners() {
             AppState.user.height = parseFloat(DOM.profileInputHeight.value) || AppState.user.height;
             AppState.user.muscleMass = parseFloat(DOM.profileInputMuscleMass.value) || AppState.user.muscleMass;
             AppState.user.skeletalMuscle = parseFloat(DOM.profileInputSkeletalMuscle.value) || AppState.user.skeletalMuscle;
-            if (DOM.profileInputType) {
-                AppState.user.profileType = DOM.profileInputType.value || AppState.user.profileType;
-            }
 
             // Recalcular IMC
             AppState.user.imc = parseFloat((AppState.user.weight / Math.pow(AppState.user.height / 100, 2)).toFixed(1));
@@ -935,7 +939,14 @@ function initEventListeners() {
                 const match = text.match(/^(.*?)\s*\((.*?)\)$/);
                 if (match) {
                     userName = match[1];
-                    profileType = match[2].toLowerCase().includes('seleccionado') ? 'deportista_seleccionado' : 'estudiante';
+                    const label = match[2].toLowerCase();
+                    if (label.includes('seleccionado')) {
+                        profileType = 'deportista_seleccionado';
+                    } else if (label.includes('funcionario')) {
+                        profileType = 'funcionario';
+                    } else {
+                        profileType = 'estudiante';
+                    }
                 }
             }
             registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR', userName, profileType);
@@ -1432,7 +1443,12 @@ function renderProfileTab() {
     const bfpVal = AppState.user.bodyFat || (AppState.user.weight && AppState.user.height ? parseFloat(AURA_AI.calculateNavySealBFP(AppState.user.sex || 'male', AppState.user.height, AppState.user.waist || 80, AppState.user.neck || 36, AppState.user.hip || 0).toFixed(1)) : null);
     const bfpText = bfpVal ? ` • Grasa: ${bfpVal}%` : '';
 
-    const typeLabel = AppState.user.profileType === 'deportista_seleccionado' ? 'SELECCIONADO' : 'ESTUDIANTE';
+    let typeLabel = 'ESTUDIANTE';
+    if (AppState.user.profileType === 'deportista_seleccionado') {
+        typeLabel = 'DEPORTISTA SELECCIONADO';
+    } else if (AppState.user.profileType === 'funcionario') {
+        typeLabel = 'FUNCIONARIO';
+    }
     const muscleText = AppState.user.muscleMass ? ` • M. Muscular: ${AppState.user.muscleMass}%` : '';
     const skeletalText = AppState.user.skeletalMuscle ? ` • M. Esquelética: ${AppState.user.skeletalMuscle}%` : '';
 
@@ -2139,7 +2155,9 @@ async function renderAdminTab() {
         users.forEach(user => {
             const opt = document.createElement('option');
             opt.value = user.id;
-            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Seleccionado' : 'Estudiante';
+            let profileLabel = 'Estudiante';
+            if (user.profileType === 'deportista_seleccionado') profileLabel = 'Deportista Seleccionado';
+            else if (user.profileType === 'funcionario') profileLabel = 'Funcionario';
             opt.textContent = `${user.name} (${profileLabel})`;
             DOM.adminBarcodeSelectUser.appendChild(opt);
         });
@@ -2179,11 +2197,19 @@ async function renderAdminTab() {
                 stateBadge = user.injured
                     ? `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Lesionado</span>`
                     : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Sano</span>`;
+            } else if (user.profileType === 'funcionario') {
+                stateBadge = `<span class="cluster-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid var(--border-color); font-size:10px;">Funcionario</span>`;
             } else {
                 stateBadge = `<span class="cluster-badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-secondary); border: 1px solid var(--border-color); font-size:10px;">Estudiante</span>`;
             }
 
-            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
+            let profileLabel = 'Estudiante';
+            if (user.profileType === 'deportista_seleccionado') {
+                profileLabel = 'Selección';
+            } else if (user.profileType === 'funcionario') {
+                profileLabel = 'Funcionario';
+            }
+
             const muscleVal = user.muscleMass ? `${user.muscleMass}%` : '--';
             const skeletalVal = user.skeletalMuscle ? `${user.skeletalMuscle}%` : '--';
             const metricsText = `${user.height} cm<br>Mus: ${muscleVal}<br>Esq: ${skeletalVal}`;
@@ -2194,17 +2220,17 @@ async function renderAdminTab() {
                 : '';
 
             let stateAccessBadge = '';
-            let dias = 0;
             let es_exento = false;
             let limite_semanal = 0;
+            let fecha_registro = null;
             
             if (user.rut && habilitaciones.length > 0) {
                 const userRutBody = getRunFromRut(user.rut.toString());
                 const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
                 if (hab) {
-                    dias = hab.dias_permitidos;
                     es_exento = hab.es_exento;
                     limite_semanal = hab.limite_semanal || 0;
+                    fecha_registro = hab.fecha_registro;
                 }
             }
 
@@ -2213,14 +2239,31 @@ async function renderAdminTab() {
                 weeklyLimitStr = ` (${limite_semanal} d/sem)`;
             }
 
+            let isCurrentMonth = false;
+            if (fecha_registro) {
+                try {
+                    const now = new Date();
+                    const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                    const santiagoNow = new Date(santiagoStr);
+
+                    const regDateVal = fecha_registro.includes('Z') ? fecha_registro : fecha_registro + 'Z';
+                    const regDate = new Date(regDateVal);
+                    const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                    const regSantiago = new Date(regSantiagoStr);
+
+                    isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                                     regSantiago.getMonth() === santiagoNow.getMonth();
+                } catch (e) {
+                    console.error("Error parsing fecha_registro:", e);
+                }
+            }
+
             if (es_exento) {
                 stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Exento${weeklyLimitStr}</span>`;
-            } else if (dias > 3) {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">${dias} Días (Activo)${weeklyLimitStr}</span>`;
-            } else if (dias > 0) {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 165, 0, 0.15); color: orange; border: 1px solid rgba(255, 165, 0, 0.3); font-size:10px;">${dias} Días (Alerta)${weeklyLimitStr}</span>`;
+            } else if (fecha_registro && isCurrentMonth) {
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size:10px;">Habilitado${weeklyLimitStr}</span>`;
             } else {
-                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Bloqueado</span>`;
+                stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Bloqueado / Vencido</span>`;
             }
 
             tr.innerHTML = `
@@ -2559,7 +2602,9 @@ function renderAttendanceHistory() {
             filteredAtt.forEach(att => {
                 const userName = att.userName || 'Atleta Desconocido';
                 const profileType = att.profileType || 'estudiante';
-                const profileLabel = profileType === 'deportista_seleccionado' ? 'Selección' : 'Estudiante';
+                let profileLabel = 'Estudiante';
+                if (profileType === 'deportista_seleccionado') profileLabel = 'Selección';
+                else if (profileType === 'funcionario') profileLabel = 'Funcionario';
 
                 const dateObj = new Date(att.date);
                 const dayStr = dateObj.toLocaleDateString('es-ES', {
@@ -2691,13 +2736,22 @@ if (btnAdminLogout) {
 
 const btnAdminHabilitar = document.getElementById('btn-admin-habilitar');
 if (btnAdminHabilitar) {
+    // Pre-seleccionar el mes actual al cargar
+    const selectMes = document.getElementById('admin-hab-mes');
+    if (selectMes) {
+        selectMes.value = (new Date().getMonth() + 1).toString();
+    }
+
     btnAdminHabilitar.addEventListener('click', async () => {
         const token = sessionStorage.getItem('aura_admin_token');
         const rut = document.getElementById('admin-hab-rut').value;
-        const dias = document.getElementById('admin-hab-dias').value;
         const exento = document.getElementById('admin-hab-exento').checked;
         const limiteSemanalSelect = document.getElementById('admin-hab-semanal');
         const limite_semanal = limiteSemanalSelect ? parseInt(limiteSemanalSelect.value) || 0 : 0;
+        const selectMes = document.getElementById('admin-hab-mes');
+        const mes = selectMes ? parseInt(selectMes.value) || (new Date().getMonth() + 1) : (new Date().getMonth() + 1);
+        const selectTipo = document.getElementById('admin-hab-tipo');
+        const profileType = selectTipo ? selectTipo.value : 'estudiante';
         const msg = document.getElementById('admin-hab-msg');
         
         try {
@@ -2707,7 +2761,7 @@ if (btnAdminHabilitar) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ rut, dias_permitidos: dias, es_exento: exento, limite_semanal })
+                body: JSON.stringify({ rut, es_exento: exento, limite_semanal, mes, profileType })
             });
             if (res.status === 401 || res.status === 403) {
                 sessionStorage.removeItem('aura_admin_token');
@@ -2721,6 +2775,8 @@ if (btnAdminHabilitar) {
                 msg.textContent = '¡Estudiante habilitado con éxito!';
                 document.getElementById('admin-hab-rut').value = '';
                 if (limiteSemanalSelect) limiteSemanalSelect.value = '0';
+                if (selectMes) selectMes.value = (new Date().getMonth() + 1).toString();
+                if (selectTipo) selectTipo.value = 'estudiante';
                 AURA_AI.loadDB();
                 if(typeof renderAdminTab === 'function') renderAdminTab();
             } else {

@@ -901,13 +901,14 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 }
 
 // Nuevas funciones para Usuarios Habilitados
-function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, callback) {
+function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, callback) {
   const cleanRut = getRunFromRut(rut);
+  const finalDate = fecha_registro || new Date().toISOString().replace('T', ' ').substring(0, 19);
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal)
-    VALUES (?, ?, ?, ?)
+    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal, fecha_registro)
+    VALUES (?, ?, ?, ?, ?)
   `);
-  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0], function(err) {
+  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0, finalDate], function(err) {
     callback(err);
   });
   stmt.finalize();
@@ -1240,6 +1241,10 @@ function checkUserWeeklyLimit(userId, callback) {
   });
 }
 
+function updateUserProfileType(rut, profileType, callback) {
+  db.run("UPDATE users SET profileType = ? WHERE rut = ?", [profileType, rut], callback);
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1266,5 +1271,6 @@ module.exports = {
   getProgressionHistory,
   deleteUser,
   checkUserAttendanceForDate,
-  checkUserWeeklyLimit
+  checkUserWeeklyLimit,
+  updateUserProfileType
 };

@@ -126,17 +126,7 @@
                             <input type="number" id="input-neck" placeholder="cm" min="20" max="80" step="0.1" required>
                         </div>
                     </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Tipo de Perfil</label>
-                            <div class="segment-control" id="profile-type-control">
-                                <button type="button" class="segment-btn active" data-type="estudiante"
-                                    style="padding: 6px;">Estudiante</button>
-                                <button type="button" class="segment-btn" data-type="deportista_seleccionado"
-                                    style="padding: 6px;">Seleccionado</button>
-                            </div>
-                        </div>
-                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="input-muscle-mass">% Masa Muscular</label>
@@ -522,9 +512,10 @@
                             </div>
                             <div class="form-group" style="margin-bottom: 0;">
                                 <label for="profile-input-type">Tipo de Perfil</label>
-                                <select id="profile-input-type" required
-                                    style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                <select id="profile-input-type" disabled required
+                                    style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%; opacity: 0.7; cursor: not-allowed;">
                                     <option value="estudiante">Estudiante</option>
+                                    <option value="funcionario">Funcionario</option>
                                     <option value="deportista_seleccionado">Deportista Seleccionado</option>
                                 </select>
                             </div>
@@ -609,14 +600,19 @@
                                     <h3>Habilitar Estudiantes / Atletas</h3>
                                 </div>
                             </div>
-                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-top: 15px;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px;">
                                 <div class="form-group">
                                     <label for="admin-hab-rut">RUT del Atleta</label>
                                     <input type="text" id="admin-hab-rut" placeholder="12345678-9">
                                 </div>
                                 <div class="form-group">
-                                    <label for="admin-hab-dias">Días de Acceso</label>
-                                    <input type="number" id="admin-hab-dias" placeholder="Ej. 30" value="30">
+                                    <label for="admin-hab-tipo">Tipo de Perfil</label>
+                                    <select id="admin-hab-tipo" required
+                                        style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="estudiante">Estudiante</option>
+                                        <option value="funcionario">Funcionario</option>
+                                        <option value="deportista_seleccionado">Deportista Seleccionado</option>
+                                    </select>
                                 </div>
                                 <div class="form-group">
                                     <label for="admin-hab-semanal">Límite Semanal</label>
@@ -628,15 +624,33 @@
                                         <option value="5">5 días/semana</option>
                                     </select>
                                 </div>
+                                <div class="form-group">
+                                    <label for="admin-hab-mes">Mes de Habilitación</label>
+                                    <select id="admin-hab-mes" required
+                                        style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="1">Enero</option>
+                                        <option value="2">Febrero</option>
+                                        <option value="3">Marzo</option>
+                                        <option value="4">Abril</option>
+                                        <option value="5">Mayo</option>
+                                        <option value="6">Junio</option>
+                                        <option value="7">Julio</option>
+                                        <option value="8">Agosto</option>
+                                        <option value="9">Septiembre</option>
+                                        <option value="10">Octubre</option>
+                                        <option value="11">Noviembre</option>
+                                        <option value="12">Diciembre</option>
+                                    </select>
+                                </div>
                                 <div class="form-group"
-                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 3;">
+                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 2;">
                                     <input type="checkbox" id="admin-hab-exento" style="width: 20px; height: 20px;">
                                     <label for="admin-hab-exento"
                                         style="margin: 0; cursor: pointer; color: var(--text-secondary);">Atleta Élite
-                                        Exento (Ignora límite de días)</label>
+                                        Exento (Ignora límite semanal)</label>
                                 </div>
                                 <button id="btn-admin-habilitar" class="btn btn-primary btn-glow"
-                                    style="grid-column: span 3;">Otorgar Acceso</button>
+                                    style="grid-column: span 2;">Otorgar Acceso</button>
                             </div>
                             <small id="admin-hab-msg"
                                 style="display: block; margin-top: 10px; text-align: center; font-weight: bold;"></small>
