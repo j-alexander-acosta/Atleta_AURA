@@ -2373,10 +2373,10 @@ async function renderAdminTab() {
             }
 
             tr.innerHTML = `
-                <td class="user-name-col" style="font-weight:600; font-size:13px;">${user.name}</td>
-                <td><span style="font-size: 12px; font-weight: 500; color:var(--text-primary);">${profileLabel}</span><br><span style="font-size: 11px; color: var(--text-secondary);">${user.level}</span></td>
-                <td style="font-size: 11px; color: var(--text-secondary); line-height: 1.3;">${metricsText}</td>
-                <td class="font-mono text-neon-pink" style="font-size: 11px; line-height: 1.3;">${bfpImcText}</td>
+                <td style="font-size: 12px; color: var(--text-primary); font-family: monospace;">${user.rut || '--'}</td>
+                <td style="font-weight: 600; font-size: 13px;">
+                    <a href="#" class="athlete-name-link" style="color: var(--color-neon-teal); text-decoration: none; border-bottom: 1px dashed var(--color-neon-teal); transition: all 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--color-neon-teal)'">${user.name}</a>
+                </td>
                 <td>${stateBadge}</td>
                 <td>${stateAccessBadge}</td>
                 <td><span class="cluster-badge ${clusterClass}" style="font-size:10px;">${user.assignedCluster || 'Irregular'}</span><br><span style="font-size: 11px; color: var(--text-secondary);">Racha: 🔥 ${user.streak}</span></td>
@@ -2394,7 +2394,43 @@ async function renderAdminTab() {
                 </td>
             `;
 
+            const detailsTr = document.createElement('tr');
+            detailsTr.id = `details-row-${user.id}`;
+            detailsTr.className = 'athlete-details-row';
+            detailsTr.style.display = 'none';
+            detailsTr.innerHTML = `
+                <td colspan="7" style="background: rgba(255, 255, 255, 0.02); border-left: 3px solid var(--color-neon-teal); padding: 12px 15px;">
+                    <div style="display: flex; gap: 30px; flex-wrap: wrap; align-items: center;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Perfil / Nivel</span>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${profileLabel} (${user.level || 'Intermedio'})</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Métricas Manuales</span>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Estatura: ${user.height || '--'} cm • Peso: ${user.weight || '--'} kg</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Grasa / IMC</span>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Grasa: <span class="font-mono text-neon-pink">${fatVal}</span> • IMC: <span class="font-mono text-neon-pink">${imcVal}</span></span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Composición</span>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Masa Muscular: ${muscleVal} • Músculo Esq: ${skeletalVal}</span>
+                        </div>
+                    </div>
+                </td>
+            `;
+
             // Vincular eventos a los botones creados
+            tr.querySelector('.athlete-name-link').addEventListener('click', (e) => {
+                e.preventDefault();
+                if (detailsTr.style.display === 'none') {
+                    detailsTr.style.display = 'table-row';
+                } else {
+                    detailsTr.style.display = 'none';
+                }
+            });
+
             tr.querySelector('.btn-attendance-check').addEventListener('click', () => {
                 registerUserAttendance(user.id, 'standard', '', user.name, user.profileType);
             });
@@ -2441,6 +2477,7 @@ async function renderAdminTab() {
             });
 
             DOM.adminUsersTableBody.appendChild(tr);
+            DOM.adminUsersTableBody.appendChild(detailsTr);
         });
     }
 
