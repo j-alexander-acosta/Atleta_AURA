@@ -86,6 +86,25 @@ function initDb() {
       )
     `);
 
+    // Tabla de Historial de Métricas Corporales
+    db.run(`
+      CREATE TABLE IF NOT EXISTS historial_metricas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT NOT NULL,
+        weight REAL,
+        height REAL,
+        muscle_mass REAL,
+        skeletal_muscle REAL,
+        imc REAL,
+        body_fat REAL,
+        waist REAL,
+        neck REAL,
+        hip REAL,
+        fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
     // Tabla de Notificaciones Web
     db.run(`
       CREATE TABLE IF NOT EXISTS notificaciones_web (
@@ -795,7 +814,62 @@ function saveUser(user, callback) {
     user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
     daysStr
   ], function(err) {
-    callback(err);
+    if (err) {
+      callback(err);
+      return;
+    }
+
+    // Guardar métricas históricas de forma inteligente
+    db.get(`
+      SELECT * FROM historial_metricas 
+      WHERE user_id = ? 
+      ORDER BY fecha DESC LIMIT 1
+    `, [newId], (historyErr, lastRecord) => {
+      if (historyErr) {
+        console.error("Error consultando último historial de métricas:", historyErr);
+        callback(null);
+        return;
+      }
+
+      // Comparar métricas actuales con el último registro
+      const w = parseFloat(user.weight) || 0.0;
+      const h = parseFloat(user.height) || 0.0;
+      const mm = parseFloat(user.muscleMass) || 0.0;
+      const sm = parseFloat(user.skeletalMuscle) || 0.0;
+      const imc = parseFloat(user.imc) || 0.0;
+      const bf = parseFloat(user.bodyFat) || 0.0;
+      const waist = parseFloat(user.waist) || 0.0;
+      const neck = parseFloat(user.neck) || 0.0;
+      const hip = parseFloat(user.hip) || 0.0;
+
+      const hasChanged = !lastRecord || 
+        Math.abs((lastRecord.weight || 0.0) - w) > 0.01 ||
+        Math.abs((lastRecord.height || 0.0) - h) > 0.01 ||
+        Math.abs((lastRecord.muscle_mass || 0.0) - mm) > 0.01 ||
+        Math.abs((lastRecord.skeletal_muscle || 0.0) - sm) > 0.01 ||
+        Math.abs((lastRecord.imc || 0.0) - imc) > 0.01 ||
+        Math.abs((lastRecord.body_fat || 0.0) - bf) > 0.01 ||
+        Math.abs((lastRecord.waist || 0.0) - waist) > 0.01 ||
+        Math.abs((lastRecord.neck || 0.0) - neck) > 0.01 ||
+        Math.abs((lastRecord.hip || 0.0) - hip) > 0.01;
+
+      if (hasChanged) {
+        db.run(`
+          INSERT INTO historial_metricas 
+          (user_id, weight, height, muscle_mass, skeletal_muscle, imc, body_fat, waist, neck, hip)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `, [newId, w, h, mm, sm, imc, bf, waist, neck, hip], (insertErr) => {
+          if (insertErr) {
+            console.error("Error insertando métricas en el historial:", insertErr);
+          } else {
+            console.log(`Métricas históricas registradas para el usuario ${newId}.`);
+          }
+          callback(null);
+        });
+      } else {
+        callback(null);
+      }
+    });
   });
   stmt.finalize();
 }
@@ -1172,16 +1246,17 @@ function checkUserAttendanceForDate(userId, dateStr, callback) {
 function checkUserWeeklyLimit(userId, callback) {
   getUserById(userId, (err, user) => {
     if (err) return callback(err);
-    if (!user || !user.rut) return callback(null, { allowed: true });
+    if (!user || !user.rut) return callback(null, { allowed: true, limit: 0, count: 0, exento: true });
 
     const cleanRut = getRunFromRut(user.rut);
-    db.get("SELECT limite_semanal FROM usuarios_habilitados WHERE rut = ?", [cleanRut], (err, hab) => {
+    db.get("SELECT limite_semanal, es_exento FROM usuarios_habilitados WHERE rut = ?", [cleanRut], (err, hab) => {
       if (err) return callback(err);
-      if (!hab || !hab.limite_semanal || hab.limite_semanal <= 0) {
-        return callback(null, { allowed: true });
+      if (!hab) {
+        return callback(null, { allowed: true, limit: 0, count: 0, exento: false });
       }
 
-      const limit = hab.limite_semanal;
+      const limit = hab.limite_semanal || 0;
+      const esExento = !!hab.es_exento;
 
       // Obtener todas las asistencias del usuario en ambas tablas
       db.all("SELECT date FROM attendance WHERE userId = ?", [userId], (err, rowsAtt) => {
@@ -1230,11 +1305,8 @@ function checkUserWeeklyLimit(userId, callback) {
             }
           });
 
-          if (weekCount >= limit) {
-            callback(null, { allowed: false, limit: limit, count: weekCount });
-          } else {
-            callback(null, { allowed: true });
-          }
+          const allowed = esExento || limit === 0 || weekCount < limit;
+          callback(null, { allowed: allowed, limit: limit, count: weekCount, exento: esExento });
         });
       });
     });
@@ -1243,6 +1315,50 @@ function checkUserWeeklyLimit(userId, callback) {
 
 function updateUserProfileType(rut, profileType, callback) {
   db.run("UPDATE users SET profileType = ? WHERE rut = ?", [profileType, rut], callback);
+}
+
+function getUserMetricsHistory(userId, callback) {
+  db.all(`
+    SELECT * FROM historial_metricas 
+    WHERE user_id = ? 
+    ORDER BY fecha ASC
+  `, [userId], callback);
+}
+
+function getUserAttendanceHistory(userId, callback) {
+  db.all("SELECT date, type, notes FROM attendance WHERE userId = ?", [userId], (err, rowsAtt) => {
+    if (err) return callback(err);
+    db.all("SELECT fecha_hora FROM asistencia WHERE usuario_id = ?", [userId], (err, rowsAsist) => {
+      if (err) return callback(err);
+
+      const list = [];
+      if (rowsAtt) {
+        rowsAtt.forEach(r => {
+          list.push({
+            date: r.date,
+            type: r.type || 'standard',
+            notes: r.notes || ''
+          });
+        });
+      }
+      if (rowsAsist) {
+        rowsAsist.forEach(r => {
+          if (r.fecha_hora) {
+            const dateVal = r.fecha_hora.includes('Z') ? r.fecha_hora : r.fecha_hora + 'Z';
+            list.push({
+              date: dateVal,
+              type: 'standard',
+              notes: 'Acceso por código QR'
+            });
+          }
+        });
+      }
+
+      // Ordenar por fecha descendente (más reciente primero)
+      list.sort((a, b) => new Date(b.date) - new Date(a.date));
+      callback(null, list);
+    });
+  });
 }
 
 module.exports = {
@@ -1272,5 +1388,7 @@ module.exports = {
   deleteUser,
   checkUserAttendanceForDate,
   checkUserWeeklyLimit,
-  updateUserProfileType
+  updateUserProfileType,
+  getUserMetricsHistory,
+  getUserAttendanceHistory
 };

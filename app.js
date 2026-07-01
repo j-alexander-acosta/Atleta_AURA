@@ -195,7 +195,17 @@ const DOM = {
     btnSimulateBarcodeScan: document.getElementById('btn-simulate-barcode-scan'),
     adminAttendanceTableBody: document.getElementById('admin-attendance-table-body'),
     adminFilterMonth: document.getElementById('admin-filter-month'),
-    adminFilterDay: document.getElementById('admin-filter-day')
+    adminFilterDay: document.getElementById('admin-filter-day'),
+    btnShowMetricsHistory: document.getElementById('btn-show-metrics-history'),
+    metricsHistoryModal: document.getElementById('metrics-history-modal'),
+    metricsHistoryModalOverlay: document.getElementById('metrics-history-modal-overlay'),
+    btnMetricsHistoryModalClose: document.getElementById('btn-metrics-history-modal-close'),
+    metricsHistoryTableBody: document.getElementById('metrics-history-table-body'),
+    metricsHistoryModalTitle: document.getElementById('metrics-history-modal-title'),
+    weeklyAttendanceCard: document.getElementById('weekly-attendance-card'),
+    statAttendanceWeekly: document.getElementById('stat-attendance-weekly'),
+    statAttendanceWeeklyLbl: document.getElementById('stat-attendance-weekly-lbl'),
+    metricsAttendanceTableBody: document.getElementById('metrics-attendance-table-body')
 };
 
 // Variables temporales para el onboarding
@@ -904,6 +914,34 @@ function initEventListeners() {
         });
     }
 
+    // --- SISTEMA DE HISTORIAL DE MÉTRICAS CORPORALES ---
+    if (DOM.btnMetricsHistoryModalClose) DOM.btnMetricsHistoryModalClose.addEventListener('click', closeMetricsHistoryModal);
+    if (DOM.metricsHistoryModalOverlay) DOM.metricsHistoryModalOverlay.addEventListener('click', closeMetricsHistoryModal);
+
+    if (DOM.btnShowMetricsHistory) {
+        DOM.btnShowMetricsHistory.addEventListener('click', () => {
+            if (AppState.user) {
+                showMetricsHistory(AppState.user.id, AppState.user.name);
+            }
+        });
+    }
+
+    // Cablear pestañas del modal de historial
+    const tabBtns = document.querySelectorAll('#metrics-history-modal .modal-tab-btn');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const targetTab = btn.getAttribute('data-tab');
+            const contents = document.querySelectorAll('#metrics-history-modal .modal-tab-content');
+            contents.forEach(c => c.classList.remove('active'));
+            
+            const targetContent = document.getElementById(`modal-tab-${targetTab}`);
+            if (targetContent) targetContent.classList.add('active');
+        });
+    });
+
     if (DOM.btnSubmitInjury) {
         DOM.btnSubmitInjury.addEventListener('click', () => {
             if (!AppState.user || AppState.user.profileType !== 'deportista_seleccionado') return;
@@ -1285,6 +1323,9 @@ function renderDashboard() {
     // Meta Semanal Completados
     const weeklyCompletion = calculateWeeklyMetaPercentage();
     DOM.statCompletion.textContent = `${weeklyCompletion}%`;
+
+    // Cargar estadísticas semanales de asistencia
+    updateWeeklyAttendanceStats();
 
     // 3. Grid de días semanales
     renderWeeklyDots();
@@ -2281,13 +2322,20 @@ async function renderAdminTab() {
                     </div>
                 </td>
                 <td>
-                    <button class="btn btn-secondary btn-sm btn-delete-athlete" style="padding: 4px 6px; font-size: 10px; background: var(--color-danger); border-color: var(--color-danger);" data-id="${user.id}">Eliminar</button>
+                    <div style="display: flex; gap: 4px;">
+                        <button class="btn btn-outline btn-sm btn-view-history" style="padding: 4px 6px; font-size: 10px; border-color: var(--color-neon-purple); color: var(--color-neon-purple);" data-id="${user.id}">Historial</button>
+                        <button class="btn btn-secondary btn-sm btn-delete-athlete" style="padding: 4px 6px; font-size: 10px; background: var(--color-danger); border-color: var(--color-danger);" data-id="${user.id}">Eliminar</button>
+                    </div>
                 </td>
             `;
 
             // Vincular eventos a los botones creados
             tr.querySelector('.btn-attendance-check').addEventListener('click', () => {
                 registerUserAttendance(user.id, 'standard', '', user.name, user.profileType);
+            });
+
+            tr.querySelector('.btn-view-history').addEventListener('click', () => {
+                showMetricsHistory(user.id, user.name);
             });
 
             const kBtn = tr.querySelector('.btn-kine');
@@ -2789,4 +2837,290 @@ if (btnAdminHabilitar) {
         }
         setTimeout(() => { msg.textContent = ''; }, 4000);
     });
+}
+
+// --- SISTEMA DE HISTORIAL DE ASISTENCIA Y CONTADOR SEMANAL ---
+
+async function updateWeeklyAttendanceStats() {
+    if (!AppState.user || !DOM.statAttendanceWeekly || !DOM.statAttendanceWeeklyLbl) return;
+
+    try {
+        const response = await fetch(`/api/users/${AppState.user.id}/weekly-attendance`);
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.exento) {
+                DOM.statAttendanceWeekly.textContent = "Exento";
+                DOM.statAttendanceWeeklyLbl.textContent = "Asistencia Libre";
+            } else if (data.limit <= 0) {
+                DOM.statAttendanceWeekly.textContent = `${data.count} d`;
+                DOM.statAttendanceWeeklyLbl.textContent = "Asistencia Libre";
+            } else {
+                DOM.statAttendanceWeekly.textContent = `${data.count} / ${data.limit}`;
+                const remaining = Math.max(0, data.limit - data.count);
+                DOM.statAttendanceWeeklyLbl.textContent = `${remaining} ${remaining === 1 ? 'día restante' : 'días restantes'}`;
+            }
+        }
+    } catch (err) {
+        console.error("Error al obtener estadísticas semanales de asistencia:", err);
+        DOM.statAttendanceWeekly.textContent = "--";
+        DOM.statAttendanceWeeklyLbl.textContent = "Asistencia Semanal";
+    }
+}
+
+let metricsChartInstance = null;
+
+async function showMetricsHistory(userId, userName) {
+    if (!userId || !DOM.metricsHistoryModal) return;
+
+    if (DOM.metricsHistoryModalTitle) {
+        DOM.metricsHistoryModalTitle.textContent = `Historial: ${userName || 'Atleta'}`;
+    }
+
+    // Resetear las pestañas a la predeterminada (Métricas)
+    const tabBtns = document.querySelectorAll('#metrics-history-modal .modal-tab-btn');
+    tabBtns.forEach(btn => {
+        if (btn.getAttribute('data-tab') === 'metrics') {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const tabContents = document.querySelectorAll('#metrics-history-modal .modal-tab-content');
+    tabContents.forEach(content => {
+        if (content.id === 'modal-tab-metrics') {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+
+    try {
+        // Cargar métricas corporales e historial de asistencias en paralelo
+        const [resMetrics, resAttendance] = await Promise.all([
+            fetch(`/api/users/${userId}/metrics-history`),
+            fetch(`/api/users/${userId}/attendance-history`)
+        ]);
+
+        const dataMetrics = await resMetrics.json();
+        const dataAttendance = await resAttendance.json();
+
+        if (!dataMetrics.success || !dataMetrics.history) {
+            alert("No se pudo cargar el historial de métricas.");
+            return;
+        }
+
+        if (!dataAttendance.success || !dataAttendance.history) {
+            alert("No se pudo cargar el historial de asistencias.");
+            return;
+        }
+
+        const history = dataMetrics.history;
+        const attHistory = dataAttendance.history;
+
+        // 1. Población de tabla de métricas
+        if (DOM.metricsHistoryTableBody) {
+            DOM.metricsHistoryTableBody.innerHTML = '';
+            if (history.length === 0) {
+                DOM.metricsHistoryTableBody.innerHTML = '<tr><td colspan="7" class="text-center text-secondary" style="padding: 15px 0;">Sin registros históricos de métricas.</td></tr>';
+            } else {
+                [...history].reverse().forEach(entry => {
+                    const tr = document.createElement('tr');
+                    
+                    let dateStr = '--';
+                    if (entry.fecha) {
+                        try {
+                            const dateObj = new Date(entry.fecha.includes('Z') ? entry.fecha : entry.fecha + 'Z');
+                            dateStr = dateObj.toLocaleDateString("es-ES", {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                        } catch (e) {
+                            dateStr = entry.fecha;
+                        }
+                    }
+
+                    tr.innerHTML = `
+                        <td>${dateStr}</td>
+                        <td style="font-weight:600;">${entry.weight ? entry.weight.toFixed(1) : '--'}</td>
+                        <td>${entry.height ? entry.height.toFixed(0) : '--'}</td>
+                        <td class="text-neon-pink">${entry.imc ? entry.imc.toFixed(1) : '--'}</td>
+                        <td style="color: var(--color-neon-teal);">${entry.body_fat ? entry.body_fat.toFixed(1) + '%' : '--'}</td>
+                        <td>${entry.muscle_mass ? entry.muscle_mass.toFixed(1) + '%' : '--'}</td>
+                        <td>${entry.skeletal_muscle ? entry.skeletal_muscle.toFixed(1) + '%' : '--'}</td>
+                    `;
+                    DOM.metricsHistoryTableBody.appendChild(tr);
+                });
+            }
+        }
+
+        // 2. Población de tabla de asistencia
+        if (DOM.metricsAttendanceTableBody) {
+            DOM.metricsAttendanceTableBody.innerHTML = '';
+            if (attHistory.length === 0) {
+                DOM.metricsAttendanceTableBody.innerHTML = '<tr><td colspan="3" class="text-center text-secondary" style="padding: 15px 0;">Sin registros de asistencia.</td></tr>';
+            } else {
+                attHistory.forEach(entry => {
+                    const tr = document.createElement('tr');
+                    
+                    let dateStr = '--';
+                    if (entry.date) {
+                        try {
+                            const dateObj = new Date(entry.date);
+                            const dayStr = dateObj.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
+                            const timeStr = dateObj.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                            dateStr = `${dayStr} - ${timeStr}`;
+                        } catch (e) {
+                            dateStr = entry.date;
+                        }
+                    }
+
+                    const typeBadge = entry.type === 'kinesiology'
+                        ? `<span class="cluster-badge" style="background: rgba(123, 44, 191, 0.15); color: var(--color-neon-purple); border: 1px solid rgba(123, 44, 191, 0.3); font-size: 10px;">Kinesiología</span>`
+                        : `<span class="cluster-badge" style="background: rgba(0, 245, 212, 0.15); color: var(--color-neon-teal); border: 1px solid rgba(0, 245, 212, 0.3); font-size: 10px;">General</span>`;
+
+                    tr.innerHTML = `
+                        <td class="font-mono" style="font-size: 11px;">${dateStr}</td>
+                        <td>${typeBadge}</td>
+                        <td style="font-size: 11px; color: var(--text-secondary);">${entry.notes || ''}</td>
+                    `;
+                    DOM.metricsAttendanceTableBody.appendChild(tr);
+                });
+            }
+        }
+
+        // Mostrar modal
+        DOM.metricsHistoryModal.classList.remove('hidden');
+
+        // Generar Gráfico de métricas
+        const canvas = document.getElementById('metrics-chart');
+        if (canvas) {
+            if (metricsChartInstance) {
+                metricsChartInstance.destroy();
+                metricsChartInstance = null;
+            }
+
+            if (history.length > 0) {
+                const labels = history.map(entry => {
+                    if (!entry.fecha) return '';
+                    try {
+                        const dateObj = new Date(entry.fecha.includes('Z') ? entry.fecha : entry.fecha + 'Z');
+                        return dateObj.toLocaleDateString("es-ES", { day: '2-digit', month: '2-digit' });
+                    } catch (e) {
+                        return '';
+                    }
+                });
+
+                const weightData = history.map(entry => entry.weight);
+                const muscleData = history.map(entry => entry.muscle_mass);
+                const fatData = history.map(entry => entry.body_fat);
+
+                metricsChartInstance = new Chart(canvas, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Peso (kg)',
+                                data: weightData,
+                                borderColor: '#7b2cbf',
+                                backgroundColor: 'rgba(123, 44, 191, 0.1)',
+                                borderWidth: 3,
+                                tension: 0.3,
+                                fill: true,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: '% Masa Muscular',
+                                data: muscleData,
+                                borderColor: '#00f5d4',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                yAxisID: 'yPercentage'
+                            },
+                            {
+                                label: '% Grasa Corporal',
+                                data: fatData,
+                                borderColor: '#ff4757',
+                                backgroundColor: 'transparent',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                tension: 0.3,
+                                yAxisID: 'yPercentage'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    color: '#ffffff',
+                                    font: { family: 'Outfit, sans-serif', size: 11 }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#a0a0a0', font: { family: 'Outfit, sans-serif' } }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Peso (kg)',
+                                    color: '#7b2cbf',
+                                    font: { family: 'Outfit, sans-serif', weight: 'bold' }
+                                },
+                                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                ticks: { color: '#a0a0a0' }
+                            },
+                            yPercentage: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Porcentaje (%)',
+                                    color: '#00f5d4',
+                                    font: { family: 'Outfit, sans-serif', weight: 'bold' }
+                                },
+                                grid: { drawOnChartArea: false },
+                                ticks: { color: '#a0a0a0' },
+                                min: 0,
+                                max: 100
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+    } catch (err) {
+        console.error("Error al mostrar el historial de métricas:", err);
+        alert("Ocurrió un error al obtener los datos históricos.");
+    }
+}
+
+function closeMetricsHistoryModal() {
+    if (DOM.metricsHistoryModal) {
+        DOM.metricsHistoryModal.classList.add('hidden');
+    }
+    if (metricsChartInstance) {
+        metricsChartInstance.destroy();
+        metricsChartInstance = null;
+    }
 }

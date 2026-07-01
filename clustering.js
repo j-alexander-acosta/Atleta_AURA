@@ -446,6 +446,42 @@ const AURA_AI = (() => {
 
         users.forEach(user => {
             if (user.assignedCluster === "Alto riesgo") {
+                // Verificar si está registrado para el mes actual o es exento
+                let isRegisteredCurrentMonth = false;
+                if (user.rut && habilitaciones && habilitaciones.length > 0) {
+                    const userRutBody = getRunFromRut(user.rut.toString());
+                    const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
+                    if (hab) {
+                        if (hab.es_exento) {
+                            isRegisteredCurrentMonth = true;
+                        } else if (hab.fecha_registro) {
+                            try {
+                                const now = new Date();
+                                const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                                const santiagoNow = new Date(santiagoStr);
+
+                                const regDateVal = hab.fecha_registro.includes('Z') ? hab.fecha_registro : hab.fecha_registro + 'Z';
+                                const regDate = new Date(regDateVal);
+                                const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                                const regSantiago = new Date(regSantiagoStr);
+
+                                isRegisteredCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                                                           regSantiago.getMonth() === santiagoNow.getMonth();
+                            } catch (e) {
+                                console.error("Error parsing fecha_registro in generateNotifications:", e);
+                            }
+                        }
+                    }
+                } else {
+                    // Si no hay lista de habilitaciones (por ejemplo, en desarrollo local/mock sin backend),
+                    // asumimos true para no romper la visualización de pruebas de alertas.
+                    isRegisteredCurrentMonth = true;
+                }
+
+                if (!isRegisteredCurrentMonth) {
+                    return; // Omitir usuario si no está registrado/habilitado para el mes actual
+                }
+
                 // Determinar la última rutina realizada
                 const userLogs = logs.filter(l => l.userId === user.id);
                 const sortedLogs = [...userLogs].sort((a, b) => new Date(b.date) - new Date(a.date));

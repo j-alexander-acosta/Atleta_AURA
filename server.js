@@ -730,6 +730,51 @@ app.get('/api/notifications', (req, res) => {
   });
 });
 
+app.get('/api/users/:userId/metrics-history', (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'Falta userId' });
+  }
+
+  db.getUserMetricsHistory(userId, (err, rows) => {
+    if (err) {
+      console.error("Error obteniendo historial de métricas:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, history: rows || [] });
+  });
+});
+
+app.get('/api/users/:userId/weekly-attendance', (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'Falta userId' });
+  }
+
+  db.checkUserWeeklyLimit(userId, (err, result) => {
+    if (err) {
+      console.error("Error obteniendo límite semanal:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, ...result });
+  });
+});
+
+app.get('/api/users/:userId/attendance-history', (req, res) => {
+  const { userId } = req.params;
+  if (!userId) {
+    return res.status(400).json({ error: 'Falta userId' });
+  }
+
+  db.getUserAttendanceHistory(userId, (err, rows) => {
+    if (err) {
+      console.error("Error obteniendo historial de asistencia del usuario:", err);
+      return res.status(500).json({ error: 'Error de base de datos' });
+    }
+    res.json({ success: true, history: rows || [] });
+  });
+});
+
 // Endpoint para obtener la progresión (historial de esfuerzo real) de un atleta
 app.get('/api/progression', (req, res) => {
   const { userId, exerciseName } = req.query;

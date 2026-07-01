@@ -353,6 +353,13 @@
                                 <span class="stat-lbl">Meta Semanal</span>
                             </div>
                         </div>
+                        <div class="stat-card weekly-attendance-card" id="weekly-attendance-card">
+                            <div class="stat-icon">📅</div>
+                            <div class="stat-info">
+                                <span class="stat-val" id="stat-attendance-weekly">--</span>
+                                <span class="stat-lbl" id="stat-attendance-weekly-lbl">Asistencia Semanal</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Progress Graphic -->
@@ -521,6 +528,8 @@
                             </div>
                             <button type="submit" class="btn btn-outline btn-sm btn-block"
                                 style="justify-content: center;">Guardar Métricas</button>
+                            <button type="button" id="btn-show-metrics-history" class="btn btn-primary btn-sm btn-block btn-glow"
+                                style="justify-content: center; margin-top: 8px;">Ver Historial de Progreso</button>
                         </form>
                     </div>
 
@@ -1033,6 +1042,73 @@
                             style="text-transform: uppercase;">Cancelar</button>
                         <button id="btn-confirm-accept" class="btn btn-primary btn-half btn-glow"
                             style="background: var(--color-danger); color: white; text-transform: uppercase; box-shadow: 0 0 15px rgba(255, 71, 87, 0.25);">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal de Historial de Métricas Corporales -->
+        <div id="metrics-history-modal" class="modal hidden">
+            <div class="modal-overlay" id="metrics-history-modal-overlay"></div>
+            <div class="modal-wrapper" style="max-width: 700px; width: 90%;">
+                <div class="modal-header">
+                    <h3 id="metrics-history-modal-title">Historial de Métricas</h3>
+                    <button id="btn-metrics-history-modal-close" class="btn-icon-close">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2.5">
+                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+                <div class="modal-body" style="padding: 20px; max-height: 80vh; overflow-y: auto; display: flex; flex-direction: column; gap: 20px;">
+                    <!-- Modal Tabs -->
+                    <div class="modal-tabs">
+                        <button class="modal-tab-btn active" data-tab="metrics">📈 Métricas Corporales</button>
+                        <button class="modal-tab-btn" data-tab="attendance">📅 Historial de Asistencia</button>
+                    </div>
+
+                    <!-- Tab: Métricas -->
+                    <div class="modal-tab-content active" id="modal-tab-metrics" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="width: 100%; height: 300px; position: relative; background: var(--bg-obsidian); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color);">
+                            <canvas id="metrics-chart"></canvas>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="admin-table" style="font-size: 12px; width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha</th>
+                                        <th>Peso (kg)</th>
+                                        <th>Estatura (cm)</th>
+                                        <th>IMC</th>
+                                        <th>Grasa (%)</th>
+                                        <th>Músculo (%)</th>
+                                        <th>Esq. Mús (%)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metrics-history-table-body">
+                                    <!-- Cargado dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Tab: Asistencias -->
+                    <div class="modal-tab-content" id="modal-tab-attendance">
+                        <div class="table-responsive">
+                            <table class="admin-table" style="font-size: 12px; width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Fecha y Hora</th>
+                                        <th>Tipo de Asistencia</th>
+                                        <th>Notas / Detalles</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="metrics-attendance-table-body">
+                                    <!-- Cargado dinámicamente -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
