@@ -2154,3 +2154,139 @@ input[type="number"]:focus {
 .modal-tab-content.active {
     display: block;
 }
+
+/* QR Code Scanner styling */
+.scanner-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.scanner-tab-btn {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'Outfit', sans-serif;
+}
+
+.scanner-tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.scanner-tab-btn.active {
+    color: var(--color-neon-teal);
+    background: rgba(0, 245, 212, 0.1);
+    border-color: rgba(0, 245, 212, 0.3);
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.1);
+}
+
+.scanner-tab-content {
+    display: none;
+}
+
+.scanner-tab-content.active {
+    display: block;
+}
+
+/* Visor Cámara */
+#admin-qr-reader {
+    width: 100%;
+    max-width: 380px;
+    margin: 0 auto;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    background: var(--bg-obsidian);
+}
+
+#admin-qr-reader video {
+    width: 100% !important;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+/* Tarjeta Resultado de Escaneo */
+.scan-result-card {
+    background-color: var(--bg-card);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.scan-result-granted {
+    border-color: rgba(0, 255, 128, 0.3);
+    background: rgba(0, 255, 128, 0.03);
+    box-shadow: 0 0 15px rgba(0, 255, 128, 0.05);
+}
+
+.scan-result-denied {
+    border-color: rgba(255, 71, 87, 0.3);
+    background: rgba(255, 71, 87, 0.03);
+    box-shadow: 0 0 15px rgba(255, 71, 87, 0.05);
+}
+
+.scan-result-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.scan-result-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.scan-result-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-obsidian);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 18px;
+}
+
+.scan-result-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.scan-result-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.scan-result-sub {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+.scan-result-injury-alert {
+    color: var(--color-danger);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}

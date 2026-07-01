@@ -730,26 +730,53 @@
                             </div>
                         </div>
 
-                        <!-- Simulador Escáner QR de Asistencia -->
+                        <!-- Escáner QR de Asistencia Integrado -->
                         <div class="admin-ai-panel" style="margin-bottom: 20px; border-color: rgba(0, 245, 212, 0.25);">
                             <div class="admin-ai-header">
                                 <div class="ai-title-group">
                                     <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
-                                    <h3>Simulador de Escáner QR de Asistencia</h3>
+                                    <h3>Escáner de Asistencia QR Integrado</h3>
                                 </div>
                             </div>
                             <div style="padding: 15px; display: flex; flex-direction: column; gap: 12px;">
-                                <p class="text-secondary text-xs" style="margin: 0;">Simula la lectura de un código QR
-                                    de
-                                    acceso desde el dispositivo de un atleta.</p>
-                                <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
-                                    <select id="admin-barcode-select-user"
-                                        style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
-                                        <!-- Cargado dinámicamente -->
-                                    </select>
-                                    <button id="btn-simulate-barcode-scan"
-                                        class="btn btn-primary btn-sm btn-glow">Simular
-                                        Escaneo Código</button>
+                                <!-- Scanner Tab Buttons -->
+                                <div class="scanner-tabs">
+                                    <button class="scanner-tab-btn active" data-scan-tab="camera">📷 Cámara Web</button>
+                                    <button class="scanner-tab-btn" data-scan-tab="usb">🔌 Lector USB</button>
+                                    <button class="scanner-tab-btn" data-scan-tab="sim">🔄 Simulador</button>
+                                </div>
+
+                                <!-- Tab: Cámara Web -->
+                                <div id="scan-tab-content-camera" class="scanner-tab-content active">
+                                    <div id="admin-qr-reader"></div>
+                                    <button id="btn-admin-qr-toggle-camera" class="btn btn-primary btn-sm btn-glow" style="margin: 12px auto 0 auto; display: block;">Iniciar Cámara</button>
+                                </div>
+
+                                <!-- Tab: Lector USB -->
+                                <div id="scan-tab-content-usb" class="scanner-tab-content">
+                                    <p class="text-secondary text-xs" style="margin: 0 0 8px 0;">Haz clic en el campo y usa tu pistola lectora de QR, o ingresa el código del token manualmente.</p>
+                                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                        <input type="text" id="admin-qr-manual-input" placeholder="Enfoque aquí para pistolear o escribir código..." style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px; font-family: 'Outfit', sans-serif;" autocomplete="off">
+                                        <button id="btn-admin-qr-manual-submit" class="btn btn-primary btn-sm btn-glow">Registrar</button>
+                                    </div>
+                                </div>
+
+                                <!-- Tab: Simulador -->
+                                <div id="scan-tab-content-sim" class="scanner-tab-content">
+                                    <p class="text-secondary text-xs" style="margin: 0 0 8px 0;">Simula la lectura de asistencia seleccionando un atleta de la lista.</p>
+                                    <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                                        <select id="admin-barcode-select-user"
+                                            style="flex: 1; min-width: 180px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                                            <!-- Cargado dinámicamente -->
+                                        </select>
+                                        <button id="btn-simulate-barcode-scan"
+                                            class="btn btn-primary btn-sm btn-glow">Simular Escaneo</button>
+                                    </div>
+                                </div>
+
+                                <!-- Panel de Resultados del Escaneo -->
+                                <div id="admin-qr-result-panel" style="display: none; margin-top: 10px;">
+                                    <!-- Generado dinámicamente en app.js -->
                                 </div>
                             </div>
                         </div>
@@ -1116,6 +1143,7 @@
 
         <!-- JS Aplicación -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+        <script src="https://unpkg.com/html5-qrcode"></script>
         <script src="clustering.js"></script>
         <script src="app.js"></script>
 </body>

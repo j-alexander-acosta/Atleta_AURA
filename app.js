@@ -205,7 +205,11 @@ const DOM = {
     weeklyAttendanceCard: document.getElementById('weekly-attendance-card'),
     statAttendanceWeekly: document.getElementById('stat-attendance-weekly'),
     statAttendanceWeeklyLbl: document.getElementById('stat-attendance-weekly-lbl'),
-    metricsAttendanceTableBody: document.getElementById('metrics-attendance-table-body')
+    metricsAttendanceTableBody: document.getElementById('metrics-attendance-table-body'),
+    adminQrManualInput: document.getElementById('admin-qr-manual-input'),
+    btnAdminQrManualSubmit: document.getElementById('btn-admin-qr-manual-submit'),
+    btnAdminQrToggleCamera: document.getElementById('btn-admin-qr-toggle-camera'),
+    adminQrResultPanel: document.getElementById('admin-qr-result-panel')
 };
 
 // Variables temporales para el onboarding
@@ -606,6 +610,10 @@ function initEventListeners() {
                 }
             });
 
+            if (targetTab !== 'admin' && typeof html5QrcodeScannerInstance !== 'undefined' && html5QrcodeScannerInstance && html5QrcodeScannerInstance.isScanning) {
+                toggleAdminQrCamera();
+            }
+
             if (targetTab === 'dashboard') renderDashboard();
             if (targetTab === 'routines') renderRoutinesTab();
             if (targetTab === 'profile') renderProfileTab();
@@ -990,6 +998,63 @@ function initEventListeners() {
             registerUserAttendance(userId, 'standard', 'Simulación de Escaneo de Acceso QR', userName, profileType);
         });
     }
+
+    // Cablear el botón de cámara del administrador
+    if (DOM.btnAdminQrToggleCamera) {
+        DOM.btnAdminQrToggleCamera.addEventListener('click', toggleAdminQrCamera);
+    }
+
+    // Cablear el input manual / pistola USB
+    if (DOM.adminQrManualInput) {
+        DOM.adminQrManualInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const token = DOM.adminQrManualInput.value.trim();
+                DOM.adminQrManualInput.value = '';
+                if (token) {
+                    processQRCheckIn(token);
+                }
+            }
+        });
+    }
+
+    if (DOM.btnAdminQrManualSubmit) {
+        DOM.btnAdminQrManualSubmit.addEventListener('click', () => {
+            if (DOM.adminQrManualInput) {
+                const token = DOM.adminQrManualInput.value.trim();
+                DOM.adminQrManualInput.value = '';
+                if (token) {
+                    processQRCheckIn(token);
+                }
+            }
+        });
+    }
+
+    // Cablear las pestañas de selección de escáner
+    const scannerTabBtns = document.querySelectorAll('.scanner-tabs .scanner-tab-btn');
+    scannerTabBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            scannerTabBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            const targetTab = btn.getAttribute('data-scan-tab');
+            const contents = document.querySelectorAll('.admin-ai-panel .scanner-tab-content');
+            contents.forEach(c => c.classList.remove('active'));
+
+            const targetContent = document.getElementById(`scan-tab-content-${targetTab}`);
+            if (targetContent) targetContent.classList.add('active');
+
+            // Detener la cámara si cambiamos de la pestaña de cámara
+            if (targetTab !== 'camera' && typeof html5QrcodeScannerInstance !== 'undefined' && html5QrcodeScannerInstance && html5QrcodeScannerInstance.isScanning) {
+                toggleAdminQrCamera();
+            }
+
+            // Enfocar automáticamente el campo manual en la pestaña USB
+            if (targetTab === 'usb' && DOM.adminQrManualInput) {
+                setTimeout(() => DOM.adminQrManualInput.focus(), 100);
+            }
+        });
+    });
 
     if (DOM.adminFilterMonth) {
         DOM.adminFilterMonth.addEventListener('change', () => {
@@ -2580,9 +2645,55 @@ function registerUserAttendance(userId, type = 'standard', notes = '', userName 
                 // Guardar en la DB local simulada tras éxito en el servidor
                 AURA_AI.addAttendance(att);
                 playBeep(600, 0.15); // Sonido de éxito
+                
+                // Mostrar datos en el panel de resultados de escaneo
+                const token = sessionStorage.getItem('aura_admin_token');
+                fetch('/api/admin/users', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                })
+                .then(res => res.json())
+                .then(dataUsers => {
+                    const u = dataUsers.success && dataUsers.users ? dataUsers.users.find(x => x.id === userId) : null;
+                    renderScanResult({
+                        success: true,
+                        user: {
+                            name: userName,
+                            rut: u ? u.rut : '',
+                            profileType: profileType,
+                            level: u ? u.level : 'Intermedio',
+                            injured: u ? u.injured : 0,
+                            injuryDetails: u ? u.injuryDetails : ''
+                        }
+                    });
+                })
+                .catch(() => {
+                    renderScanResult({
+                        success: true,
+                        user: {
+                            name: userName,
+                            rut: '',
+                            profileType: profileType,
+                            level: 'Intermedio',
+                            injured: 0,
+                            injuryDetails: ''
+                        }
+                    });
+                });
+
                 renderAdminTab();
             } else {
-                alert(data.error || "Error al registrar asistencia");
+                renderScanResult({
+                    success: false,
+                    error: data.error || "Error al registrar asistencia",
+                    user: {
+                        name: userName,
+                        rut: '',
+                        profileType: profileType,
+                        level: '',
+                        injured: 0,
+                        injuryDetails: ''
+                    }
+                });
             }
         })
         .catch(err => {
@@ -3123,4 +3234,157 @@ function closeMetricsHistoryModal() {
         metricsChartInstance.destroy();
         metricsChartInstance = null;
     }
+}
+
+// --- SISTEMA DE ESCANEO DE CÓDIGO QR EN PANEL DE ADMINISTRADOR ---
+let html5QrcodeScannerInstance = null;
+
+async function toggleAdminQrCamera() {
+    const btn = DOM.btnAdminQrToggleCamera;
+    const readerDiv = document.getElementById('admin-qr-reader');
+    if (!btn || !readerDiv) return;
+
+    if (html5QrcodeScannerInstance && html5QrcodeScannerInstance.isScanning) {
+        try {
+            await html5QrcodeScannerInstance.stop();
+            html5QrcodeScannerInstance = null;
+            btn.textContent = "Iniciar Cámara";
+            btn.style.backgroundColor = "";
+            readerDiv.innerHTML = "";
+        } catch (err) {
+            console.error("Error al detener la cámara:", err);
+        }
+    } else {
+        btn.textContent = "Iniciando...";
+        btn.disabled = true;
+        
+        try {
+            readerDiv.innerHTML = "";
+            html5QrcodeScannerInstance = new Html5Qrcode("admin-qr-reader");
+            
+            await html5QrcodeScannerInstance.start(
+                { facingMode: "environment" },
+                {
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 }
+                },
+                (decodedText) => {
+                    processQRCheckIn(decodedText);
+                },
+                (errorMessage) => {
+                    // Ignorar errores ordinarios de escaneo
+                }
+            );
+            
+            btn.textContent = "Detener Cámara";
+            btn.style.backgroundColor = "var(--color-danger)";
+            btn.disabled = false;
+        } catch (err) {
+            console.error("Error al iniciar la cámara:", err);
+            alert("No se pudo acceder a la cámara. Por favor asegúrate de otorgar los permisos necesarios.");
+            btn.textContent = "Iniciar Cámara";
+            btn.disabled = false;
+            html5QrcodeScannerInstance = null;
+        }
+    }
+}
+
+async function processQRCheckIn(token) {
+    if (!token || !DOM.adminQrResultPanel) return;
+
+    try {
+        const response = await fetch('/api/asistencia/check-in', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token })
+        });
+        const data = await response.json();
+
+        renderScanResult(data);
+
+        if (data.success) {
+            renderAttendanceHistory();
+        }
+    } catch (err) {
+        console.error("Error procesando check-in QR:", err);
+        renderScanResult({ success: false, error: "Error de red o comunicación con el servidor." });
+    }
+}
+
+function renderScanResult(data) {
+    if (!DOM.adminQrResultPanel) return;
+
+    DOM.adminQrResultPanel.style.display = 'block';
+    
+    let html = '';
+    const user = data.user;
+
+    if (data.success) {
+        const initials = user && user.name ? user.name.charAt(0).toUpperCase() : '?';
+        const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' 
+                           : (user.profileType === 'funcionario' ? 'Funcionario' : 'Estudiante');
+        
+        let injuryText = '<span style="color: var(--color-neon-teal); font-weight:600;">✔️ Saludable (Sin Lesiones)</span>';
+        if (user.injured) {
+            injuryText = `<span class="scan-result-injury-alert">⚠️ LESIÓN ACTIVA: "${user.injuryDetails || 'Sin detalles'}"</span>`;
+        }
+
+        html = `
+            <div class="scan-result-card scan-result-granted">
+                <div class="scan-result-header" style="color: #00ff80;">
+                    <span>✅ ACCESO CONCEDIDO - ASISTENCIA REGISTRADA</span>
+                </div>
+                <div class="scan-result-user-info">
+                    <div class="scan-result-avatar">${initials}</div>
+                    <div class="scan-result-details">
+                        <div class="scan-result-name">${user.name}</div>
+                        <div class="scan-result-sub">RUT: ${user.rut || 'No especificado'} • ${profileLabel} • Nivel: ${user.level || 'No especificado'}</div>
+                        <div style="font-size: 11px; margin-top: 4px;">${injuryText}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    } else {
+        const errorMsg = data.error || 'Código de acceso no válido o vencido.';
+        
+        if (user) {
+            const initials = user.name ? user.name.charAt(0).toUpperCase() : '?';
+            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' 
+                               : (user.profileType === 'funcionario' ? 'Funcionario' : 'Estudiante');
+            
+            html = `
+                <div class="scan-result-card scan-result-denied">
+                    <div class="scan-result-header" style="color: #ff4757;">
+                        <span>❌ ACCESO DENEGADO - ${errorMsg.toUpperCase()}</span>
+                    </div>
+                    <div class="scan-result-user-info">
+                        <div class="scan-result-avatar">${initials}</div>
+                        <div class="scan-result-details">
+                            <div class="scan-result-name">${user.name}</div>
+                            <div class="scan-result-sub">RUT: ${user.rut || 'No especificado'} • ${profileLabel} • Nivel: ${user.level || 'No especificado'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        } else {
+            html = `
+                <div class="scan-result-card scan-result-denied">
+                    <div class="scan-result-header" style="color: #ff4757;">
+                        <span>❌ ACCESO DENEGADO</span>
+                    </div>
+                    <div style="font-size: 13px; color: var(--text-secondary);">${errorMsg}</div>
+                </div>
+            `;
+        }
+    }
+
+    DOM.adminQrResultPanel.innerHTML = html;
+
+    if (window.qrScanResultTimeout) {
+        clearTimeout(window.qrScanResultTimeout);
+    }
+    window.qrScanResultTimeout = setTimeout(() => {
+        DOM.adminQrResultPanel.style.display = 'none';
+        DOM.adminQrResultPanel.innerHTML = '';
+    }, 6000);
 }

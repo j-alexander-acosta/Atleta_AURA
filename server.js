@@ -637,7 +637,18 @@ app.post('/api/asistencia/check-in', async (req, res) => {
                                regSantiago.getMonth() === santiagoNow.getMonth();
 
         if (!hab.es_exento && !isCurrentMonth) {
-          return res.status(409).json({ success: false, error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
+          return res.status(409).json({ 
+            success: false, 
+            error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.',
+            user: {
+              name: rowUser.name,
+              rut: rowUser.rut,
+              profileType: rowUser.profileType,
+              level: rowUser.level,
+              injured: rowUser.injured,
+              injuryDetails: rowUser.injuryDetails
+            }
+          });
         }
 
         // Verificar límite semanal de asistencia
@@ -648,7 +659,18 @@ app.post('/api/asistencia/check-in', async (req, res) => {
           }
 
           if (!limitResult.allowed) {
-            return res.status(409).json({ success: false, error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
+            return res.status(409).json({ 
+              success: false, 
+              error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.`,
+              user: {
+                name: rowUser.name,
+                rut: rowUser.rut,
+                profileType: rowUser.profileType,
+                level: rowUser.level,
+                injured: rowUser.injured,
+                injuryDetails: rowUser.injuryDetails
+              }
+            });
           }
 
           // 2. Verificar margen de 1 hora para evitar duplicados accidentales
@@ -665,7 +687,18 @@ app.post('/api/asistencia/check-in', async (req, res) => {
               const diffHours = diffMs / (1000 * 60 * 60);
 
               if (diffHours < 1) {
-                return res.status(409).json({ success: false, error: 'Registro duplicado. Ya has registrado asistencia en la última hora.' });
+                return res.status(409).json({ 
+                  success: false, 
+                  error: 'Registro duplicado. Ya has registrado asistencia en la última hora.',
+                  user: {
+                    name: rowUser.name,
+                    rut: rowUser.rut,
+                    profileType: rowUser.profileType,
+                    level: rowUser.level,
+                    injured: rowUser.injured,
+                    injuryDetails: rowUser.injuryDetails
+                  }
+                });
               }
             }
 
@@ -674,7 +707,20 @@ app.post('/api/asistencia/check-in', async (req, res) => {
               if (err) {
                 return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
               }
-              res.json({ success: true, message: 'Acceso Concedido' });
+              res.json({ 
+                success: true, 
+                message: 'Acceso Concedido',
+                user: {
+                  id: rowUser.id,
+                  name: rowUser.name,
+                  rut: rowUser.rut,
+                  age: rowUser.age,
+                  profileType: rowUser.profileType,
+                  level: rowUser.level,
+                  injured: rowUser.injured,
+                  injuryDetails: rowUser.injuryDetails
+                }
+              });
             });
           });
         });
