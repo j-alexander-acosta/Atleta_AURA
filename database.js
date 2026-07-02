@@ -904,7 +904,15 @@ function saveAttendance(att, callback) {
 function getAttendanceList(callback) {
   db.all(`
     SELECT a.*, u.name as userName, u.profileType 
-    FROM attendance a 
+    FROM (
+      SELECT id, userId, date, type, notes FROM attendance
+      UNION ALL
+      SELECT id, usuario_id as userId, 
+             (CASE WHEN fecha_hora LIKE '%Z' THEN fecha_hora ELSE fecha_hora || 'Z' END) as date, 
+             'qr' as type, 
+             'Acceso QR general' as notes 
+      FROM asistencia
+    ) a 
     LEFT JOIN users u ON a.userId = u.id
     ORDER BY a.date DESC
   `, (err, rows) => {
