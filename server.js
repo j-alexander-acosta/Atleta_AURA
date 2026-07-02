@@ -579,37 +579,80 @@ app.post('/api/asistencia/check-in', async (req, res) => {
   const { token } = req.body;
   if (!token) return res.status(400).json({ success: false, error: 'Token no proporcionado' });
 
-  // Validar el token en memoria
+  // 1. Validar el token en memoria (dynamic QR token)
+  let usuario_id = null;
   const tokenData = activeTokens.get(token);
-  if (!tokenData || tokenData.expiresAt < Date.now()) {
-    if (tokenData) activeTokens.delete(token);
-    return res.status(401).json({ success: false, error: 'Código expirado o inválido' });
+  if (tokenData && tokenData.expiresAt >= Date.now()) {
+    usuario_id = tokenData.usuario_id;
+    activeTokens.delete(token); // Eliminar inmediatamente para evitar re-uso
   }
 
-  const usuario_id = tokenData.usuario_id;
-  // Eliminar el token inmediatamente para evitar re-uso
-  activeTokens.delete(token);
-
-  // 1. Verificar si ya registró asistencia el día de hoy (límite diario en zona horaria local)
-  const nowStr = new Date().toISOString();
-  db.checkUserAttendanceForDate(usuario_id, nowStr, (err, hasRegistered) => {
-    if (err) {
-      console.error("Error verificando duplicado diario QR:", err);
-      return res.status(500).json({ success: false, error: 'Error de base de datos' });
-    }
-
-    if (hasRegistered) {
-      return res.status(409).json({ success: false, error: 'Ya has registrado asistencia el día de hoy.' });
-    }
-
+  if (usuario_id) {
     db.getUserById(usuario_id, (err, rowUser) => {
       if (err) {
-        console.error("Error buscando usuario:", err);
+        console.error("Error buscando usuario por token dinámico:", err);
         return res.status(500).json({ success: false, error: 'Error interno del servidor' });
       }
-
-      if (!rowUser || !rowUser.rut) {
+      if (!rowUser) {
         return res.status(403).json({ success: false, error: 'Usuario no encontrado.' });
+      }
+      proceedWithCheckIn(rowUser);
+    });
+  } else {
+    // Intentar buscar en la DB si el token es un ID de usuario o un RUT directamente (static QR)
+    db.getUserById(token, (err, rowUserById) => {
+      if (err) {
+        console.error("Error buscando por ID en check-in:", err);
+        return res.status(500).json({ success: false, error: 'Error de base de datos' });
+      }
+
+      if (rowUserById) {
+        proceedWithCheckIn(rowUserById);
+      } else {
+        // Intentar buscar por RUT
+        db.getUserByRut(token, (err, rowUserByRut) => {
+          if (err) {
+            console.error("Error buscando por RUT en check-in:", err);
+            return res.status(500).json({ success: false, error: 'Error de base de datos' });
+          }
+
+          if (rowUserByRut) {
+            proceedWithCheckIn(rowUserByRut);
+          } else {
+            return res.status(401).json({ success: false, error: 'Código expirado o inválido' });
+          }
+        });
+      }
+    });
+  }
+
+  function proceedWithCheckIn(rowUser) {
+    const targetUserId = rowUser.id;
+    const nowStr = new Date().toISOString();
+
+    db.checkUserAttendanceForDate(targetUserId, nowStr, (err, hasRegistered) => {
+      if (err) {
+        console.error("Error verificando duplicado diario QR:", err);
+        return res.status(500).json({ success: false, error: 'Error de base de datos' });
+      }
+
+      if (hasRegistered) {
+        return res.status(409).json({ 
+          success: false, 
+          error: 'Ya has registrado asistencia el día de hoy.',
+          user: {
+            name: rowUser.name,
+            rut: rowUser.rut,
+            profileType: rowUser.profileType,
+            level: rowUser.level,
+            injured: rowUser.injured,
+            injuryDetails: rowUser.injuryDetails
+          }
+        });
+      }
+
+      if (!rowUser.rut) {
+        return res.status(403).json({ success: false, error: 'Usuario sin RUT registrado.' });
       }
 
       const cleanRut = getRunFromRut(rowUser.rut);
@@ -620,7 +663,18 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         }
 
         if (!hab) {
-          return res.status(403).json({ success: false, error: 'Usuario no habilitado en el sistema.' });
+          return res.status(403).json({ 
+            success: false, 
+            error: 'Usuario no habilitado en el sistema.',
+            user: {
+              name: rowUser.name,
+              rut: rowUser.rut,
+              profileType: rowUser.profileType,
+              level: rowUser.level,
+              injured: rowUser.injured,
+              injuryDetails: rowUser.injuryDetails
+            }
+          });
         }
 
         // Verificar si la habilitación es del mes actual
@@ -652,7 +706,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         }
 
         // Verificar límite semanal de asistencia
-        db.checkUserWeeklyLimit(usuario_id, (err, limitResult) => {
+        db.checkUserWeeklyLimit(targetUserId, (err, limitResult) => {
           if (err) {
             console.error("Error verificando límite semanal QR:", err);
             return res.status(500).json({ success: false, error: 'Error de base de datos' });
@@ -674,7 +728,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
           }
 
           // 2. Verificar margen de 1 hora para evitar duplicados accidentales
-          db.obtenerUltimaAsistenciaUsuario(usuario_id, (err, row) => {
+          db.obtenerUltimaAsistenciaUsuario(targetUserId, (err, row) => {
             if (err) {
               return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
             }
@@ -682,8 +736,8 @@ app.post('/api/asistencia/check-in', async (req, res) => {
             if (row && row.fecha_hora) {
               // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
               const lastTime = new Date(row.fecha_hora + 'Z').getTime();
-              const now = new Date().getTime();
-              const diffMs = now - lastTime;
+              const nowTime = new Date().getTime();
+              const diffMs = nowTime - lastTime;
               const diffHours = diffMs / (1000 * 60 * 60);
 
               if (diffHours < 1) {
@@ -703,7 +757,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
             }
 
             // Registrar asistencia en DB
-            db.registrarAsistenciaQR(usuario_id, (err, result) => {
+            db.registrarAsistenciaQR(targetUserId, (err, result) => {
               if (err) {
                 return res.status(500).json({ error: 'Error al registrar asistencia en base de datos' });
               }
@@ -726,7 +780,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         });
       });
     });
-  });
+  }
 });
 
 // (Endpoints limpios y consolidados arriba)
