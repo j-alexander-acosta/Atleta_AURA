@@ -86,6 +86,10 @@ body {
     width: 95%;
 }
 
+#app-container.admin-mode #global-header-wrapper {
+    display: none !important;
+}
+
 @media (max-width: 480px) {
     #app-container {
         border-left: none;

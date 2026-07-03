@@ -63,136 +63,154 @@
                 </div>
             </div>
 
-            <!-- Step 2: Datos Físicos -->
+            <!-- Step 2: Datos F            <!-- Step 2: Iniciar Sesión / Registro -->
             <div id="onboarding-step-2" class="onboarding-step">
                 <div class="step-header">
-                    <span class="step-indicator">Paso 1 de 3</span>
-                    <h2 class="onboarding-title">Cuéntanos sobre ti</h2>
+                    <span class="step-indicator" id="onboarding-step-2-indicator">Paso 1 de 3</span>
+                    <h2 class="onboarding-title" id="onboarding-step-2-title">Acceso a GYM_UCN</h2>
                 </div>
+                
+                <!-- Selector de Pestañas (Iniciar Sesión / Registro) -->
+                <div class="segment-control" id="auth-tab-control" style="margin-bottom: 20px; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    <button type="button" class="segment-btn active" data-tab="login" style="padding: 10px;">Iniciar Sesión</button>
+                    <button type="button" class="segment-btn" data-tab="register" style="padding: 10px;">Registrarse</button>
+                </div>
+
                 <div class="onboarding-content">
-                    <div class="form-row">
-                        <!-- NUEVO CAMPO RUT -->
-                        <div class="form-group">
-                            <label for="input-rut">RUT</label>
-                            <input type="text" id="input-rut" placeholder="Ej. 12345678-9" required>
-                            <small id="rut-error-msg"
-                                style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 4px;"></small>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-name">Nombre o Nickname</label>
-                            <input type="text" id="input-name" placeholder="Ej. Alexander" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="input-email">Correo Electrónico</label>
-                            <input type="email" id="input-email" placeholder="Ej. correo@ejemplo.com" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="input-age">Edad</label>
-                            <input type="number" id="input-age" placeholder="Años" min="12" max="100" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Sexo Biológico</label>
-                            <div class="segment-control" id="gender-control">
-                                <button type="button" class="segment-btn active" data-gender="male"
-                                    style="padding: 6px;">Masc.</button>
-                                <button type="button" class="segment-btn" data-gender="female"
-                                    style="padding: 6px;">Fem.</button>
+                    <!-- SECCIÓN: INICIAR SESIÓN -->
+                    <div id="auth-login-section" style="max-width: 400px; margin: 0 auto;">
+                        <div class="form-row">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="login-email">Correo Institucional</label>
+                                <input type="email" id="login-email" placeholder="nombre@alumnos.ucn.cl o @ucn.cl" required>
                             </div>
                         </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="input-weight">Peso (kg)</label>
-                            <input type="number" id="input-weight" placeholder="kg" min="30" max="250" step="0.1"
-                                required>
+                        <div class="form-row" style="margin-top: 15px;">
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label for="login-password">Contraseña</label>
+                                <input type="password" id="login-password" placeholder="••••••••" required>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label for="input-height">Altura (cm)</label>
-                            <input type="number" id="input-height" placeholder="cm" min="100" max="250" required>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="input-waist">Cintura (cm)</label>
-                            <input type="number" id="input-waist" placeholder="cm" min="40" max="200" step="0.1"
-                                required>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-neck">Cuello (cm)</label>
-                            <input type="number" id="input-neck" placeholder="cm" min="20" max="80" step="0.1" required>
-                        </div>
+                        <small id="login-error-msg" style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
+                        <button id="btn-login-submit" class="btn btn-primary btn-glow" style="width: 100%; margin-top: 20px;">Iniciar Sesión</button>
                     </div>
 
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="input-muscle-mass">% Masa Muscular</label>
-                            <input type="number" id="input-muscle-mass" placeholder="%" min="5" max="80" step="0.1"
-                                required>
-                        </div>
-                        <div class="form-group">
-                            <label for="input-skeletal-muscle">% Músculo-Esquelético</label>
-                            <input type="number" id="input-skeletal-muscle" placeholder="%" min="5" max="80" step="0.1"
-                                required>
-                        </div>
-                    </div>
-                    <div class="form-group hidden" id="group-hip">
-                        <label for="input-hip">Cadera (cm)</label>
-                        <input type="number" id="input-hip" placeholder="cm (Requerido para mujeres)" min="40" max="200"
-                            step="0.1">
-                    </div>
-                    <!-- IMC & BFP Preview Box -->
-                    <div id="imc-preview-box" class="imc-preview-card hidden">
-                        <div class="preview-stats-grid">
-                            <div class="imc-result">
-                                <span class="imc-lbl">Tu IMC:</span>
-                                <span class="imc-val" id="imc-value">--</span>
-                            </div>
-                            <div class="bfp-result">
-                                <span class="imc-lbl">% Grasa (IA):</span>
-                                <span class="imc-val" id="bfp-value">--</span>
-                            </div>
-                        </div>
-                        <span id="imc-badge" class="imc-category-badge">Normal</span>
-                        <p id="imc-desc" class="text-xs text-secondary text-center" style="margin-bottom: 8px;">
-                            Estimaciones calculadas a partir de tus medidas antropométricas.</p>
-
-                        <!-- Rango de peso saludable y barra visual -->
-                        <div id="imc-range-container"
-                            style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 11px;">
-                                <span class="text-secondary">Rango Saludable:</span>
-                                <span id="imc-healthy-range-text" class="text-cyan font-bold"
-                                    style="color: var(--color-neon-teal);">--</span>
-                            </div>
-                            <div id="imc-weight-status-text" class="text-xs text-center" style="font-weight: 600;">
-                            </div>
-
-                            <!-- Barra de Rango de IMC -->
-                            <div style="position: relative; height: 18px; margin-top: 4px;">
-                                <div
-                                    style="position: absolute; top: 6px; left: 0; width: 100%; height: 6px; background: linear-gradient(to right, var(--color-danger) 0%, var(--color-danger) 17.5%, var(--color-neon-teal) 17.5%, var(--color-neon-teal) 49.5%, #ffa502 49.5%, #ffa502 75%, var(--color-danger) 75%, var(--color-danger) 100%); border-radius: 3px;">
-                                </div>
-                                <div id="imc-slider-indicator"
-                                    style="position: absolute; top: 3px; left: 0%; width: 12px; height: 12px; border-radius: 50%; background: #ffffff; border: 2px solid var(--bg-card); box-shadow: 0 0 8px #ffffff; transition: left 0.3s ease;">
+                    <!-- SECCIÓN: REGISTRO -->
+                    <div id="auth-register-section" style="display: none; max-width: 500px; margin: 0 auto;">
+                        <!-- Verificación inicial de Correo -->
+                        <div id="register-verify-block">
+                            <div class="form-row">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="input-email">Correo Institucional</label>
+                                    <input type="email" id="input-email" placeholder="nombre@alumnos.ucn.cl o @ucn.cl" required>
                                 </div>
                             </div>
+                            <small id="register-error-msg" style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
+                            <button id="btn-register-check" class="btn btn-primary btn-glow" style="width: 100%; margin-top: 20px;">Verificar Correo</button>
+                        </div>
 
-                            <!-- Etiquetas del rango -->
-                            <div
-                                style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">
-                                <span>Bajo peso</span>
-                                <span>Normal</span>
-                                <span>Sobrepeso/Obesidad</span>
+                        <!-- Campos revelados tras validación exitosa -->
+                        <div id="register-fields-block" style="display: none; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                            <!-- RUT oculto para mantener compatibilidad con el resto de la aplicación -->
+                            <input type="hidden" id="input-rut">
+                            
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="register-password">Crea tu Contraseña</label>
+                                    <input type="password" id="register-password" placeholder="Mínimo 6 caracteres" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-name">Nombre o Nickname</label>
+                                    <input type="text" id="input-name" placeholder="Ej. Alexander" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="input-age">Edad</label>
+                                    <input type="number" id="input-age" placeholder="Años" min="12" max="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Sexo Biológico</label>
+                                    <div class="segment-control" id="gender-control">
+                                        <button type="button" class="segment-btn active" data-gender="male" style="padding: 6px;">Masc.</button>
+                                        <button type="button" class="segment-btn" data-gender="female" style="padding: 6px;">Fem.</button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="input-weight">Peso (kg)</label>
+                                    <input type="number" id="input-weight" placeholder="kg" min="30" max="250" step="0.1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-height">Altura (cm)</label>
+                                    <input type="number" id="input-height" placeholder="cm" min="100" max="250" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="input-waist">Cintura (cm)</label>
+                                    <input type="number" id="input-waist" placeholder="cm" min="40" max="200" step="0.1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-neck">Cuello (cm)</label>
+                                    <input type="number" id="input-neck" placeholder="cm" min="20" max="80" step="0.1" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="input-muscle-mass">% Masa Muscular</label>
+                                    <input type="number" id="input-muscle-mass" placeholder="%" min="5" max="80" step="0.1" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="input-skeletal-muscle">% Músculo-Esquelético</label>
+                                    <input type="number" id="input-skeletal-muscle" placeholder="%" min="5" max="80" step="0.1" required>
+                                </div>
+                            </div>
+                            <div class="form-group hidden" id="group-hip" style="margin-top: 15px;">
+                                <label for="input-hip">Cadera (cm)</label>
+                                <input type="number" id="input-hip" placeholder="cm (Requerido para mujeres)" min="40" max="200" step="0.1">
+                            </div>
+
+                            <!-- IMC & BFP Preview Box -->
+                            <div id="imc-preview-box" class="imc-preview-card hidden" style="margin-top: 20px;">
+                                <div class="preview-stats-grid">
+                                    <div class="imc-result">
+                                        <span class="imc-lbl">Tu IMC:</span>
+                                        <span class="imc-val" id="imc-value">--</span>
+                                    </div>
+                                    <div class="bfp-result">
+                                        <span class="imc-lbl">% Grasa (IA):</span>
+                                        <span class="imc-val" id="bfp-value">--</span>
+                                    </div>
+                                </div>
+                                <span id="imc-badge" class="imc-category-badge">Normal</span>
+                                <p id="imc-desc" class="text-xs text-secondary text-center" style="margin-bottom: 8px;">
+                                    Estimaciones calculadas a partir de tus medidas antropométricas.</p>
+                                <div id="imc-range-container" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                        <span class="text-secondary">Rango Saludable:</span>
+                                        <span id="imc-healthy-range-text" class="text-cyan font-bold" style="color: var(--color-neon-teal);">--</span>
+                                    </div>
+                                    <div id="imc-weight-status-text" class="text-xs text-center" style="font-weight: 600;"></div>
+                                    <div style="position: relative; height: 18px; margin-top: 4px;">
+                                        <div style="position: absolute; top: 6px; left: 0; width: 100%; height: 6px; background: linear-gradient(to right, var(--color-danger) 0%, var(--color-danger) 17.5%, var(--color-neon-teal) 17.5%, var(--color-neon-teal) 49.5%, #ffa502 49.5%, #ffa502 75%, var(--color-danger) 75%, var(--color-danger) 100%); border-radius: 3px;"></div>
+                                        <div id="imc-slider-indicator" style="position: absolute; top: 3px; left: 0%; width: 12px; height: 12px; border-radius: 50%; background: #ffffff; border: 2px solid var(--bg-card); box-shadow: 0 0 8px #ffffff; transition: left 0.3s ease;"></div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">
+                                        <span>Bajo peso</span>
+                                        <span>Normal</span>
+                                        <span>Sobrepeso/Obesidad</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="onboarding-actions" style="margin-top: 25px;">
+                                <button id="btn-onboarding-to-3" class="btn btn-primary" style="width: 100%;">Continuar</button>
                             </div>
                         </div>
                     </div>
-                </div>
-                <div class="onboarding-actions">
-                    <button id="btn-onboarding-to-3" class="btn btn-primary">Continuar</button>
                 </div>
             </div>
 
@@ -269,7 +287,7 @@
         <div id="main-layout" class="screen">
 
             <!-- Global Avatar and Menu -->
-            <div style="position: absolute; top: 24px; right: 20px; z-index: 100;">
+            <div id="global-header-wrapper" style="position: absolute; top: 24px; right: 20px; z-index: 100;">
                 <div class="header-avatar" id="global-avatar-btn"
                     style="cursor: pointer; position: relative; transition: transform 0.2s ease;">
                     <span id="avatar-initials">A</span>
@@ -308,14 +326,15 @@
                         </svg>
                         <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Perfil</span>
                     </button>
-                    <button class="nav-item" data-tab="admin" id="nav-item-admin"
+                    <button id="btn-user-dropdown-logout"
                         style="display: flex; align-items: center; justify-content: flex-start; padding: 12px; width: 100%; border-radius: 10px; flex-direction: row; gap: 14px; background: transparent; border: none; color: var(--text-primary); cursor: pointer; transition: background 0.2s ease;">
                         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                             style="width: 20px; height: 20px;">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
                         </svg>
-                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Admin</span>
+                        <span style="font-size: 14px; font-weight: 600; font-family: var(--font-display);">Cerrar Sesión</span>
                     </button>
                 </div>
             </div>
@@ -613,6 +632,10 @@
                                 <div class="form-group">
                                     <label for="admin-hab-rut">RUT del Atleta</label>
                                     <input type="text" id="admin-hab-rut" placeholder="12345678-9">
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-hab-email">Correo Institucional</label>
+                                    <input type="email" id="admin-hab-email" placeholder="nombre@alumnos.ucn.cl o @ucn.cl">
                                 </div>
                                 <div class="form-group">
                                     <label for="admin-hab-tipo">Tipo de Perfil</label>

@@ -129,12 +129,79 @@ app.post('/api/admin/login', (req, res) => {
   });
 });
 
+// Endpoint de Login de Estudiante
+app.post('/api/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Credenciales incompletas.' });
+  }
+
+  const emailLower = email.toLowerCase().trim();
+  db.getUserByEmail(emailLower, async (err, user) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor.' });
+    if (!user) return res.status(401).json({ error: 'Correo institucional no registrado.' });
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'El usuario aún no ha configurado una contraseña. Realice el registro primero.' });
+    }
+
+    const match = await bcrypt.compare(password, user.password_hash);
+    if (!match) return res.status(401).json({ error: 'Contraseña incorrecta.' });
+
+    // Exclude password_hash before sending
+    const safeUser = { ...user };
+    delete safeUser.password_hash;
+    res.json({ success: true, user: safeUser });
+  });
+});
+
+// Endpoint de Validación para Registro
+app.post('/api/auth/register-check', (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ error: 'El correo electrónico es obligatorio.' });
+
+  const emailLower = email.toLowerCase().trim();
+  if (!emailLower.endsWith('@alumnos.ucn.cl') && !emailLower.endsWith('@ucn.cl')) {
+    return res.status(400).json({ error: 'El correo debe terminar en @alumnos.ucn.cl o @ucn.cl.' });
+  }
+
+  db.checkHabilitacionByEmail(emailLower, (err, habilitado) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor verificando habilitación.' });
+    if (!habilitado) {
+      return res.status(403).json({ error: 'Su correo institucional no está habilitado por el administrador.' });
+    }
+
+    // Verificar si ya tiene contraseña registrada
+    db.getUserByEmail(emailLower, (err, user) => {
+      if (err) return res.status(500).json({ error: 'Error de servidor verificando usuario.' });
+      
+      const isRegistered = !!(user && user.password_hash);
+      res.json({
+        success: true,
+        registered: isRegistered,
+        profileType: user ? user.profileType : 'estudiante',
+        rut: user ? user.rut : habilitado.rut,
+        limite_semanal: habilitado.limite_semanal || 0,
+        userId: user ? user.id : null
+      });
+    });
+  });
+});
+
 // Endpoint Habilitar Usuario (Protegido)
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
-  const { rut, es_exento, limite_semanal, mes, profileType } = req.body;
+  const { rut, es_exento, limite_semanal, mes, profileType, email } = req.body;
 
   if (!rut || !isValidRut(rut)) {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
+  }
+
+  if (!email || typeof email !== 'string') {
+    return res.status(400).json({ error: 'El correo institucional es obligatorio.' });
+  }
+
+  const emailLower = email.toLowerCase().trim();
+  if (!emailLower.endsWith('@alumnos.ucn.cl') && !emailLower.endsWith('@ucn.cl')) {
+    return res.status(400).json({ error: 'El correo debe ser con @alumnos.ucn.cl o @ucn.cl' });
   }
 
   const cleanRut = getRunFromRut(rut);
@@ -149,7 +216,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
   const monthStr = String(mesVal).padStart(2, '0');
   const customFecha = `${year}-${monthStr}-01 12:00:00`;
 
-  db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, (err) => {
+  db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, emailLower, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
     
     // Check if user exists in users table
@@ -173,15 +240,16 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
           streak: 0,
           assignedCluster: 'Pendiente',
           profileType: profileType || 'estudiante',
-          rut: cleanRut
+          rut: cleanRut,
+          email: emailLower
         };
         db.saveUser(newUser, (saveErr) => {
           if (saveErr) console.error("Error creating initial user:", saveErr);
           res.json({ success: true, message: 'Usuario habilitado y registrado correctamente.' });
         });
       } else {
-        db.updateUserProfileType(cleanRut, profileType || 'estudiante', (updateErr) => {
-          if (updateErr) console.error("Error al actualizar tipo de perfil de usuario:", updateErr);
+        db.updateUserProfileTypeAndEmail(cleanRut, profileType || 'estudiante', emailLower, (updateErr) => {
+          if (updateErr) console.error("Error al actualizar tipo de perfil de usuario y correo:", updateErr);
           res.json({ success: true, message: 'Usuario habilitado correctamente.' });
         });
       }
@@ -232,7 +300,8 @@ app.get('/api/check-habilitacion', (req, res) => {
         valid: true, 
         message: 'RUT habilitado.', 
         userId: userId,
-        profileType: user ? user.profileType : 'estudiante'
+        profileType: user ? user.profileType : 'estudiante',
+        email: (user && user.email) ? user.email : (row ? row.email : '')
       });
     });
   });
@@ -281,10 +350,27 @@ app.post('/api/workouts', (req, res) => {
       user.assignedCluster = 'Alto riesgo';
     }
 
-    user.rut = cleanRut;
-    db.saveUser(user, (err) => {
-      if (err) console.error("Error guardando usuario:", err);
-    });
+    const saveUserData = () => {
+      user.rut = cleanRut;
+      db.saveUser(user, (err) => {
+        if (err) console.error("Error guardando usuario:", err);
+      });
+    };
+
+    if (user.password) {
+      const saltRounds = 10;
+      bcrypt.hash(user.password, saltRounds, (hashErr, hash) => {
+        if (hashErr) {
+          console.error("Error hashing password:", hashErr);
+          return res.status(500).json({ error: 'Error al procesar la contraseña.' });
+        }
+        user.password_hash = hash;
+        delete user.password;
+        saveUserData();
+      });
+    } else {
+      saveUserData();
+    }
 
     // 2. Guardar el registro de entrenamiento
     if (log) {

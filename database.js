@@ -33,7 +33,8 @@ function initDb() {
         waist REAL DEFAULT 0.0,
         neck REAL DEFAULT 0.0,
         hip REAL DEFAULT 0.0,
-        days TEXT DEFAULT '[]'
+        days TEXT DEFAULT '[]',
+        password_hash TEXT
       )
     `);
 
@@ -51,7 +52,9 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN neck REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN hip REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN days TEXT DEFAULT '[]'", () => {});
+    db.run("ALTER TABLE users ADD COLUMN password_hash TEXT", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
+    db.run("ALTER TABLE usuarios_habilitados ADD COLUMN email TEXT", () => {});
 
     // Tabla de Usuarios Habilitados
     db.run(`
@@ -61,7 +64,8 @@ function initDb() {
         dias_permitidos INTEGER DEFAULT 0,
         fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
         es_exento BOOLEAN DEFAULT 0,
-        limite_semanal INTEGER DEFAULT 0
+        limite_semanal INTEGER DEFAULT 0,
+        email TEXT
       )
     `);
 
@@ -796,82 +800,87 @@ function seedDatabaseIfNeeded() {
 }
 
 function saveUser(user, callback) {
-  const stmt = db.prepare(`
-    INSERT OR REPLACE INTO users 
-    (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
   const newId = user.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  
   const daysStr = Array.isArray(user.days) ? JSON.stringify(user.days) : (user.days || '[]');
-
   const cleanRut = getRunFromRut(user.rut || '');
-  stmt.run([
-    newId, user.name, user.age, user.sex, user.weight, user.height,
-    user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
-    user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
-    user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
-    user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
-    daysStr
-  ], function(err) {
-    if (err) {
-      callback(err);
-      return;
-    }
 
-    // Guardar métricas históricas de forma inteligente
-    db.get(`
-      SELECT * FROM historial_metricas 
-      WHERE user_id = ? 
-      ORDER BY fecha DESC LIMIT 1
-    `, [newId], (historyErr, lastRecord) => {
-      if (historyErr) {
-        console.error("Error consultando último historial de métricas:", historyErr);
-        callback(null);
+  db.get("SELECT password_hash FROM users WHERE id = ?", [newId], (err, row) => {
+    const passwordHash = user.password_hash || (row ? row.password_hash : null);
+
+    const stmt = db.prepare(`
+      INSERT OR REPLACE INTO users 
+      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run([
+      newId, user.name, user.age, user.sex, user.weight, user.height,
+      user.goal, user.level, user.streak, user.assignedCluster || 'Pendiente',
+      user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
+      user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
+      user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
+      daysStr, passwordHash
+    ], function(runErr) {
+      if (runErr) {
+        stmt.finalize();
+        callback(runErr);
         return;
       }
+      stmt.finalize();
 
-      // Comparar métricas actuales con el último registro
-      const w = parseFloat(user.weight) || 0.0;
-      const h = parseFloat(user.height) || 0.0;
-      const mm = parseFloat(user.muscleMass) || 0.0;
-      const sm = parseFloat(user.skeletalMuscle) || 0.0;
-      const imc = parseFloat(user.imc) || 0.0;
-      const bf = parseFloat(user.bodyFat) || 0.0;
-      const waist = parseFloat(user.waist) || 0.0;
-      const neck = parseFloat(user.neck) || 0.0;
-      const hip = parseFloat(user.hip) || 0.0;
-
-      const hasChanged = !lastRecord || 
-        Math.abs((lastRecord.weight || 0.0) - w) > 0.01 ||
-        Math.abs((lastRecord.height || 0.0) - h) > 0.01 ||
-        Math.abs((lastRecord.muscle_mass || 0.0) - mm) > 0.01 ||
-        Math.abs((lastRecord.skeletal_muscle || 0.0) - sm) > 0.01 ||
-        Math.abs((lastRecord.imc || 0.0) - imc) > 0.01 ||
-        Math.abs((lastRecord.body_fat || 0.0) - bf) > 0.01 ||
-        Math.abs((lastRecord.waist || 0.0) - waist) > 0.01 ||
-        Math.abs((lastRecord.neck || 0.0) - neck) > 0.01 ||
-        Math.abs((lastRecord.hip || 0.0) - hip) > 0.01;
-
-      if (hasChanged) {
-        db.run(`
-          INSERT INTO historial_metricas 
-          (user_id, weight, height, muscle_mass, skeletal_muscle, imc, body_fat, waist, neck, hip)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [newId, w, h, mm, sm, imc, bf, waist, neck, hip], (insertErr) => {
-          if (insertErr) {
-            console.error("Error insertando métricas en el historial:", insertErr);
-          } else {
-            console.log(`Métricas históricas registradas para el usuario ${newId}.`);
-          }
+      // Guardar métricas históricas de forma inteligente
+      db.get(`
+        SELECT * FROM historial_metricas 
+        WHERE user_id = ? 
+        ORDER BY fecha DESC LIMIT 1
+      `, [newId], (historyErr, lastRecord) => {
+        if (historyErr) {
+          console.error("Error consultando último historial de métricas:", historyErr);
           callback(null);
-        });
-      } else {
-        callback(null);
-      }
+          return;
+        }
+
+        // Comparar métricas actuales con el último registro
+        const w = parseFloat(user.weight) || 0.0;
+        const h = parseFloat(user.height) || 0.0;
+        const mm = parseFloat(user.muscleMass) || 0.0;
+        const sm = parseFloat(user.skeletalMuscle) || 0.0;
+        const imc = parseFloat(user.imc) || 0.0;
+        const bf = parseFloat(user.bodyFat) || 0.0;
+        const waist = parseFloat(user.waist) || 0.0;
+        const neck = parseFloat(user.neck) || 0.0;
+        const hip = parseFloat(user.hip) || 0.0;
+
+        const hasChanged = !lastRecord || 
+          Math.abs((lastRecord.weight || 0.0) - w) > 0.01 ||
+          Math.abs((lastRecord.height || 0.0) - h) > 0.01 ||
+          Math.abs((lastRecord.muscle_mass || 0.0) - mm) > 0.01 ||
+          Math.abs((lastRecord.skeletal_muscle || 0.0) - sm) > 0.01 ||
+          Math.abs((lastRecord.imc || 0.0) - imc) > 0.01 ||
+          Math.abs((lastRecord.body_fat || 0.0) - bf) > 0.01 ||
+          Math.abs((lastRecord.waist || 0.0) - waist) > 0.01 ||
+          Math.abs((lastRecord.neck || 0.0) - neck) > 0.01 ||
+          Math.abs((lastRecord.hip || 0.0) - hip) > 0.01;
+
+        if (hasChanged) {
+          db.run(`
+            INSERT INTO historial_metricas 
+            (user_id, weight, height, muscle_mass, skeletal_muscle, imc, body_fat, waist, neck, hip)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `, [newId, w, h, mm, sm, imc, bf, waist, neck, hip], (insertErr) => {
+            if (insertErr) {
+              console.error("Error insertando métricas en el historial:", insertErr);
+            } else {
+              console.log(`Métricas históricas registradas para el usuario ${newId}.`);
+            }
+            callback(null);
+          });
+        } else {
+          callback(null);
+        }
+      });
     });
   });
-  stmt.finalize();
 }
 
 function saveLog(log, callback) {
@@ -903,7 +912,7 @@ function saveAttendance(att, callback) {
 
 function getAttendanceList(callback) {
   db.all(`
-    SELECT a.*, u.name as userName, u.profileType 
+    SELECT a.*, u.name as userName, u.profileType, u.email as userEmail 
     FROM (
       SELECT id, userId, date, type, notes FROM attendance
       UNION ALL
@@ -983,14 +992,14 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 }
 
 // Nuevas funciones para Usuarios Habilitados
-function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, callback) {
+function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email, callback) {
   const cleanRut = getRunFromRut(rut);
   const finalDate = fecha_registro || new Date().toISOString().replace('T', ' ').substring(0, 19);
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal, fecha_registro)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email)
+    VALUES (?, ?, ?, ?, ?, ?)
   `);
-  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0, finalDate], function(err) {
+  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0, finalDate, email || null], function(err) {
     callback(err);
   });
   stmt.finalize();
@@ -999,6 +1008,13 @@ function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, f
 function checkHabilitacion(rut, callback) {
   const cleanRut = getRunFromRut(rut);
   db.get("SELECT * FROM usuarios_habilitados WHERE rut = ?", [cleanRut], (err, row) => {
+    callback(err, row);
+  });
+}
+
+function checkHabilitacionByEmail(email, callback) {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  db.get("SELECT * FROM usuarios_habilitados WHERE LOWER(email) = ?", [cleanEmail], (err, row) => {
     callback(err, row);
   });
 }
@@ -1035,6 +1051,13 @@ function getUserById(id, callback) {
 function getUserByRut(rut, callback) {
   const cleanRut = getRunFromRut(rut);
   db.get("SELECT * FROM users WHERE rut = ?", [cleanRut], (err, row) => {
+    callback(err, row);
+  });
+}
+
+function getUserByEmail(email, callback) {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  db.get("SELECT * FROM users WHERE LOWER(email) = ?", [cleanEmail], (err, row) => {
     callback(err, row);
   });
 }
@@ -1325,6 +1348,14 @@ function updateUserProfileType(rut, profileType, callback) {
   db.run("UPDATE users SET profileType = ? WHERE rut = ?", [profileType, rut], callback);
 }
 
+function updateUserProfileTypeAndEmail(rut, profileType, email, callback) {
+  if (email) {
+    db.run("UPDATE users SET profileType = ?, email = ? WHERE rut = ?", [profileType, email, rut], callback);
+  } else {
+    db.run("UPDATE users SET profileType = ? WHERE rut = ?", [profileType, rut], callback);
+  }
+}
+
 function getUserMetricsHistory(userId, callback) {
   db.all(`
     SELECT * FROM historial_metricas 
@@ -1382,11 +1413,13 @@ module.exports = {
   obtenerUltimaAsistenciaUsuario,
   addUsuarioHabilitado,
   checkHabilitacion,
+  checkHabilitacionByEmail,
   getAllHabilitaciones,
   getAdminByUsername,
   decrementarDiasPermitidos,
   getUserById,
   getUserByRut,
+  getUserByEmail,
   getAllUsers,
   saveWebNotification,
   getUnreadNotifications,
@@ -1397,6 +1430,7 @@ module.exports = {
   checkUserAttendanceForDate,
   checkUserWeeklyLimit,
   updateUserProfileType,
+  updateUserProfileTypeAndEmail,
   getUserMetricsHistory,
   getUserAttendanceHistory
 };

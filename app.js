@@ -460,67 +460,213 @@ function initEventListeners() {
         });
     }
 
-    DOM.btnOnboardingTo3.addEventListener('click', async () => {
-        const rutInput = document.getElementById('input-rut');
-        const rutErrorMsg = document.getElementById('rut-error-msg');
-        
-        if (validateStep2() && rutInput && rutInput.value.trim() !== '') {
-            const rutValue = rutInput.value.trim();
+    // Toggle de pestañas Login / Registro
+    const authTabControl = document.getElementById('auth-tab-control');
+    if (authTabControl) {
+        const tabBtns = authTabControl.querySelectorAll('.segment-btn');
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                tabBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                const tab = btn.dataset.tab;
+                const loginSec = document.getElementById('auth-login-section');
+                const registerSec = document.getElementById('auth-register-section');
+                
+                if (tab === 'login') {
+                    if (loginSec) loginSec.style.display = 'block';
+                    if (registerSec) registerSec.style.display = 'none';
+                    document.getElementById('onboarding-step-2-title').textContent = 'Acceso a GYM_UCN';
+                } else {
+                    if (loginSec) loginSec.style.display = 'none';
+                    if (registerSec) registerSec.style.display = 'block';
+                    document.getElementById('onboarding-step-2-title').textContent = 'Registro de Estudiante';
+                }
+            });
+        });
+    }
+
+    // Lógica de Submit Login
+    const btnLoginSubmit = document.getElementById('btn-login-submit');
+    if (btnLoginSubmit) {
+        btnLoginSubmit.addEventListener('click', async () => {
+            const emailInput = document.getElementById('login-email');
+            const passwordInput = document.getElementById('login-password');
+            const errorMsg = document.getElementById('login-error-msg');
             
-            // 1. Validación Módulo 11 (cliente)
-            if (!isValidRut(rutValue)) {
-                rutErrorMsg.textContent = 'RUT inválido. Verifica el formato y dígito.';
-                rutErrorMsg.style.display = 'block';
+            if (!emailInput || !passwordInput || emailInput.value.trim() === '' || passwordInput.value.trim() === '') {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Por favor complete todos los campos.';
+                    errorMsg.style.display = 'block';
+                }
                 return;
             }
             
-            // 2. Validación en Servidor
-            DOM.btnOnboardingTo3.disabled = true;
-            DOM.btnOnboardingTo3.textContent = 'Validando Acceso...';
+            btnLoginSubmit.disabled = true;
+            btnLoginSubmit.textContent = 'Iniciando Sesión...';
+            if (errorMsg) errorMsg.style.display = 'none';
             
             try {
-                const response = await fetch(`${window.location.origin}/api/check-habilitacion?rut=${rutValue}`);
-                const data = await response.json();
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: emailInput.value.trim(),
+                        password: passwordInput.value
+                    })
+                });
                 
-                if (!data.valid) {
-                    rutErrorMsg.textContent = data.message || 'RUT no habilitado o sin días.';
-                    rutErrorMsg.style.display = 'block';
-                    DOM.btnOnboardingTo3.disabled = false;
-                    DOM.btnOnboardingTo3.textContent = 'Continuar';
-                    return;
+                const data = await res.json();
+                if (res.ok && data.success && data.user) {
+                    // Guardar perfil en LocalStorage y AppState
+                    AppState.user = data.user;
+                    localStorage.setItem('aura_user_profile', JSON.stringify(data.user));
+                    
+                    // Ocultar onboarding e ingresar a main layout
+                    document.getElementById('screen-onboarding').classList.remove('active');
+                    showScreen('main-layout');
+                    renderDashboard();
+                    renderRoutinesTab();
+                    renderProfileTab();
+                    
+                    // Resetear inputs
+                    emailInput.value = '';
+                    passwordInput.value = '';
+                } else {
+                    if (errorMsg) {
+                        errorMsg.textContent = data.error || 'Credenciales incorrectas.';
+                        errorMsg.style.display = 'block';
+                    }
                 }
-                
-                rutErrorMsg.style.display = 'none';
-                tempProfile.id = data.userId;
-                tempProfile.rut = rutValue;
-                tempProfile.profileType = data.profileType || 'estudiante';
-                tempProfile.name = DOM.inputName.value.trim();
-                tempProfile.email = DOM.inputEmail ? DOM.inputEmail.value.trim() : '';
-                tempProfile.age = parseInt(DOM.inputAge.value);
-                tempProfile.weight = parseFloat(DOM.inputWeight.value);
-                tempProfile.height = parseInt(DOM.inputHeight.value);
-                tempProfile.waist = parseFloat(DOM.inputWaist.value);
-                tempProfile.neck = parseFloat(DOM.inputNeck.value);
-                tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
-                tempProfile.muscleMass = parseFloat(DOM.inputMuscleMass.value) || 0.0;
-                tempProfile.skeletalMuscle = parseFloat(DOM.inputSkeletalMuscle.value) || 0.0;
-                
-                DOM.btnOnboardingTo3.disabled = false;
-                DOM.btnOnboardingTo3.textContent = 'Continuar';
-                showOnboardingStep(3);
-                
             } catch (err) {
-                console.error("FAIL-FAST [Check Habilitación]:", err);
-                rutErrorMsg.textContent = 'Error de red al validar.';
-                rutErrorMsg.style.display = 'block';
-                DOM.btnOnboardingTo3.disabled = false;
-                DOM.btnOnboardingTo3.textContent = 'Continuar';
+                console.error("Error en login:", err);
+                if (errorMsg) {
+                    errorMsg.textContent = 'Error de red al iniciar sesión.';
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                btnLoginSubmit.disabled = false;
+                btnLoginSubmit.textContent = 'Iniciar Sesión';
+            }
+        });
+    }
+
+    // Lógica de Verificar Correo (Registro)
+    const btnRegisterCheck = document.getElementById('btn-register-check');
+    if (btnRegisterCheck) {
+        btnRegisterCheck.addEventListener('click', async () => {
+            const emailInput = document.getElementById('input-email');
+            const errorMsg = document.getElementById('register-error-msg');
+            
+            if (!emailInput || emailInput.value.trim() === '') {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Por favor ingrese su correo institucional.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
             }
             
+            const emailValue = emailInput.value.trim();
+            const emailLower = emailValue.toLowerCase();
+            if (!emailLower.endsWith('@alumnos.ucn.cl') && !emailLower.endsWith('@ucn.cl')) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'El correo debe ser @alumnos.ucn.cl o @ucn.cl.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+            
+            btnRegisterCheck.disabled = true;
+            btnRegisterCheck.textContent = 'Verificando...';
+            if (errorMsg) errorMsg.style.display = 'none';
+            
+            try {
+                const res = await fetch('/api/auth/register-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: emailValue })
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (data.registered) {
+                        if (errorMsg) {
+                            errorMsg.textContent = 'Este correo ya está registrado. Por favor, inicia sesión.';
+                            errorMsg.style.display = 'block';
+                        }
+                    } else {
+                        // Habilitar campos de registro
+                        document.getElementById('register-verify-block').style.display = 'none';
+                        document.getElementById('register-fields-block').style.display = 'block';
+                        
+                        // Guardar datos preliminares
+                        tempProfile.rut = data.rut;
+                        tempProfile.email = emailValue;
+                        tempProfile.profileType = data.profileType || 'estudiante';
+                        tempProfile.limite_semanal = data.limite_semanal || 0;
+                        tempProfile.id = data.userId || null;
+                        
+                        const rutHidden = document.getElementById('input-rut');
+                        if (rutHidden) rutHidden.value = data.rut;
+                    }
+                } else {
+                    if (errorMsg) {
+                        errorMsg.textContent = data.error || 'Su correo no está habilitado para el registro.';
+                        errorMsg.style.display = 'block';
+                    }
+                }
+            } catch (err) {
+                console.error("Error en verificación de registro:", err);
+                if (errorMsg) {
+                    errorMsg.textContent = 'Error de red al verificar el correo.';
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                btnRegisterCheck.disabled = false;
+                btnRegisterCheck.textContent = 'Verificar Correo';
+            }
+        });
+    }
+
+    DOM.btnOnboardingTo3.addEventListener('click', async () => {
+        const passwordInput = document.getElementById('register-password');
+        
+        if (!passwordInput || passwordInput.value.length < 6) {
+            alert('La contraseña debe tener al menos 6 caracteres.');
+            return;
+        }
+
+        if (validateStep2()) {
+            tempProfile.password = passwordInput.value;
+            tempProfile.name = DOM.inputName.value.trim();
+            tempProfile.age = parseInt(DOM.inputAge.value);
+            tempProfile.weight = parseFloat(DOM.inputWeight.value);
+            tempProfile.height = parseInt(DOM.inputHeight.value);
+            tempProfile.waist = parseFloat(DOM.inputWaist.value);
+            tempProfile.neck = parseFloat(DOM.inputNeck.value);
+            tempProfile.hip = tempProfile.sex === 'female' ? parseFloat(DOM.inputHip.value) : 0;
+            tempProfile.muscleMass = parseFloat(DOM.inputMuscleMass.value) || 0.0;
+            tempProfile.skeletalMuscle = parseFloat(DOM.inputSkeletalMuscle.value) || 0.0;
+            
+            showOnboardingStep(3);
         } else {
-            alert("Por favor completa tu RUT y todos tus datos físicos.");
+            alert("Por favor completa todos tus datos físicos.");
         }
     });
+
+    // Cerrar sesión del estudiante
+    const handleLogout = () => {
+        if (confirm('¿Estás seguro de que deseas cerrar sesión en este dispositivo?')) {
+            localStorage.removeItem('aura_user_profile');
+            localStorage.removeItem('aura_workout_history');
+            window.location.reload();
+        }
+    };
+
+    const btnUserDropdownLogout = document.getElementById('btn-user-dropdown-logout');
+    if (btnUserDropdownLogout) {
+        btnUserDropdownLogout.addEventListener('click', handleLogout);
+    }
 
     DOM.btnOnboardingTo4.addEventListener('click', () => {
         showOnboardingStep(4);
@@ -588,6 +734,11 @@ function initEventListeners() {
                 tempProfile.days = tempProfile.days.filter(d => d !== day);
                 btn.classList.remove('active');
             } else {
+                const limit = tempProfile.limite_semanal || 0;
+                if (limit > 0 && tempProfile.days.length >= limit) {
+                    alert(`Has alcanzado el límite máximo de ${limit} día(s) de entrenamiento semanales asignados por tu administrador.`);
+                    return;
+                }
                 tempProfile.days.push(day);
                 btn.classList.add('active');
             }
@@ -1234,6 +1385,7 @@ function saveOnboardingProfile() {
         id: tempProfile.id || `user-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         rut: tempProfile.rut,
         email: tempProfile.email || '',
+        password: tempProfile.password || '',
         name: tempProfile.name,
         age: tempProfile.age,
         sex: tempProfile.sex,
@@ -1257,10 +1409,12 @@ function saveOnboardingProfile() {
         injuryDetails: tempProfile.injuryDetails || ""
     };
 
-    localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
-    
     // Sincronizar inmediatamente los datos de registro con la base de datos real en el servidor
     saveActiveUserToDatabase();
+
+    // Eliminar contraseña de AppState.user y LocalStorage por seguridad
+    delete AppState.user.password;
+    localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
 
     showScreen('main-layout');
 
@@ -2228,6 +2382,27 @@ async function renderAdminTab() {
         }
     }
 
+    // Filtrar duplicados por RUT antes del clustering y renderizado
+    const seenRuts = new Set();
+    const uniqueUsers = [];
+    const sortedUsers = [...users].sort((a, b) => {
+        if (a.password_hash && !b.password_hash) return -1;
+        if (!a.password_hash && b.password_hash) return 1;
+        if (a.name !== 'Nuevo Atleta' && b.name === 'Nuevo Atleta') return -1;
+        if (a.name === 'Nuevo Atleta' && b.name !== 'Nuevo Atleta') return 1;
+        return 0;
+    });
+    sortedUsers.forEach(u => {
+        const cleanRut = getRunFromRut(u.rut || '');
+        if (cleanRut && !seenRuts.has(cleanRut)) {
+            seenRuts.add(cleanRut);
+            uniqueUsers.push(u);
+        } else if (!cleanRut) {
+            uniqueUsers.push(u);
+        }
+    });
+    users = uniqueUsers;
+
     // Correr clustering y obtener iteraciones (actualiza assignedCluster en los objetos users)
     const clusterResult = await AURA_AI.runClustering(users, habilitaciones);
     if (DOM.adminAiIterations) DOM.adminAiIterations.textContent = clusterResult.iterations || 2;
@@ -2329,6 +2504,7 @@ async function renderAdminTab() {
             let es_exento = false;
             let limite_semanal = 0;
             let fecha_registro = null;
+            let emailFromHab = '';
             
             if (user.rut && habilitaciones.length > 0) {
                 const userRutBody = getRunFromRut(user.rut.toString());
@@ -2337,6 +2513,7 @@ async function renderAdminTab() {
                     es_exento = hab.es_exento;
                     limite_semanal = hab.limite_semanal || 0;
                     fecha_registro = hab.fecha_registro;
+                    emailFromHab = hab.email || '';
                 }
             }
 
@@ -2372,10 +2549,13 @@ async function renderAdminTab() {
                 stateAccessBadge = `<span class="cluster-badge" style="background: rgba(255, 71, 87, 0.15); color: var(--color-danger); border: 1px solid rgba(255, 71, 87, 0.3); font-size:10px;">Bloqueado / Vencido</span>`;
             }
 
+            const displayEmail = user.email || emailFromHab;
+
             tr.innerHTML = `
                 <td style="font-size: 12px; color: var(--text-primary); font-family: monospace;">${user.rut || '--'}</td>
                 <td style="font-weight: 600; font-size: 13px;">
                     <a href="#" class="athlete-name-link" style="color: var(--color-neon-teal); text-decoration: none; border-bottom: 1px dashed var(--color-neon-teal); transition: all 0.2s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--color-neon-teal)'">${user.name}</a>
+                    ${displayEmail ? `<br><span style="font-size: 10.5px; font-weight: normal; color: var(--text-secondary); font-family: monospace;">${displayEmail}</span>` : ''}
                 </td>
                 <td>${stateBadge}</td>
                 <td>${stateAccessBadge}</td>
@@ -2404,6 +2584,10 @@ async function renderAdminTab() {
                         <div style="display: flex; flex-direction: column; gap: 4px;">
                             <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Perfil / Nivel</span>
                             <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${profileLabel} (${user.level || 'Intermedio'})</span>
+                        </div>
+                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Contacto / Correo</span>
+                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${user.email || '--'}</span>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
                             <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Métricas Manuales</span>
@@ -2797,6 +2981,14 @@ function renderAttendanceHistory() {
 
             filteredAtt.forEach(att => {
                 const userName = att.userName || 'Atleta Desconocido';
+                let userEmail = att.userEmail || '';
+                if (!userEmail && att.userId) {
+                    const localUsers = (AURA_AI && typeof AURA_AI.getUsers === 'function') ? AURA_AI.getUsers() : [];
+                    const foundUser = localUsers.find(u => u.id === att.userId);
+                    if (foundUser) {
+                        userEmail = foundUser.email;
+                    }
+                }
                 const profileType = att.profileType || 'estudiante';
                 let profileLabel = 'Estudiante';
                 if (profileType === 'deportista_seleccionado') profileLabel = 'Selección';
@@ -2820,7 +3012,10 @@ function renderAttendanceHistory() {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                 <td class="font-mono" style="font-size: 11px;">${displayDateTime}</td>
-                <td style="font-weight: 500; font-size: 12px;">${userName}</td>
+                <td style="font-weight: 500; font-size: 12px;">
+                    ${userName}
+                    ${userEmail ? `<br><span style="font-size: 10.5px; font-weight: normal; color: var(--text-secondary); font-family: monospace;">${userEmail}</span>` : ''}
+                </td>
                 <td style="font-size: 12px; color: var(--text-secondary);">${profileLabel}</td>
                 <td style="font-size: 11px; line-height: 1.3;">${typeLabel}<br><span style="font-size: 10px; color:var(--text-muted);">${att.notes || ''}</span></td>
             `;
@@ -2941,6 +3136,8 @@ if (btnAdminHabilitar) {
     btnAdminHabilitar.addEventListener('click', async () => {
         const token = sessionStorage.getItem('aura_admin_token');
         const rut = document.getElementById('admin-hab-rut').value;
+        const emailEl = document.getElementById('admin-hab-email');
+        const email = emailEl ? emailEl.value.trim() : '';
         const exento = document.getElementById('admin-hab-exento').checked;
         const limiteSemanalSelect = document.getElementById('admin-hab-semanal');
         const limite_semanal = limiteSemanalSelect ? parseInt(limiteSemanalSelect.value) || 0 : 0;
@@ -2949,6 +3146,21 @@ if (btnAdminHabilitar) {
         const selectTipo = document.getElementById('admin-hab-tipo');
         const profileType = selectTipo ? selectTipo.value : 'estudiante';
         const msg = document.getElementById('admin-hab-msg');
+
+        if (!email) {
+            msg.style.color = 'var(--color-danger)';
+            msg.textContent = 'El correo institucional es obligatorio.';
+            setTimeout(() => { msg.textContent = ''; }, 4000);
+            return;
+        }
+
+        const emailLower = email.toLowerCase();
+        if (!emailLower.endsWith('@alumnos.ucn.cl') && !emailLower.endsWith('@ucn.cl')) {
+            msg.style.color = 'var(--color-danger)';
+            msg.textContent = 'El correo debe ser @alumnos.ucn.cl o @ucn.cl';
+            setTimeout(() => { msg.textContent = ''; }, 4000);
+            return;
+        }
         
         try {
             const res = await fetch(`${window.location.origin}/api/admin/habilitar-usuario`, {
@@ -2957,7 +3169,7 @@ if (btnAdminHabilitar) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ rut, es_exento: exento, limite_semanal, mes, profileType })
+                body: JSON.stringify({ rut, es_exento: exento, limite_semanal, mes, profileType, email })
             });
             if (res.status === 401 || res.status === 403) {
                 sessionStorage.removeItem('aura_admin_token');
@@ -2970,6 +3182,7 @@ if (btnAdminHabilitar) {
                 msg.style.color = 'var(--color-neon-teal)';
                 msg.textContent = '¡Estudiante habilitado con éxito!';
                 document.getElementById('admin-hab-rut').value = '';
+                if (emailEl) emailEl.value = '';
                 if (limiteSemanalSelect) limiteSemanalSelect.value = '0';
                 if (selectMes) selectMes.value = (new Date().getMonth() + 1).toString();
                 if (selectTipo) selectTipo.value = 'estudiante';
