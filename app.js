@@ -3121,6 +3121,16 @@ const btnAdminLogout = document.getElementById('btn-admin-logout');
 if (btnAdminLogout) {
     btnAdminLogout.addEventListener('click', () => {
         sessionStorage.removeItem('aura_admin_token');
+        
+        // Regresar a la pantalla de Onboarding Step 1
+        const mainLayout = document.getElementById('main-layout');
+        const screenOnboarding = document.getElementById('screen-onboarding');
+        const appContainer = document.getElementById('app-container');
+        
+        if (mainLayout) mainLayout.classList.remove('active');
+        if (screenOnboarding) screenOnboarding.classList.add('active');
+        if (appContainer) appContainer.classList.remove('admin-mode');
+        
         window.checkAdminAuth();
     });
 }
