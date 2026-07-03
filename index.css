@@ -2159,6 +2159,12 @@ input[type="number"]:focus {
     display: block;
 }
 
+#modal-tab-metrics.active {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
 /* QR Code Scanner styling */
 .scanner-tabs {
     display: flex;
