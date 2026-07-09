@@ -34,7 +34,10 @@ function initDb() {
         neck REAL DEFAULT 0.0,
         hip REAL DEFAULT 0.0,
         days TEXT DEFAULT '[]',
-        password_hash TEXT
+        password_hash TEXT,
+        isElite INTEGER DEFAULT 0,
+        paymentDate TEXT,
+        expirationDate TEXT
       )
     `);
 
@@ -53,6 +56,9 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN hip REAL DEFAULT 0.0", () => {});
     db.run("ALTER TABLE users ADD COLUMN days TEXT DEFAULT '[]'", () => {});
     db.run("ALTER TABLE users ADD COLUMN password_hash TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN isElite INTEGER DEFAULT 0", () => {});
+    db.run("ALTER TABLE users ADD COLUMN paymentDate TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN expirationDate TEXT", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN email TEXT", () => {});
 
@@ -117,6 +123,17 @@ function initDb() {
         message TEXT NOT NULL,
         is_read BOOLEAN DEFAULT 0,
         fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Tabla de Comunicados (Mensajes globales o dirigidos)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS comunicados (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        targetGroup TEXT DEFAULT 'all',
+        date DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
@@ -804,13 +821,16 @@ function saveUser(user, callback) {
   const daysStr = Array.isArray(user.days) ? JSON.stringify(user.days) : (user.days || '[]');
   const cleanRut = getRunFromRut(user.rut || '');
 
-  db.get("SELECT password_hash FROM users WHERE id = ?", [newId], (err, row) => {
+  db.get("SELECT password_hash, isElite, paymentDate, expirationDate FROM users WHERE id = ?", [newId], (err, row) => {
     const passwordHash = user.password_hash || (row ? row.password_hash : null);
+    const isElite = (user.isElite !== undefined) ? user.isElite : (row ? row.isElite : 0);
+    const paymentDate = user.paymentDate !== undefined ? user.paymentDate : (row ? row.paymentDate : null);
+    const expirationDate = user.expirationDate !== undefined ? user.expirationDate : (row ? row.expirationDate : null);
 
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO users 
-      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash, isElite, paymentDate, expirationDate) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run([
@@ -819,7 +839,7 @@ function saveUser(user, callback) {
       user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
       user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
       user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
-      daysStr, passwordHash
+      daysStr, passwordHash, isElite, paymentDate, expirationDate
     ], function(runErr) {
       if (runErr) {
         stmt.finalize();
@@ -1400,6 +1420,116 @@ function getUserAttendanceHistory(userId, callback) {
   });
 }
 
+function saveRoutine(routineData, callback) {
+  const { id, name, duration, exercises } = routineData;
+  db.serialize(() => {
+    db.run("INSERT OR REPLACE INTO rutinas (id, nombre, duration) VALUES (?, ?, ?)", [id, name, duration], (err) => {
+      if (err) return callback(err);
+    });
+    
+    db.run("DELETE FROM rutinas_ejercicios WHERE rutina_id = ?", [id], (err) => {
+      if (err) return callback(err);
+    });
+
+    if (exercises && exercises.length > 0) {
+      let completed = 0;
+      let hasError = false;
+
+      exercises.forEach((ex, index) => {
+        if (hasError) return;
+        const exId = ex.id || 'ex-' + ex.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-');
+        const instrsStr = Array.isArray(ex.instructions) ? JSON.stringify(ex.instructions) : (ex.instructions || '[]');
+        const setsStr = Array.isArray(ex.sets) ? JSON.stringify(ex.sets) : (ex.sets || '[]');
+        const maqId = ex.maquina_id || 'maq-libre';
+
+        db.run(`
+          INSERT OR REPLACE INTO ejercicios (id, nombre, muscle, animationClass, videoUrl, instructions, sets, maquina_id)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `, [exId, ex.name, ex.muscle, ex.animationClass, ex.videoUrl, instrsStr, setsStr, maqId], (err) => {
+          if (err) {
+            hasError = true;
+            return callback(err);
+          }
+
+          db.run("INSERT INTO rutinas_ejercicios (rutina_id, ejercicio_id, orden) VALUES (?, ?, ?)", [id, exId, index], (err) => {
+            if (err) {
+              hasError = true;
+              return callback(err);
+            }
+            completed++;
+            if (completed === exercises.length) {
+              callback(null);
+            }
+          });
+        });
+      });
+    } else {
+      callback(null);
+    }
+  });
+}
+
+function getComunicados(profileType, callback) {
+  if (profileType) {
+    db.all(`
+      SELECT * FROM comunicados 
+      WHERE targetGroup = 'all' OR targetGroup = ?
+      ORDER BY date DESC
+    `, [profileType], callback);
+  } else {
+    db.all("SELECT * FROM comunicados ORDER BY date DESC", [], callback);
+  }
+}
+
+function addComunicado(comunicado, callback) {
+  const { title, content, targetGroup } = comunicado;
+  db.run(`
+    INSERT INTO comunicados (title, content, targetGroup)
+    VALUES (?, ?, ?)
+  `, [title, content, targetGroup || 'all'], callback);
+}
+
+function updateUserAdminFields(userId, fields, callback) {
+  const { isElite, paymentDate, expirationDate } = fields;
+  const isEliteInt = isElite ? 1 : 0;
+  db.run(`
+    UPDATE users 
+    SET isElite = ?, paymentDate = ?, expirationDate = ?
+    WHERE id = ?
+  `, [isEliteInt, paymentDate, expirationDate, userId], callback);
+}
+
+function renewUserPlan(userId, callback) {
+  db.get("SELECT expirationDate FROM users WHERE id = ?", [userId], (err, row) => {
+    if (err) return callback(err);
+    let baseDate = new Date();
+    if (row && row.expirationDate) {
+      const currentExp = new Date(row.expirationDate);
+      if (currentExp > baseDate) {
+        baseDate = currentExp;
+      }
+    }
+    baseDate.setDate(baseDate.getDate() + 30);
+    const newExpStr = baseDate.toISOString().slice(0, 10);
+    
+    db.run("UPDATE users SET expirationDate = ? WHERE id = ?", [newExpStr, userId], (err) => {
+      if (err) return callback(err);
+      
+      db.get("SELECT rut FROM users WHERE id = ?", [userId], (err, userRow) => {
+        if (userRow && userRow.rut) {
+          const cleanRut = getRunFromRut(userRow.rut);
+          const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
+          db.run("UPDATE usuarios_habilitados SET fecha_registro = ? WHERE rut = ?", [nowStr, cleanRut], () => {
+            callback(null, newExpStr);
+          });
+        } else {
+          callback(null, newExpStr);
+        }
+      });
+    });
+  });
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1432,5 +1562,10 @@ module.exports = {
   updateUserProfileType,
   updateUserProfileTypeAndEmail,
   getUserMetricsHistory,
-  getUserAttendanceHistory
+  getUserAttendanceHistory,
+  saveRoutine,
+  getComunicados,
+  addComunicado,
+  updateUserAdminFields,
+  renewUserPlan
 };

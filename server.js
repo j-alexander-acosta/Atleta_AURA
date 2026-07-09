@@ -352,8 +352,41 @@ app.post('/api/workouts', (req, res) => {
 
     const saveUserData = () => {
       user.rut = cleanRut;
-      db.saveUser(user, (err) => {
-        if (err) console.error("Error guardando usuario:", err);
+      db.getUserByRut(cleanRut, (err, existingUser) => {
+        const wasInjured = existingUser ? (existingUser.injured === 1) : false;
+        const isCurrentlyInjured = (user.injured === 1 || user.injured === true);
+        const isSelection = (user.profileType === 'deportista_seleccionado' || (existingUser && existingUser.profileType === 'deportista_seleccionado'));
+
+        db.saveUser(user, (saveErr) => {
+          if (saveErr) console.error("Error guardando usuario:", saveErr);
+
+          if (isCurrentlyInjured && !wasInjured && isSelection && transporter) {
+            const mailOptions = {
+              from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
+              to: 'paula.ramos@ce.ucn.cl',
+              subject: 'Alerta: Nueva Solicitud de Kinesiología por Lesión',
+              text: `Estimada Paula Ramos,\n\nEl atleta seleccionado ${user.name} ha reportado una lesión y solicita el servicio de Kinesiología.\n\nDetalles del deportista:\n- Nombre: ${user.name}\n- RUT: ${user.rut}\n- Correo: ${user.email || 'No registrado'}\n- Detalles de la lesión: ${user.injuryDetails || 'No proporcionado'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
+              html: `<p>Estimada Paula Ramos,</p>
+                     <p>El atleta seleccionado <strong>${user.name}</strong> ha reportado una lesión y solicita el servicio de Kinesiología.</p>
+                     <p><strong>Detalles del deportista:</strong></p>
+                     <ul>
+                       <li><strong>Nombre:</strong> ${user.name}</li>
+                       <li><strong>RUT:</strong> ${user.rut}</li>
+                       <li><strong>Correo:</strong> ${user.email || 'No registrado'}</li>
+                       <li><strong>Detalles de la lesión:</strong> ${user.injuryDetails || 'No proporcionado'}</li>
+                     </ul>
+                     <p>Saludos cordiales,<br>Sistema GYM-UCN</p>`
+            };
+
+            transporter.sendMail(mailOptions, (mailErr, mailInfo) => {
+              if (mailErr) {
+                console.error("Error enviando alerta de lesión a Paula Ramos:", mailErr);
+              } else {
+                console.log("Alerta de lesión enviada a Paula Ramos:", mailInfo.messageId);
+              }
+            });
+          }
+        });
       });
     };
 
@@ -366,6 +399,26 @@ app.post('/api/workouts', (req, res) => {
         }
         user.password_hash = hash;
         delete user.password;
+
+        if (user.email && transporter) {
+          const tutorialUrl = 'https://www.youtube.com/watch?v=example-tutorial-placeholder';
+          const mailOptions = {
+            from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
+            to: user.email,
+            subject: '¡Bienvenido a GYM-UCN! Videotutorial de Inicio',
+            text: `Hola ${user.name || 'Atleta'},\n\n¡Bienvenido a GYM-UCN! Tu registro se ha completado con éxito.\n\nPara ayudarte a comenzar, hemos preparado un videotutorial explicativo sobre cómo usar la plataforma y las instalaciones:\n${tutorialUrl}\n\n¡Nos vemos en el gimnasio!\nEl Equipo GYM-UCN`,
+            html: `<p>Hola <strong>${user.name || 'Atleta'}</strong>,</p>
+                   <p>¡Bienvenido a GYM-UCN! Tu registro se ha completado con éxito.</p>
+                   <p>Para ayudarte a comenzar, hemos preparado un videotutorial explicativo sobre cómo usar la plataforma y las instalaciones:</p>
+                   <p><a href="${tutorialUrl}" style="color: #00f5d4; font-weight: bold; text-decoration: none;">Ver Videotutorial en YouTube</a></p>
+                   <p>¡Nos vemos en el gimnasio!<br>El Equipo GYM-UCN</p>`
+          };
+          transporter.sendMail(mailOptions, (mailErr, mailInfo) => {
+            if (mailErr) console.error("Error al enviar correo de bienvenida:", mailErr);
+            else console.log("Correo de bienvenida enviado:", mailInfo.messageId);
+          });
+        }
+
         saveUserData();
       });
     } else {
@@ -435,18 +488,22 @@ app.post('/api/attendance', (req, res) => {
         return res.status(403).json({ error: 'Usuario no encontrado o sin RUT asignado.' });
       }
 
+      if (att.type === 'kinesiology' && rowUser.profileType !== 'deportista_seleccionado') {
+        return res.status(403).json({ error: 'El servicio de kinesiología está restringido exclusivamente a deportistas seleccionados.' });
+      }
+
       const cleanRut = getRunFromRut(rowUser.rut);
       db.checkHabilitacion(cleanRut, (err, hab) => {
         if (err) {
           console.error("Error verificando habilitación:", err);
-          return res.status(500).json({ error: 'Error de base de datos' });
+          return res.status(500).json({ success: false, error: 'Error de base de datos' });
         }
 
         if (!hab) {
           return res.status(403).json({ error: 'Usuario no habilitado en el sistema.' });
         }
 
-        // Verificar si la habilitación es del mes actual
+        // Verificar si la habilitación es del mes actual o si el plan está vigente
         const now = new Date();
         const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
         const santiagoNow = new Date(santiagoStr);
@@ -459,18 +516,28 @@ app.post('/api/attendance', (req, res) => {
         const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
                                regSantiago.getMonth() === santiagoNow.getMonth();
 
-        if (!hab.es_exento && !isCurrentMonth) {
-          return res.status(409).json({ error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
+        let isPlanActive = isCurrentMonth;
+        if (rowUser.expirationDate) {
+          try {
+            const expDate = new Date(rowUser.expirationDate + 'T23:59:59');
+            isPlanActive = expDate >= now;
+          } catch (e) {
+            console.error("Error al validar fecha de vencimiento:", e);
+          }
         }
 
-        // Validar límite semanal de asistencia
+        if (!hab.es_exento && !isPlanActive) {
+          return res.status(409).json({ error: 'Su plan mensual ha vencido o no corresponde al mes actual.' });
+        }
+
+        // Validar límite semanal de asistencia (bypass si es atleta élite)
         db.checkUserWeeklyLimit(att.userId, (err, limitResult) => {
           if (err) {
             console.error("Error verificando límite semanal:", err);
             return res.status(500).json({ error: 'Error de base de datos' });
           }
 
-          if (!limitResult.allowed) {
+          if (!limitResult.allowed && !rowUser.isElite) {
             return res.status(409).json({ error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.` });
           }
 
@@ -479,6 +546,29 @@ app.post('/api/attendance', (req, res) => {
               console.error("Error registrando asistencia:", err);
               return res.status(500).json({ error: 'Error de base de datos' });
             }
+
+            // Enviar correo de alerta si es kinesiología
+            if (att.type === 'kinesiology' && transporter) {
+              const mailOptions = {
+                from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
+                to: 'paula.ramos@ce.ucn.cl',
+                subject: 'Alerta: Asistencia de Kinesiología Registrada',
+                text: `Estimada Paula Ramos,\n\nSe ha habilitado/registrado una asistencia de Kinesiología para el siguiente atleta seleccionado:\n\n- Nombre: ${rowUser.name}\n- RUT: ${rowUser.rut}\n- Correo: ${rowUser.email || 'No registrado'}\n- Detalles/Notas: ${att.notes || 'Ninguna'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
+                html: `<p>Estimada Paula Ramos,</p>
+                       <p>Se ha habilitado/registrado una asistencia de Kinesiología para el siguiente atleta seleccionado:</p>
+                       <ul>
+                         <li><strong>Nombre:</strong> ${rowUser.name}</li>
+                         <li><strong>RUT:</strong> ${rowUser.rut}</li>
+                         <li><strong>Correo:</strong> ${rowUser.email || 'No registrado'}</li>
+                         <li><strong>Detalles/Notas:</strong> ${att.notes || 'Ninguna'}</li>
+                       </ul>
+                       <p>Saludos cordiales,<br>Sistema GYM-UCN</p>`
+              };
+              transporter.sendMail(mailOptions, (mailErr, mailInfo) => {
+                if (mailErr) console.error("Error al enviar alerta a Paula Ramos:", mailErr);
+              });
+            }
+
             res.json({ success: true, message: 'Asistencia registrada con éxito.' });
           });
         });
@@ -722,7 +812,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         return res.status(500).json({ success: false, error: 'Error de base de datos' });
       }
 
-      if (hasRegistered) {
+      if (hasRegistered && !rowUser.isElite) {
         return res.status(409).json({ 
           success: false, 
           error: 'Ya has registrado asistencia el día de hoy.',
@@ -763,7 +853,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
           });
         }
 
-        // Verificar si la habilitación es del mes actual
+        // Verificar si la habilitación es del mes actual o si el plan está vigente
         const now = new Date();
         const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
         const santiagoNow = new Date(santiagoStr);
@@ -776,10 +866,20 @@ app.post('/api/asistencia/check-in', async (req, res) => {
         const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
                                regSantiago.getMonth() === santiagoNow.getMonth();
 
-        if (!hab.es_exento && !isCurrentMonth) {
+        let isPlanActive = isCurrentMonth;
+        if (rowUser.expirationDate) {
+          try {
+            const expDate = new Date(rowUser.expirationDate + 'T23:59:59');
+            isPlanActive = expDate >= now;
+          } catch (e) {
+            console.error("Error al validar fecha de vencimiento:", e);
+          }
+        }
+
+        if (!hab.es_exento && !isPlanActive) {
           return res.status(409).json({ 
             success: false, 
-            error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.',
+            error: 'Su plan mensual ha vencido o no corresponde al mes actual.',
             user: {
               name: rowUser.name,
               rut: rowUser.rut,
@@ -798,7 +898,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
             return res.status(500).json({ success: false, error: 'Error de base de datos' });
           }
 
-          if (!limitResult.allowed) {
+          if (!limitResult.allowed && !rowUser.isElite) {
             return res.status(409).json({ 
               success: false, 
               error: `Has alcanzado tu límite de asistencia semanal de ${limitResult.limit} días.`,
@@ -819,8 +919,7 @@ app.post('/api/asistencia/check-in', async (req, res) => {
               return res.status(500).json({ success: false, error: 'Error consultando asistencia previa' });
             }
 
-            if (row && row.fecha_hora) {
-              // SQLite guarda DATETIME DEFAULT CURRENT_TIMESTAMP en UTC, Date.parse lo toma bien o requiere 'Z'
+            if (row && row.fecha_hora && !rowUser.isElite) {
               const lastTime = new Date(row.fecha_hora + 'Z').getTime();
               const nowTime = new Date().getTime();
               const diffMs = nowTime - lastTime;
@@ -986,6 +1085,146 @@ app.post('/api/notifications/read', (req, res) => {
     res.json({ success: true });
   });
 });
+
+// Automatización y Envío de Recordatorios de Pago (Nodemailer)
+function checkAndSendPaymentReminders(manualCallback) {
+  db.getAllUsers((err, users) => {
+    if (err) {
+      console.error("Error al consultar usuarios para recordatorios de pago:", err);
+      if (manualCallback) manualCallback(err);
+      return;
+    }
+
+    const today = new Date();
+    const santiagoToday = new Date(today.toLocaleString("en-US", { timeZone: "America/Santiago" }));
+    
+    const targetDate = new Date(santiagoToday);
+    targetDate.setDate(santiagoToday.getDate() + 3);
+    const targetDateStr = targetDate.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+
+    let sentCount = 0;
+    const eligibleUsers = users.filter(u => {
+      const isEligibleProfile = u.profileType === 'estudiante' || u.profileType === 'funcionario';
+      return isEligibleProfile && u.paymentDate === targetDateStr && u.email;
+    });
+
+    if (eligibleUsers.length === 0) {
+      if (manualCallback) manualCallback(null, 0);
+      return;
+    }
+
+    let completed = 0;
+    eligibleUsers.forEach(user => {
+      const mailOptions = {
+        from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
+        to: user.email,
+        subject: 'Recordatorio de Pago - GYM-UCN',
+        text: `Hola ${user.name},\n\nTe informamos que tu fecha de pago en GYM-UCN se aproxima el día ${user.paymentDate}.\n\nPor favor realiza el pago correspondiente para mantener tu acceso habilitado sin interrupciones.\n\nSaludos cordiales,\nEl Equipo GYM-UCN`,
+        html: `<p>Hola <strong>${user.name}</strong>,</p>
+               <p>Te informamos que tu fecha de pago en GYM-UCN se aproxima el día <strong>${user.paymentDate}</strong>.</p>
+               <p>Por favor realiza el pago correspondiente para mantener tu acceso habilitado sin interrupciones.</p>
+               <p>Saludos cordiales,<br>El Equipo GYM-UCN</p>`
+      };
+
+      transporter.sendMail(mailOptions, (mailErr, info) => {
+        completed++;
+        if (!mailErr) {
+          sentCount++;
+          console.log(`Recordatorio de pago enviado a ${user.email} para la fecha ${user.paymentDate}`);
+        } else {
+          console.error(`Error enviando recordatorio a ${user.email}:`, mailErr);
+        }
+
+        if (completed === eligibleUsers.length) {
+          if (manualCallback) manualCallback(null, sentCount);
+        }
+      });
+    });
+  });
+}
+
+// Ejecutar revisión automática cada 24 horas
+setInterval(() => {
+  console.log("Ejecutando revisión automática de recordatorios de pago...");
+  checkAndSendPaymentReminders();
+}, 24 * 60 * 60 * 1000);
+
+// Ejecutar revisión automática inicial a los 10 segundos
+setTimeout(() => {
+  console.log("Ejecutando revisión inicial de recordatorios de pago...");
+  checkAndSendPaymentReminders();
+}, 10000);
+
+// Endpoint Comunicados: Consultar comunicados dirigidos al tipo de perfil
+app.get('/api/comunicados', (req, res) => {
+  const { profileType } = req.query;
+  db.getComunicados(profileType, (err, rows) => {
+    if (err) return res.status(500).json({ error: 'Error al consultar comunicados.' });
+    res.json({ success: true, comunicados: rows || [] });
+  });
+});
+
+// Endpoint Comunicados: Crear comunicado (Admin Only)
+app.post('/api/admin/comunicados', authenticateAdmin, (req, res) => {
+  const { title, content, targetGroup } = req.body;
+  if (!title || !content) {
+    return res.status(400).json({ error: 'Título y contenido son obligatorios.' });
+  }
+  db.addComunicado({ title, content, targetGroup }, (err) => {
+    if (err) return res.status(500).json({ error: 'Error al guardar comunicado.' });
+    res.json({ success: true, message: 'Comunicado publicado con éxito.' });
+  });
+});
+
+// Endpoint Rutinas: Crear o actualizar rutina y ejercicios (Admin Only)
+app.post('/api/admin/routines', authenticateAdmin, (req, res) => {
+  const routineData = req.body;
+  if (!routineData || !routineData.id || !routineData.name || !routineData.duration) {
+    return res.status(400).json({ error: 'Faltan datos obligatorios de la rutina (id, name, duration).' });
+  }
+  db.saveRoutine(routineData, (err) => {
+    if (err) {
+      console.error("Error guardando rutina:", err);
+      return res.status(500).json({ error: 'Error al guardar la rutina en la base de datos.' });
+    }
+    res.json({ success: true, message: 'Rutina guardada y sincronizada correctamente.' });
+  });
+});
+
+// Endpoint Renovación: Renovar plan mensual +30 días (Admin Only)
+app.post('/api/admin/users/renew', authenticateAdmin, (req, res) => {
+  const { userId } = req.body;
+  if (!userId) return res.status(400).json({ error: 'Falta userId.' });
+  db.renewUserPlan(userId, (err, newExpirationDate) => {
+    if (err) {
+      console.error("Error al renovar plan:", err);
+      return res.status(500).json({ error: 'Error al renovar el plan mensual.' });
+    }
+    res.json({ success: true, message: 'Plan renovado exitosamente por 30 días.', expirationDate: newExpirationDate });
+  });
+});
+
+// Endpoint Actualizar Configuración Administrativa de Usuario: Elite, Fecha Pago, Fecha Vencimiento (Admin Only)
+app.post('/api/admin/users/fields', authenticateAdmin, (req, res) => {
+  const { userId, isElite, paymentDate, expirationDate } = req.body;
+  if (!userId) return res.status(400).json({ error: 'Falta userId.' });
+  db.updateUserAdminFields(userId, { isElite, paymentDate, expirationDate }, (err) => {
+    if (err) {
+      console.error("Error al actualizar campos de usuario:", err);
+      return res.status(500).json({ error: 'Error al actualizar configuración administrativa.' });
+    }
+    res.json({ success: true, message: 'Configuración administrativa guardada correctamente.' });
+  });
+});
+
+// Endpoint de Prueba/Acción Manual para Recordatorios de Pago (Admin Only)
+app.post('/api/admin/trigger-payment-reminders', authenticateAdmin, (req, res) => {
+  checkAndSendPaymentReminders((err, sentCount) => {
+    if (err) return res.status(500).json({ error: 'Error ejecutando recordatorios de pago: ' + err.message });
+    res.json({ success: true, message: `Ejecución manual de recordatorios completada. Correos enviados: ${sentCount}` });
+  });
+});
+
 // Start Server
 app.listen(PORT, () => {
   console.log(`🚀 Servidor Nube AURA corriendo en http://localhost:${PORT}`);

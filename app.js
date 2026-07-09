@@ -426,6 +426,11 @@ function showCustomConfirm(title, message, acceptText, acceptBgColor, onAccept) 
 function initEventListeners() {
     // 1. Navegación Onboarding
     DOM.btnOnboardingStart.addEventListener('click', () => showOnboardingStep(2));
+
+    const consentCheckbox = document.getElementById('consent-checkbox');
+    if (consentCheckbox) {
+        consentCheckbox.addEventListener('change', updateOnboardingDaysPreview);
+    }
     
     // Acceso directo a Admin desde Onboarding
     const btnOnboardingAdmin = document.getElementById('btn-onboarding-admin');
@@ -1359,9 +1364,12 @@ function updateIMCOnboarding() {
 // Actualizar Vista de Días de Onboarding
 function updateOnboardingDaysPreview() {
     const count = tempProfile.days.length;
+    const consentCheckbox = document.getElementById('consent-checkbox');
+    const isConsentChecked = consentCheckbox ? consentCheckbox.checked : false;
+
     if (count > 0) {
         DOM.routinePreviewBox.classList.remove('hidden');
-        DOM.btnOnboardingFinalize.disabled = false;
+        DOM.btnOnboardingFinalize.disabled = !isConsentChecked;
 
         let descText = '';
         if (count === 2 || count === 4) {
@@ -1530,6 +1538,52 @@ function renderDashboard() {
 
     // 0. Revisar notificaciones web no leídas
     checkPendingNotifications();
+
+    // Cargar y desplegar Comunicados Oficiales
+    const dashboardComunicadosPanel = document.getElementById('dashboard-comunicados');
+    const comunicadosContainer = document.getElementById('comunicados-container');
+    if (dashboardComunicadosPanel && comunicadosContainer) {
+        fetch(`/api/comunicados?profileType=${AppState.user.profileType}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.comunicados && data.comunicados.length > 0) {
+                    dashboardComunicadosPanel.classList.remove('hidden');
+                    comunicadosContainer.innerHTML = '';
+                    data.comunicados.forEach(c => {
+                        const div = document.createElement('div');
+                        div.style.background = 'rgba(255, 255, 255, 0.03)';
+                        div.style.border = '1px solid var(--border-color)';
+                        div.style.borderRadius = '10px';
+                        div.style.padding = '12px';
+                        div.style.display = 'flex';
+                        div.style.flexDirection = 'column';
+                        div.style.gap = '4px';
+
+                        const dateStr = new Date(c.date).toLocaleDateString('es-ES', {
+                            day: 'numeric',
+                            month: 'short',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+
+                        div.innerHTML = `
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                                <h4 style="margin: 0; font-size: 13px; font-weight: bold; color: var(--text-primary);">${c.title}</h4>
+                                <span style="font-size: 9.5px; color: var(--text-secondary); font-family: monospace;">${dateStr}</span>
+                            </div>
+                            <p style="margin: 4px 0 0 0; font-size: 11.5px; color: var(--text-secondary); line-height: 1.4; white-space: pre-wrap;">${c.content}</p>
+                        `;
+                        comunicadosContainer.appendChild(div);
+                    });
+                } else {
+                    dashboardComunicadosPanel.classList.add('hidden');
+                }
+            })
+            .catch(err => {
+                console.error("Error al cargar comunicados:", err);
+                dashboardComunicadosPanel.classList.add('hidden');
+            });
+    }
 
     // 1. Bienvenida y datos básicos
     DOM.userGreeting.textContent = `Hola, ${AppState.user.name}`;
@@ -1720,6 +1774,20 @@ function renderProfileTab() {
     if (DOM.profileInputMuscleMass) DOM.profileInputMuscleMass.value = AppState.user.muscleMass || '';
     if (DOM.profileInputSkeletalMuscle) DOM.profileInputSkeletalMuscle.value = AppState.user.skeletalMuscle || '';
     if (DOM.profileInputType) DOM.profileInputType.value = AppState.user.profileType || 'estudiante';
+
+    // Mostrar u ocultar panel de plan y pago
+    const paymentPanel = document.getElementById('profile-payment-panel');
+    const paymentDateSpan = document.getElementById('profile-payment-date');
+    const expirationDateSpan = document.getElementById('profile-expiration-date');
+    if (paymentPanel && paymentDateSpan && expirationDateSpan) {
+        if (AppState.user.profileType === 'estudiante' || AppState.user.profileType === 'funcionario') {
+            paymentPanel.classList.remove('hidden');
+            paymentDateSpan.textContent = AppState.user.paymentDate || 'No definida';
+            expirationDateSpan.textContent = AppState.user.expirationDate || 'No definida';
+        } else {
+            paymentPanel.classList.add('hidden');
+        }
+    }
 
     // Mostrar u ocultar panel de kinesiología
     if (AppState.user.profileType === 'deportista_seleccionado') {
@@ -2580,26 +2648,45 @@ async function renderAdminTab() {
             detailsTr.style.display = 'none';
             detailsTr.innerHTML = `
                 <td colspan="7" style="background: rgba(255, 255, 255, 0.02); border-left: 3px solid var(--color-neon-teal); padding: 12px 15px;">
-                    <div style="display: flex; gap: 30px; flex-wrap: wrap; align-items: center;">
-                        <div style="display: flex; flex-direction: column; gap: 4px;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Perfil / Nivel</span>
-                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${profileLabel} (${user.level || 'Intermedio'})</span>
+                    <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
+                        <div style="display: flex; gap: 30px; flex-wrap: wrap; align-items: center;">
+                            <div style="display: flex; flex-direction: column; gap: 4px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Perfil / Nivel</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${profileLabel} (${user.level || 'Intermedio'})</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Contacto / Correo</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${user.email || '--'}</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Métricas Manuales</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Estatura: ${user.height || '--'} cm • Peso: ${user.weight || '--'} kg</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Grasa / IMC</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Grasa: <span class="font-mono text-neon-pink">${fatVal}</span> • IMC: <span class="font-mono text-neon-pink">${imcVal}</span></span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
+                                <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Composición</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Masa Muscular: ${muscleVal} • Músculo Esq: ${skeletalVal}</span>
+                            </div>
                         </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Contacto / Correo</span>
-                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${user.email || '--'}</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Métricas Manuales</span>
-                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Estatura: ${user.height || '--'} cm • Peso: ${user.weight || '--'} kg</span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Grasa / IMC</span>
-                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Grasa: <span class="font-mono text-neon-pink">${fatVal}</span> • IMC: <span class="font-mono text-neon-pink">${imcVal}</span></span>
-                        </div>
-                        <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
-                            <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Composición</span>
-                            <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">Masa Muscular: ${muscleVal} • Músculo Esq: ${skeletalVal}</span>
+                        
+                        <!-- Panel de Configuración Administrativa Exclusiva en la Fila de Detalles -->
+                        <div style="display: flex; gap: 15px; border-top: 1px solid rgba(255, 255, 255, 0.1); padding-top: 10px; width: 100%; flex-wrap: wrap; align-items: center; background: rgba(0, 0, 0, 0.15); padding: 8px 12px; border-radius: 8px;">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <input type="checkbox" class="admin-user-elite-chk" data-id="${user.id}" ${user.isElite ? 'checked' : ''} style="width: 16px; height: 16px; cursor: pointer;">
+                                <label style="margin: 0; font-size: 11px; color: var(--text-primary); cursor: pointer; font-weight: 600;">Atleta Élite (Bypass QR diario)</label>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 12px;">
+                                <label style="margin: 0; font-size: 11px; color: var(--text-secondary);">Próx. Pago:</label>
+                                <input type="date" class="admin-user-payment-date" data-id="${user.id}" value="${user.paymentDate || ''}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 12px;">
+                                <label style="margin: 0; font-size: 11px; color: var(--text-secondary);">Vence Plan:</label>
+                                <input type="date" class="admin-user-expiration-date" data-id="${user.id}" value="${user.expirationDate || ''}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
+                            </div>
+                            <button class="btn btn-primary btn-sm btn-save-admin-fields" data-id="${user.id}" style="padding: 4px 8px; font-size: 10px; margin-left: auto;">Guardar Config</button>
                         </div>
                     </div>
                 </td>
@@ -2629,6 +2716,36 @@ async function renderAdminTab() {
                     registerUserAttendance(user.id, 'kinesiology', `Rehabilitación: ${user.injuryDetails || ''}`, user.name, user.profileType);
                 });
             }
+
+            // Guardar configuración administrativa
+            detailsTr.querySelector('.btn-save-admin-fields').addEventListener('click', async (e) => {
+                const userId = e.target.dataset.id;
+                const isElite = detailsTr.querySelector('.admin-user-elite-chk').checked;
+                const paymentDate = detailsTr.querySelector('.admin-user-payment-date').value;
+                const expirationDate = detailsTr.querySelector('.admin-user-expiration-date').value;
+
+                try {
+                    const token = sessionStorage.getItem('aura_admin_token');
+                    const res = await fetch('/api/admin/users/fields', {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ userId, isElite, paymentDate, expirationDate })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert("Configuración administrativa guardada con éxito.");
+                        renderAdminTab();
+                    } else {
+                        alert("Error: " + data.error);
+                    }
+                } catch (err) {
+                    console.error("Error al guardar config:", err);
+                    alert("Error de conexión al guardar la configuración.");
+                }
+            });
 
             tr.querySelector('.btn-delete-athlete').addEventListener('click', async () => {
                 if (confirm(`¿Estás seguro de que deseas eliminar permanentemente a ${user.name} y todos sus registros de la base de datos?`)) {
@@ -2735,6 +2852,337 @@ async function renderAdminTab() {
             DOM.adminNotificationsContainer.appendChild(card);
         });
     }
+
+    // Renderizar tabla de renovación de planes mensuales
+    renderAdminRenewals(users);
+
+    // Inicializar formularios administrativos adicionales
+    initAdminComunicados();
+    initAdminRoutineEditor();
+}
+
+// Helper to render renewal list under admin tab
+function renderAdminRenewals(users) {
+    const tableBody = document.getElementById('admin-renewals-table-body');
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+    
+    // Solo estudiantes y funcionarios tienen planes pagados que renovar
+    const eligibleUsers = users.filter(u => u.profileType === 'estudiante' || u.profileType === 'funcionario');
+    
+    if (eligibleUsers.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); font-size: 12px; padding: 15px;">No hay atletas registrados que requieran plan mensual.</td></tr>`;
+        return;
+    }
+    
+    eligibleUsers.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="font-weight: 600; color: var(--text-primary); font-size: 12.5px;">${user.name}</td>
+            <td class="font-mono" style="font-size: 11px;">${user.rut}</td>
+            <td class="font-mono text-neon-teal" style="font-weight: bold; font-size: 11px;" id="renewal-date-text-${user.id}">${user.expirationDate || 'Pendiente'}</td>
+            <td style="text-align: center;">
+                <input type="checkbox" class="renew-plan-checkbox" data-id="${user.id}" style="width: 18px; height: 18px; cursor: pointer;">
+            </td>
+        `;
+        
+        tr.querySelector('.renew-plan-checkbox').addEventListener('change', async (e) => {
+            if (e.target.checked) {
+                const userId = e.target.dataset.id;
+                if (confirm(`¿Confirmas la renovación del plan mensual para ${user.name} por +30 días?`)) {
+                    try {
+                        const token = sessionStorage.getItem('aura_admin_token');
+                        const res = await fetch('/api/admin/users/renew', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({ userId })
+                        });
+                        const data = await res.json();
+                        if (data.success) {
+                            alert(`Plan de ${user.name} renovado con éxito hasta ${data.expirationDate}`);
+                            document.getElementById(`renewal-date-text-${user.id}`).textContent = data.expirationDate;
+                            
+                            // Si el usuario renovado es el usuario activo actual en esta sesión, actualizamos localmente
+                            if (AppState.user && AppState.user.id === userId) {
+                                AppState.user.expirationDate = data.expirationDate;
+                                localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
+                                renderProfileTab();
+                            }
+                        } else {
+                            alert("Error al renovar plan: " + data.error);
+                            e.target.checked = false;
+                        }
+                    } catch (err) {
+                        console.error("Error al renovar plan:", err);
+                        alert("Error de red al renovar el plan.");
+                        e.target.checked = false;
+                    }
+                } else {
+                    e.target.checked = false;
+                }
+            }
+        });
+        
+        tableBody.appendChild(tr);
+    });
+}
+
+let adminComunicadosInitialized = false;
+function initAdminComunicados() {
+    if (adminComunicadosInitialized) return;
+    const btnPublicar = document.getElementById('btn-admin-publicar-comunicado');
+    if (!btnPublicar) return;
+    
+    btnPublicar.addEventListener('click', async () => {
+        const titleInput = document.getElementById('admin-comunicado-title');
+        const contentInput = document.getElementById('admin-comunicado-content');
+        const targetInput = document.getElementById('admin-comunicado-target');
+        const msgSmall = document.getElementById('admin-comunicado-msg');
+        
+        if (!titleInput.value || !contentInput.value) {
+            msgSmall.style.color = 'var(--color-danger)';
+            msgSmall.textContent = 'Por favor complete todos los campos obligatorios.';
+            return;
+        }
+        
+        btnPublicar.disabled = true;
+        btnPublicar.textContent = 'Publicando...';
+        
+        try {
+            const token = sessionStorage.getItem('aura_admin_token');
+            const res = await fetch('/api/admin/comunicados', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    title: titleInput.value,
+                    content: contentInput.value,
+                    targetGroup: targetInput.value
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                msgSmall.style.color = 'var(--color-neon-teal)';
+                msgSmall.textContent = 'Comunicado publicado exitosamente.';
+                titleInput.value = '';
+                contentInput.value = '';
+                renderDashboard();
+            } else {
+                msgSmall.style.color = 'var(--color-danger)';
+                msgSmall.textContent = 'Error: ' + data.error;
+            }
+        } catch (err) {
+            console.error("Error al publicar comunicado:", err);
+            msgSmall.style.color = 'var(--color-danger)';
+            msgSmall.textContent = 'Error de red al publicar comunicado.';
+        } finally {
+            btnPublicar.disabled = false;
+            btnPublicar.textContent = 'Publicar Mensaje';
+            setTimeout(() => { msgSmall.textContent = ''; }, 4000);
+        }
+    });
+    
+    adminComunicadosInitialized = true;
+}
+
+let routineEditorInitialized = false;
+function initAdminRoutineEditor() {
+    if (routineEditorInitialized) {
+        if (window.refreshAdminRoutineSelect) window.refreshAdminRoutineSelect();
+        return;
+    }
+    
+    const select = document.getElementById('admin-routine-select');
+    const idInput = document.getElementById('admin-routine-id');
+    const idContainer = document.getElementById('admin-routine-id-container');
+    const nameInput = document.getElementById('admin-routine-name');
+    const durationInput = document.getElementById('admin-routine-duration');
+    const exercisesList = document.getElementById('admin-routine-exercises-list');
+    const btnAddExercise = document.getElementById('btn-admin-add-exercise-to-routine');
+    const btnSaveRoutine = document.getElementById('btn-admin-save-routine');
+    const msgSmall = document.getElementById('admin-routine-msg');
+    
+    if (!select || !btnAddExercise || !btnSaveRoutine) return;
+    
+    const populateRoutineDropdown = () => {
+        const currentVal = select.value;
+        select.innerHTML = '<option value="new">-- Crear Nueva Rutina --</option>';
+        Object.keys(WORKOUT_DATABASE).forEach(key => {
+            const r = WORKOUT_DATABASE[key];
+            const option = document.createElement('option');
+            option.value = key;
+            option.textContent = `${r.name} (${key})`;
+            select.appendChild(option);
+        });
+        if (WORKOUT_DATABASE[currentVal]) {
+            select.value = currentVal;
+        }
+    };
+    
+    select.addEventListener('change', () => {
+        const val = select.value;
+        exercisesList.innerHTML = '';
+        
+        if (val === 'new') {
+            idInput.value = '';
+            idInput.disabled = false;
+            idContainer.style.display = 'block';
+            nameInput.value = '';
+            durationInput.value = '';
+        } else {
+            const r = WORKOUT_DATABASE[val];
+            idInput.value = val;
+            idInput.disabled = true;
+            idContainer.style.display = 'none';
+            nameInput.value = r.name || '';
+            durationInput.value = r.duration || '';
+            
+            if (r.exercises && Array.isArray(r.exercises)) {
+                r.exercises.forEach(ex => addExerciseRowToEditor(ex.name, ex.machine ? ex.machine.name : '', ex.sets ? ex.sets.length : 3, ex.sets && ex.sets[0] ? ex.sets[0].reps : 10));
+            }
+        }
+    });
+    
+    const addExerciseRowToEditor = (name = '', machine = '', setsCount = 3, reps = 10) => {
+        const row = document.createElement('div');
+        row.className = 'editor-exercise-row';
+        row.style.display = 'flex';
+        row.style.flexDirection = 'column';
+        row.style.gap = '8px';
+        row.style.padding = '12px';
+        row.style.background = 'rgba(255, 255, 255, 0.02)';
+        row.style.border = '1px solid var(--border-color)';
+        row.style.borderRadius = '10px';
+        
+        row.innerHTML = `
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 10px; color: var(--text-secondary);">Nombre del Ejercicio</label>
+                    <input type="text" class="ex-name" placeholder="ej: Press de Banca" value="${name}" required style="padding: 8px 10px; font-size: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                </div>
+                <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 10px; color: var(--text-secondary);">Máquina / Implemento (Opcional)</label>
+                    <input type="text" class="ex-machine" placeholder="ej: Multipower" value="${machine}" style="padding: 8px 10px; font-size: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 10px; color: var(--text-secondary);">Series</label>
+                        <input type="number" class="ex-sets" min="1" max="10" value="${setsCount}" style="width: 55px; padding: 6px; font-size: 12px; text-align: center; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <label style="font-size: 10px; color: var(--text-secondary);">Reps</label>
+                        <input type="number" class="ex-reps" min="1" max="50" value="${reps}" style="width: 55px; padding: 6px; font-size: 12px; text-align: center; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 8px;">
+                    </div>
+                </div>
+                <button type="button" class="btn btn-outline btn-sm btn-delete-ex-row" style="color: var(--color-danger); border-color: rgba(255, 71, 87, 0.4); padding: 4px 8px; font-size: 11px;">Quitar</button>
+            </div>
+        `;
+        
+        row.querySelector('.btn-delete-ex-row').addEventListener('click', () => {
+            row.remove();
+        });
+        
+        exercisesList.appendChild(row);
+    };
+    
+    btnAddExercise.addEventListener('click', () => {
+        addExerciseRowToEditor();
+    });
+    
+    btnSaveRoutine.addEventListener('click', async () => {
+        const id = idInput.value.trim().toLowerCase();
+        const name = nameInput.value.trim();
+        const duration = durationInput.value.trim();
+        
+        if (!id || !name || !duration) {
+            msgSmall.style.color = 'var(--color-danger)';
+            msgSmall.textContent = 'Por favor complete el ID, Nombre y Duración.';
+            return;
+        }
+        
+        const exerciseRows = exercisesList.querySelectorAll('.editor-exercise-row');
+        const exercises = [];
+        let isValid = true;
+        
+        exerciseRows.forEach(row => {
+            const exName = row.querySelector('.ex-name').value.trim();
+            const exMachine = row.querySelector('.ex-machine').value.trim();
+            const setsVal = parseInt(row.querySelector('.ex-sets').value);
+            const repsVal = parseInt(row.querySelector('.ex-reps').value);
+            
+            if (!exName) {
+                isValid = false;
+                return;
+            }
+            
+            const sets = [];
+            for (let i = 0; i < setsVal; i++) {
+                sets.push({ reps: repsVal, completed: false, weight: null });
+            }
+            
+            exercises.push({
+                name: exName,
+                machine: exMachine ? { name: exMachine } : null,
+                sets: sets
+            });
+        });
+        
+        if (!isValid) {
+            msgSmall.style.color = 'var(--color-danger)';
+            msgSmall.textContent = 'Todos los ejercicios agregados deben tener un nombre.';
+            return;
+        }
+        
+        btnSaveRoutine.disabled = true;
+        btnSaveRoutine.textContent = 'Guardando...';
+        
+        try {
+            const token = sessionStorage.getItem('aura_admin_token');
+            const res = await fetch('/api/admin/routines', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ id, name, duration, exercises })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                msgSmall.style.color = 'var(--color-neon-teal)';
+                msgSmall.textContent = 'Rutina guardada y sincronizada correctamente.';
+                
+                WORKOUT_DATABASE[id] = { name, duration, exercises };
+                populateRoutineDropdown();
+                select.value = id;
+                select.dispatchEvent(new Event('change'));
+                renderRoutinesTab();
+            } else {
+                msgSmall.style.color = 'var(--color-danger)';
+                msgSmall.textContent = 'Error: ' + data.error;
+            }
+        } catch (err) {
+            console.error("Error al guardar rutina:", err);
+            msgSmall.style.color = 'var(--color-danger)';
+            msgSmall.textContent = 'Error de red al guardar la rutina.';
+        } finally {
+            btnSaveRoutine.disabled = false;
+            btnSaveRoutine.textContent = 'Guardar Rutina en Base de Datos';
+            setTimeout(() => { msgSmall.textContent = ''; }, 4000);
+        }
+    });
+    
+    window.refreshAdminRoutineSelect = populateRoutineDropdown;
+    populateRoutineDropdown();
+    routineEditorInitialized = true;
 }
 
 // Calcular rango de peso saludable e información si está bajo peso

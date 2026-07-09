@@ -274,6 +274,20 @@
                         <h4 class="preview-title">Distribución sugerida:</h4>
                         <p id="routine-distribution-desc" class="text-sm text-cyan"></p>
                     </div>
+                    
+                    <!-- Consentimiento y Aceptación de Reglamento Obligatorio -->
+                    <div class="consent-container" style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 8px;">Reglamento & Consentimiento</label>
+                        <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; font-size: 11px; max-height: 80px; overflow-y: scroll; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4;">
+                            Al registrarte en GYM_UCN, te comprometes a cumplir con el reglamento interno de las instalaciones. 
+                            Declaro estar en condiciones de salud compatibles con la actividad física, eximiendo a la universidad de toda responsabilidad por lesiones derivadas de la práctica deportiva. 
+                            Se prohíbe el ingreso sin reserva previa y el uso inadecuado de la implementación.
+                        </div>
+                        <div style="display: flex; align-items: flex-start; gap: 8px;">
+                            <input type="checkbox" id="consent-checkbox" style="width: 18px; height: 18px; margin-top: 2px;">
+                            <label for="consent-checkbox" style="margin: 0; font-size: 12px; color: var(--text-secondary); cursor: pointer; line-height: 1.3;">Acepto el reglamento y declaro conformidad para la creación de mi perfil.</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="onboarding-actions">
                     <button id="btn-onboarding-back-to-3" class="btn btn-secondary">Atrás</button>
@@ -355,6 +369,14 @@
                     <!-- Alert Banners -->
                     <div id="dashboard-alerts"
                         style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;"></div>
+
+                     <!-- Sección de Comunicados Oficiales -->
+                     <div id="dashboard-comunicados" class="stats-panel-large hidden" style="margin-bottom: 20px;">
+                         <h3 class="panel-section-title" style="color: var(--color-neon-teal); margin-bottom: 10px;">📢 Comunicados Oficiales</h3>
+                         <div id="comunicados-container" style="display: flex; flex-direction: column; gap: 10px;">
+                             <!-- Generado dinámicamente -->
+                         </div>
+                     </div>
 
                     <!-- Stats Quick Panel -->
                     <div class="stats-grid">
@@ -552,6 +574,19 @@
                         </form>
                     </div>
 
+                    <!-- Panel de Plan y Pago (Estudiantes y Funcionarios) -->
+                    <div id="profile-payment-panel" class="stats-panel-large hidden" style="margin-bottom: 20px;">
+                        <h3 class="panel-section-title" style="color: var(--color-neon-teal);">💳 Mi Plan & Fecha de Pago</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;">
+                            <p class="text-secondary text-sm" style="margin: 0;">
+                                Próxima Fecha de Pago: <span id="profile-payment-date" class="font-mono text-neon-teal" style="font-weight: bold;">--</span>
+                            </p>
+                            <p class="text-secondary text-sm" style="margin: 0;">
+                                Vencimiento de tu Plan: <span id="profile-expiration-date" class="font-mono text-neon-teal" style="font-weight: bold;">--</span>
+                            </p>
+                        </div>
+                    </div>
+
                     <!-- Panel Médico / Kinesiología (Oculto por defecto) -->
                     <div id="profile-kinesiology-panel" class="stats-panel-large hidden" style="margin-bottom: 20px;">
                         <h3 class="panel-section-title" style="color: var(--color-danger);">Estado Médico & Kinesiología
@@ -686,6 +721,106 @@
                             </div>
                             <small id="admin-hab-msg"
                                 style="display: block; margin-top: 10px; text-align: center; font-weight: bold;"></small>
+                        </div>
+
+                        <!-- NUEVO PANEL: Renovación de Planes Mensuales (Checklist) -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px;">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
+                                    <h3>Renovación de Planes Mensuales</h3>
+                                </div>
+                            </div>
+                            <p class="text-secondary text-xs" style="margin-top: 5px;">Visualiza los atletas y marca el checkbox para renovar su plan por +30 días.</p>
+                            <div class="table-responsive" style="margin-top: 15px; max-height: 250px; overflow-y: auto;">
+                                <table class="admin-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Atleta</th>
+                                            <th>RUT</th>
+                                            <th>Vencimiento</th>
+                                            <th>Renovar Plan</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-renewals-table-body">
+                                        <!-- Cargado dinámicamente -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- NUEVO PANEL: Publicar Comunicado Oficial -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px;">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot" style="background-color: var(--color-neon-teal);"></span>
+                                    <h3>Publicar Comunicado Oficial</h3>
+                                </div>
+                            </div>
+                            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="admin-comunicado-title">Título del Comunicado</label>
+                                    <input type="text" id="admin-comunicado-title" placeholder="Ej: Nuevo Horario de Clases">
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-comunicado-content">Mensaje / Comunicado</label>
+                                    <textarea id="admin-comunicado-content" placeholder="Escribe el mensaje del comunicado aquí..." style="width: 100%; min-height: 80px; padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-family: var(--font-sans); outline: none; resize: vertical;"></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-comunicado-target">Dirigido a</label>
+                                    <select id="admin-comunicado-target" style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="all">Todos los Atletas (Global)</option>
+                                        <option value="estudiante">Solo Estudiantes</option>
+                                        <option value="funcionario">Solo Funcionarios</option>
+                                    </select>
+                                </div>
+                                <button id="btn-admin-publicar-comunicado" class="btn btn-primary btn-glow">Publicar Mensaje</button>
+                                <small id="admin-comunicado-msg" style="display: block; text-align: center; font-weight: bold;"></small>
+                            </div>
+                        </div>
+
+                        <!-- NUEVO PANEL: Gestión de Rutinas y Ejercicios -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px;">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot" style="background-color: var(--color-neon-purple);"></span>
+                                    <h3>Gestión de Rutinas y Ejercicios</h3>
+                                </div>
+                            </div>
+                            <div style="margin-top: 15px; display: flex; flex-direction: column; gap: 12px;">
+                                <div class="form-group">
+                                    <label for="admin-routine-select">Selecciona una Rutina para Editar</label>
+                                    <select id="admin-routine-select" style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="new">-- Crear Nueva Rutina --</option>
+                                        <!-- Cargado dinámicamente -->
+                                    </select>
+                                </div>
+                                <div class="form-group" id="admin-routine-id-container">
+                                    <label for="admin-routine-id">Identificador Único (ID)</label>
+                                    <input type="text" id="admin-routine-id" placeholder="ej: upper, lower, core, upper_selected">
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="admin-routine-name">Nombre de la Rutina</label>
+                                        <input type="text" id="admin-routine-name" placeholder="ej: Tren Superior Élite">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="admin-routine-duration">Duración Estimada</label>
+                                        <input type="text" id="admin-routine-duration" placeholder="ej: 30 min">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h4 class="text-xs uppercase tracking-widest text-secondary" style="margin-bottom: 8px;">Ejercicios en la Rutina</h4>
+                                    <div id="admin-routine-exercises-list" style="display: flex; flex-direction: column; gap: 15px; max-height: 400px; overflow-y: auto; padding-right: 5px;">
+                                        <!-- Ejercicios agregados dinámicamente -->
+                                    </div>
+                                    <button type="button" id="btn-admin-add-exercise-to-routine" class="btn btn-outline btn-sm" style="margin-top: 10px; width: 100%; border-color: var(--color-neon-teal); color: var(--color-neon-teal); justify-content: center;">+ Agregar Ejercicio</button>
+                                </div>
+
+                                <button id="btn-admin-save-routine" class="btn btn-primary btn-glow" style="margin-top: 15px;">Guardar Rutina en Base de Datos</button>
+                                <small id="admin-routine-msg" style="display: block; text-align: center; font-weight: bold;"></small>
+                            </div>
                         </div>
 
                         <!-- IA Engine Controls & Summary -->

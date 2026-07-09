@@ -101,6 +101,20 @@
             "type": "STRING",
             "enum": ["Comprometido", "Irregular", "Alto riesgo", "Pendiente"],
             "description": "Grupo de comportamiento asignado por el motor de IA (K-Means)."
+          },
+          "isElite": {
+            "type": "INTEGER",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Flag para indicar si el atleta es de élite y puede saltar el límite de asistencia diario (0 = No, 1 = Sí)."
+          },
+          "paymentDate": {
+            "type": ["STRING", "NULL"],
+            "description": "Fecha de próximo pago programada para estudiantes y funcionarios (formato YYYY-MM-DD)."
+          },
+          "expirationDate": {
+            "type": ["STRING", "NULL"],
+            "description": "Fecha de vencimiento del plan del atleta (formato YYYY-MM-DD)."
           }
         }
       }
