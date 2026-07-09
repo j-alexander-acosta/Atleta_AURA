@@ -2300,3 +2300,138 @@ input[type="number"]:focus {
     align-items: center;
     gap: 4px;
 }
+
+/* ==========================================================================
+   Admin Draggable & Collapsible Panels
+   ========================================================================== */
+
+#admin-sections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    margin-top: 20px;
+}
+
+.draggable-section {
+    position: relative;
+    transition: transform 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+}
+
+.draggable-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, rgba(20, 20, 20, 0.75) 0%, rgba(10, 10, 10, 0.75) 100%);
+    border: 1px solid var(--border-color);
+    border-bottom: 1px solid transparent;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    cursor: grab;
+    user-select: none;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.draggable-section-header:hover {
+    background: linear-gradient(135deg, rgba(25, 25, 25, 0.85) 0%, rgba(15, 15, 15, 0.85) 100%);
+    border-color: rgba(0, 245, 212, 0.4);
+}
+
+.draggable-section-header:active {
+    cursor: grabbing;
+}
+
+.section-header-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.section-header-title-group h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    font-family: var(--font-display);
+}
+
+.section-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.drag-handle-dots {
+    color: var(--text-muted);
+    opacity: 0.5;
+    transition: opacity 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.draggable-section-header:hover .drag-handle-dots {
+    opacity: 1;
+    color: var(--color-neon-teal);
+}
+
+.collapse-toggle-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.collapse-toggle-btn:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.collapse-toggle-btn svg {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.draggable-section.collapsed .collapse-toggle-btn svg {
+    transform: rotate(-90deg);
+}
+
+.draggable-section-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    padding: 24px;
+    overflow: hidden;
+    max-height: 2500px;
+    opacity: 1;
+    transition: max-height 0.4s cubic-bezier(0, 1, 0, 1), opacity 0.3s ease, padding 0.3s ease;
+}
+
+.draggable-section.collapsed .draggable-section-content {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-bottom: 1px solid transparent;
+}
+
+.draggable-section.collapsed .draggable-section-header {
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-color: var(--border-color);
+}
+
+.draggable-section.dragging {
+    opacity: 0.4;
+    transform: scale(0.98);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+    border: 1px dashed var(--color-neon-teal);
+}

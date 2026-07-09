@@ -339,6 +339,7 @@ function initApp() {
     }
 
     initEventListeners();
+    setupCollapsibleAndDraggableAdminSections();
 
     // Cargar rutinas y máquinas desde el servidor
     fetchRoutinesFromServer(() => {
@@ -4095,4 +4096,224 @@ function renderScanResult(data) {
         DOM.adminQrResultPanel.style.display = 'none';
         DOM.adminQrResultPanel.innerHTML = '';
     }, 6000);
+}
+
+// Configuración y comportamiento de secciones arrastrables y colapsables en administración
+function setupCollapsibleAndDraggableAdminSections() {
+    const adminWrapper = document.getElementById('admin-content-wrapper');
+    if (!adminWrapper) return;
+
+    let container = document.getElementById('admin-sections-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'admin-sections-container';
+        const header = adminWrapper.querySelector('header');
+        if (header) {
+            header.after(container);
+        } else {
+            adminWrapper.appendChild(container);
+        }
+    }
+
+    const panels = Array.from(adminWrapper.children).filter(el => {
+        return el.classList.contains('admin-ai-panel') || 
+               el.classList.contains('admin-table-section') || 
+               el.classList.contains('admin-notifications-section');
+    });
+
+    const sectionConfigs = [
+        { id: 'habilitar', title: 'Habilitar Estudiantes / Atletas' },
+        { id: 'renovacion', title: 'Renovación de Planes Mensuales' },
+        { id: 'comunicados', title: 'Publicar Comunicado Oficial' },
+        { id: 'rutinas', title: 'Gestión de Rutinas y Ejercicios' },
+        { id: 'motor-ia', title: 'Motor de IA (K-Means Clustering)' },
+        { id: 'atletas', title: 'Atletas Registrados' },
+        { id: 'escaner', title: 'Escáner de Asistencia QR Integrado' },
+        { id: 'historial', title: 'Historial de Asistencia' },
+        { id: 'notificaciones', title: 'Notificaciones de Recuperación Automatizadas' }
+    ];
+
+    const savedOrder = JSON.parse(localStorage.getItem('aura_admin_sections_order'));
+    const collapsedStates = JSON.parse(localStorage.getItem('aura_admin_sections_collapsed') || '{}');
+    const sectionWrappers = {};
+
+    panels.forEach((panel, idx) => {
+        const config = sectionConfigs[idx] || { id: `panel-${idx}`, title: panel.querySelector('h3')?.textContent || 'Panel' };
+        
+        const sectionDiv = document.createElement('div');
+        sectionDiv.className = 'draggable-section';
+        sectionDiv.dataset.sectionId = config.id;
+        sectionDiv.setAttribute('draggable', 'false');
+
+        if (collapsedStates[config.id]) {
+            sectionDiv.classList.add('collapsed');
+        }
+
+        const headerDiv = document.createElement('div');
+        headerDiv.className = 'draggable-section-header';
+        headerDiv.innerHTML = `
+            <div class="section-header-title-group">
+                <span class="drag-handle-dots">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="pointer-events: none;">
+                        <circle cx="9" cy="5" r="1" fill="currentColor"></circle>
+                        <circle cx="9" cy="12" r="1" fill="currentColor"></circle>
+                        <circle cx="9" cy="19" r="1" fill="currentColor"></circle>
+                        <circle cx="15" cy="5" r="1" fill="currentColor"></circle>
+                        <circle cx="15" cy="12" r="1" fill="currentColor"></circle>
+                        <circle cx="15" cy="19" r="1" fill="currentColor"></circle>
+                    </svg>
+                </span>
+                <h3>${config.title}</h3>
+            </div>
+            <div class="section-header-actions">
+                <button class="collapse-toggle-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="pointer-events: none;">
+                        <polyline points="6 9 12 15 18 9"></polyline>
+                    </svg>
+                </button>
+            </div>
+        `;
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'draggable-section-content';
+
+        const originalHeaders = panel.querySelectorAll('h3, .admin-ai-header, .admin-table-header');
+        originalHeaders.forEach(h => {
+            const interactive = h.querySelectorAll('button, .filter-wrapper');
+            interactive.forEach(btn => {
+                headerDiv.querySelector('.section-header-actions').prepend(btn);
+            });
+            h.remove();
+        });
+
+        while (panel.firstChild) {
+            contentDiv.appendChild(panel.firstChild);
+        }
+
+        sectionDiv.appendChild(headerDiv);
+        sectionDiv.appendChild(contentDiv);
+        panel.replaceWith(sectionDiv);
+
+        sectionWrappers[config.id] = sectionDiv;
+
+        headerDiv.querySelector('.collapse-toggle-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isCollapsed = sectionDiv.classList.toggle('collapsed');
+            collapsedStates[config.id] = isCollapsed;
+            localStorage.setItem('aura_admin_sections_collapsed', JSON.stringify(collapsedStates));
+        });
+    });
+
+    const orderToUse = savedOrder && savedOrder.length === sectionConfigs.length ? savedOrder : sectionConfigs.map(c => c.id);
+    
+    orderToUse.forEach(id => {
+        const wrapper = sectionWrappers[id];
+        if (wrapper) {
+            container.appendChild(wrapper);
+        }
+    });
+
+    sectionConfigs.forEach(c => {
+        const wrapper = sectionWrappers[c.id];
+        if (wrapper && !container.contains(wrapper)) {
+            container.appendChild(wrapper);
+        }
+    });
+
+    let activeElement = null;
+    let initialY = 0;
+    let isDragging = false;
+
+    container.addEventListener('pointerdown', (e) => {
+        const header = e.target.closest('.draggable-section-header');
+        if (!header) return;
+
+        if (e.target.closest('button') || e.target.closest('select') || e.target.closest('input') || e.target.closest('textarea') || e.target.closest('.renew-plan-checkbox')) {
+            return;
+        }
+
+        const section = header.closest('.draggable-section');
+        if (!section) return;
+
+        activeElement = section;
+        initialY = e.clientY;
+        isDragging = false;
+
+        header.setPointerCapture(e.pointerId);
+    });
+
+    container.addEventListener('pointermove', (e) => {
+        if (!activeElement) return;
+
+        const deltaY = Math.abs(e.clientY - initialY);
+        if (!isDragging && deltaY > 8) {
+            isDragging = true;
+            activeElement.classList.add('dragging');
+        }
+
+        if (isDragging) {
+            e.preventDefault();
+
+            const siblings = Array.from(container.querySelectorAll('.draggable-section:not(.dragging)'));
+            const clientY = e.clientY;
+
+            let closestSibling = null;
+            let insertAfter = false;
+
+            for (const sibling of siblings) {
+                const box = sibling.getBoundingClientRect();
+                const boxCenter = box.top + box.height / 2;
+                
+                if (clientY >= box.top && clientY <= box.bottom) {
+                    closestSibling = sibling;
+                    insertAfter = clientY > boxCenter;
+                    break;
+                }
+            }
+
+            if (!closestSibling && siblings.length > 0) {
+                let minDistance = Infinity;
+                siblings.forEach(sibling => {
+                    const box = sibling.getBoundingClientRect();
+                    const distance = Math.abs(clientY - (box.top + box.height / 2));
+                    if (distance < minDistance) {
+                        minDistance = distance;
+                        closestSibling = sibling;
+                        insertAfter = clientY > (box.top + box.height / 2);
+                    }
+                });
+            }
+
+            if (closestSibling) {
+                if (insertAfter) {
+                    container.insertBefore(activeElement, closestSibling.nextSibling);
+                } else {
+                    container.insertBefore(activeElement, closestSibling);
+                }
+            }
+        }
+    });
+
+    const endDrag = (e) => {
+        if (activeElement) {
+            activeElement.classList.remove('dragging');
+            
+            const header = activeElement.querySelector('.draggable-section-header');
+            if (header && e && e.pointerId !== undefined) {
+                try {
+                    header.releasePointerCapture(e.pointerId);
+                } catch(err) {}
+            }
+
+            if (isDragging) {
+                const currentOrder = Array.from(container.querySelectorAll('.draggable-section')).map(el => el.dataset.sectionId);
+                localStorage.setItem('aura_admin_sections_order', JSON.stringify(currentOrder));
+            }
+        }
+        activeElement = null;
+        isDragging = false;
+    };
+
+    container.addEventListener('pointerup', endDrag);
+    container.addEventListener('pointercancel', endDrag);
 }
