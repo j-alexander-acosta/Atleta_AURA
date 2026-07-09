@@ -37,7 +37,9 @@ function initDb() {
         password_hash TEXT,
         isElite INTEGER DEFAULT 0,
         paymentDate TEXT,
-        expirationDate TEXT
+        expirationDate TEXT,
+        registrationDate TEXT,
+        paymentDueDate TEXT
       )
     `);
 
@@ -59,6 +61,8 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN isElite INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE users ADD COLUMN paymentDate TEXT", () => {});
     db.run("ALTER TABLE users ADD COLUMN expirationDate TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN registrationDate TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN paymentDueDate TEXT", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN email TEXT", () => {});
 
@@ -831,16 +835,18 @@ function saveUser(user, callback) {
   const daysStr = Array.isArray(user.days) ? JSON.stringify(user.days) : (user.days || '[]');
   const cleanRut = getRunFromRut(user.rut || '');
 
-  db.get("SELECT password_hash, isElite, paymentDate, expirationDate FROM users WHERE id = ?", [newId], (err, row) => {
+  db.get("SELECT password_hash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate FROM users WHERE id = ?", [newId], (err, row) => {
     const passwordHash = user.password_hash || (row ? row.password_hash : null);
     const isElite = (user.isElite !== undefined) ? user.isElite : (row ? row.isElite : 0);
     const paymentDate = user.paymentDate !== undefined ? user.paymentDate : (row ? row.paymentDate : null);
     const expirationDate = user.expirationDate !== undefined ? user.expirationDate : (row ? row.expirationDate : null);
+    const registrationDate = user.registrationDate !== undefined ? user.registrationDate : (row ? row.registrationDate : null);
+    const paymentDueDate = user.paymentDueDate !== undefined ? user.paymentDueDate : (row ? row.paymentDueDate : null);
 
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO users 
-      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash, isElite, paymentDate, expirationDate) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run([
@@ -849,7 +855,7 @@ function saveUser(user, callback) {
       user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
       user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
       user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
-      daysStr, passwordHash, isElite, paymentDate, expirationDate
+      daysStr, passwordHash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate
     ], function(runErr) {
       if (runErr) {
         stmt.finalize();
@@ -1500,29 +1506,33 @@ function addComunicado(comunicado, callback) {
 }
 
 function updateUserAdminFields(userId, fields, callback) {
-  const { isElite, paymentDate, expirationDate } = fields;
+  const { isElite, paymentDate, expirationDate, registrationDate, paymentDueDate } = fields;
   const isEliteInt = isElite ? 1 : 0;
   db.run(`
     UPDATE users 
-    SET isElite = ?, paymentDate = ?, expirationDate = ?
+    SET isElite = ?, paymentDate = ?, expirationDate = ?, registrationDate = ?, paymentDueDate = ?
     WHERE id = ?
-  `, [isEliteInt, paymentDate, expirationDate, userId], callback);
+  `, [isEliteInt, paymentDate, expirationDate, registrationDate, paymentDueDate, userId], callback);
 }
 
 function renewUserPlan(userId, callback) {
-  db.get("SELECT expirationDate FROM users WHERE id = ?", [userId], (err, row) => {
+  db.get("SELECT paymentDueDate, expirationDate FROM users WHERE id = ?", [userId], (err, row) => {
     if (err) return callback(err);
     let baseDate = new Date();
-    if (row && row.expirationDate) {
-      const currentExp = new Date(row.expirationDate);
+    const existingDueDateStr = row ? (row.paymentDueDate || row.expirationDate) : null;
+    if (existingDueDateStr) {
+      const currentExp = new Date(existingDueDateStr);
       if (currentExp > baseDate) {
         baseDate = currentExp;
       }
     }
     baseDate.setDate(baseDate.getDate() + 30);
-    const newExpStr = baseDate.toISOString().slice(0, 10);
+    const newDueDateISO = baseDate.toISOString();
+    const newExpStr = newDueDateISO.slice(0, 10);
+    const newRegistrationDateISO = new Date().toISOString();
     
-    db.run("UPDATE users SET expirationDate = ? WHERE id = ?", [newExpStr, userId], (err) => {
+    db.run("UPDATE users SET expirationDate = ?, registrationDate = ?, paymentDueDate = ? WHERE id = ?", 
+      [newExpStr, newRegistrationDateISO, newDueDateISO, userId], (err) => {
       if (err) return callback(err);
       
       db.get("SELECT rut FROM users WHERE id = ?", [userId], (err, userRow) => {
@@ -1530,10 +1540,10 @@ function renewUserPlan(userId, callback) {
           const cleanRut = getRunFromRut(userRow.rut);
           const nowStr = new Date().toISOString().slice(0, 19).replace('T', ' ');
           db.run("UPDATE usuarios_habilitados SET fecha_registro = ? WHERE rut = ?", [nowStr, cleanRut], () => {
-            callback(null, newExpStr);
+            callback(null, newDueDateISO);
           });
         } else {
-          callback(null, newExpStr);
+          callback(null, newDueDateISO);
         }
       });
     });

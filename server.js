@@ -317,6 +317,10 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
         return res.status(500).json({ error: 'Error interno verificando usuario.' });
       }
 
+      const now = new Date();
+      const registrationDate = now.toISOString();
+      const paymentDueDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
       if (!user) {
         // Create initial record
         const newUser = {
@@ -332,14 +336,18 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
           assignedCluster: 'Pendiente',
           profileType: profileType || 'estudiante',
           rut: cleanRut,
-          email: emailLower
+          email: emailLower,
+          registrationDate,
+          paymentDueDate,
+          expirationDate: paymentDueDate.slice(0, 10)
         };
         db.saveUser(newUser, (saveErr) => {
           if (saveErr) console.error("Error creating initial user:", saveErr);
           res.json({ success: true, message: 'Usuario habilitado y registrado correctamente.' });
         });
       } else {
-        db.updateUserProfileTypeAndEmail(cleanRut, profileType || 'estudiante', emailLower, (updateErr) => {
+        db.db.run("UPDATE users SET profileType = ?, email = ?, registrationDate = ?, paymentDueDate = ?, expirationDate = ? WHERE rut = ?", 
+          [profileType || 'estudiante', emailLower, registrationDate, paymentDueDate, paymentDueDate.slice(0, 10), cleanRut], (updateErr) => {
           if (updateErr) console.error("Error al actualizar tipo de perfil de usuario y correo:", updateErr);
           res.json({ success: true, message: 'Usuario habilitado correctamente.' });
         });
@@ -608,9 +616,10 @@ app.post('/api/attendance', (req, res) => {
                                regSantiago.getMonth() === santiagoNow.getMonth();
 
         let isPlanActive = isCurrentMonth;
-        if (rowUser.expirationDate) {
+        const finalExp = rowUser.paymentDueDate || rowUser.expirationDate;
+        if (finalExp) {
           try {
-            const expDate = new Date(rowUser.expirationDate + 'T23:59:59');
+            const expDate = new Date(finalExp.includes('T') ? finalExp : finalExp + 'T23:59:59');
             isPlanActive = expDate >= now;
           } catch (e) {
             console.error("Error al validar fecha de vencimiento:", e);
@@ -958,9 +967,10 @@ app.post('/api/asistencia/check-in', async (req, res) => {
                                regSantiago.getMonth() === santiagoNow.getMonth();
 
         let isPlanActive = isCurrentMonth;
-        if (rowUser.expirationDate) {
+        const finalExp = rowUser.paymentDueDate || rowUser.expirationDate;
+        if (finalExp) {
           try {
-            const expDate = new Date(rowUser.expirationDate + 'T23:59:59');
+            const expDate = new Date(finalExp.includes('T') ? finalExp : finalExp + 'T23:59:59');
             isPlanActive = expDate >= now;
           } catch (e) {
             console.error("Error al validar fecha de vencimiento:", e);
@@ -1191,12 +1201,16 @@ function checkAndSendPaymentReminders(manualCallback) {
     
     const targetDate = new Date(santiagoToday);
     targetDate.setDate(santiagoToday.getDate() + 3);
-    const targetDateStr = targetDate.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+    const targetDateStr = targetDate.toISOString().slice(0, 10);
 
     let sentCount = 0;
     const eligibleUsers = users.filter(u => {
       const isEligibleProfile = u.profileType === 'estudiante' || u.profileType === 'funcionario';
-      return isEligibleProfile && u.paymentDate === targetDateStr && u.email;
+      if (!isEligibleProfile || !u.email) return false;
+      const rawDueDate = u.paymentDueDate || u.paymentDate;
+      if (!rawDueDate) return false;
+      const dueDateStr = rawDueDate.includes('T') ? rawDueDate.split('T')[0] : rawDueDate;
+      return dueDateStr === targetDateStr;
     });
 
     if (eligibleUsers.length === 0) {
@@ -1206,13 +1220,14 @@ function checkAndSendPaymentReminders(manualCallback) {
 
     let completed = 0;
     eligibleUsers.forEach(user => {
+      const displayDueDate = user.paymentDueDate ? user.paymentDueDate.slice(0, 10) : user.paymentDate;
       const mailOptions = {
         from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
         to: user.email,
         subject: 'Recordatorio de Pago - GYM-UCN',
-        text: `Hola ${user.name},\n\nTe informamos que tu fecha de pago en GYM-UCN se aproxima el día ${user.paymentDate}.\n\nPor favor realiza el pago correspondiente para mantener tu acceso habilitado sin interrupciones.\n\nSaludos cordiales,\nEl Equipo GYM-UCN`,
+        text: `Hola ${user.name},\n\nTe recordamos que tu plan en GYM-UCN vence en 72 horas (el día ${displayDueDate}).\n\nPor favor realiza el pago correspondiente para mantener tu acceso habilitado sin interrupciones.\n\nSaludos cordiales,\nEl Equipo GYM-UCN`,
         html: `<p>Hola <strong>${user.name}</strong>,</p>
-               <p>Te informamos que tu fecha de pago en GYM-UCN se aproxima el día <strong>${user.paymentDate}</strong>.</p>
+               <p>Te recordamos que tu plan en GYM-UCN vence en <strong>72 horas</strong> (el día <strong>${displayDueDate}</strong>).</p>
                <p>Por favor realiza el pago correspondiente para mantener tu acceso habilitado sin interrupciones.</p>
                <p>Saludos cordiales,<br>El Equipo GYM-UCN</p>`
       };
@@ -1221,7 +1236,7 @@ function checkAndSendPaymentReminders(manualCallback) {
         completed++;
         if (!mailErr) {
           sentCount++;
-          console.log(`Recordatorio de pago enviado a ${user.email} para la fecha ${user.paymentDate}`);
+          console.log(`Recordatorio de pago enviado a ${user.email} para la fecha de vencimiento ${displayDueDate}`);
         } else {
           console.error(`Error enviando recordatorio a ${user.email}:`, mailErr);
         }
@@ -1286,20 +1301,26 @@ app.post('/api/admin/routines', authenticateAdmin, (req, res) => {
 app.post('/api/admin/users/renew', authenticateAdmin, (req, res) => {
   const { userId } = req.body;
   if (!userId) return res.status(400).json({ error: 'Falta userId.' });
-  db.renewUserPlan(userId, (err, newExpirationDate) => {
+  db.renewUserPlan(userId, (err, newDueDateISO) => {
     if (err) {
       console.error("Error al renovar plan:", err);
       return res.status(500).json({ error: 'Error al renovar el plan mensual.' });
     }
-    res.json({ success: true, message: 'Plan renovado exitosamente por 30 días.', expirationDate: newExpirationDate });
+    res.json({ 
+      success: true, 
+      message: 'Plan renovado exitosamente por 30 días.', 
+      expirationDate: newDueDateISO.slice(0, 10),
+      paymentDueDate: newDueDateISO,
+      registrationDate: new Date().toISOString()
+    });
   });
 });
 
 // Endpoint Actualizar Configuración Administrativa de Usuario: Elite, Fecha Pago, Fecha Vencimiento (Admin Only)
 app.post('/api/admin/users/fields', authenticateAdmin, (req, res) => {
-  const { userId, isElite, paymentDate, expirationDate } = req.body;
+  const { userId, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate } = req.body;
   if (!userId) return res.status(400).json({ error: 'Falta userId.' });
-  db.updateUserAdminFields(userId, { isElite, paymentDate, expirationDate }, (err) => {
+  db.updateUserAdminFields(userId, { isElite, paymentDate, expirationDate, registrationDate, paymentDueDate }, (err) => {
     if (err) {
       console.error("Error al actualizar campos de usuario:", err);
       return res.status(500).json({ error: 'Error al actualizar configuración administrativa.' });

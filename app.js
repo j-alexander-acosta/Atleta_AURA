@@ -2007,8 +2007,10 @@ function renderProfileTab() {
     if (paymentPanel && paymentDateSpan && expirationDateSpan) {
         if (AppState.user.profileType === 'estudiante' || AppState.user.profileType === 'funcionario') {
             paymentPanel.classList.remove('hidden');
-            paymentDateSpan.textContent = AppState.user.paymentDate || 'No definida';
-            expirationDateSpan.textContent = AppState.user.expirationDate || 'No definida';
+            const regDateVal = AppState.user.registrationDate || AppState.user.paymentDate;
+            const expDateVal = AppState.user.paymentDueDate || AppState.user.expirationDate;
+            paymentDateSpan.textContent = regDateVal ? (regDateVal.includes('T') ? regDateVal.split('T')[0] : regDateVal) : 'No definida';
+            expirationDateSpan.textContent = expDateVal ? (expDateVal.includes('T') ? expDateVal.split('T')[0] : expDateVal) : 'No definida';
         } else {
             paymentPanel.classList.add('hidden');
         }
@@ -2905,11 +2907,11 @@ async function renderAdminTab() {
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 12px;">
                                 <label style="margin: 0; font-size: 11px; color: var(--text-secondary);">Próx. Pago:</label>
-                                <input type="date" class="admin-user-payment-date" data-id="${user.id}" value="${user.paymentDate || ''}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
+                                <input type="date" class="admin-user-payment-date" data-id="${user.id}" value="${(user.registrationDate || user.paymentDate || '').slice(0, 10)}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
                             </div>
                             <div style="display: flex; align-items: center; gap: 8px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 12px;">
                                 <label style="margin: 0; font-size: 11px; color: var(--text-secondary);">Vence Plan:</label>
-                                <input type="date" class="admin-user-expiration-date" data-id="${user.id}" value="${user.expirationDate || ''}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
+                                <input type="date" class="admin-user-expiration-date" data-id="${user.id}" value="${(user.paymentDueDate || user.expirationDate || '').slice(0, 10)}" style="padding: 4px 6px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 6px; font-size: 11px; outline: none; font-family: monospace;">
                             </div>
                             <button class="btn btn-primary btn-sm btn-save-admin-fields" data-id="${user.id}" style="padding: 4px 8px; font-size: 10px; margin-left: auto;">Guardar Config</button>
                         </div>
@@ -2948,6 +2950,9 @@ async function renderAdminTab() {
                 const isElite = detailsTr.querySelector('.admin-user-elite-chk').checked;
                 const paymentDate = detailsTr.querySelector('.admin-user-payment-date').value;
                 const expirationDate = detailsTr.querySelector('.admin-user-expiration-date').value;
+                
+                const registrationDate = paymentDate ? new Date(paymentDate + 'T12:00:00').toISOString() : null;
+                const paymentDueDate = expirationDate ? new Date(expirationDate + 'T12:00:00').toISOString() : null;
 
                 try {
                     const token = sessionStorage.getItem('aura_admin_token');
@@ -2957,7 +2962,14 @@ async function renderAdminTab() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({ userId, isElite, paymentDate, expirationDate })
+                        body: JSON.stringify({ 
+                            userId, 
+                            isElite, 
+                            paymentDate, 
+                            expirationDate,
+                            registrationDate,
+                            paymentDueDate
+                        })
                     });
                     const data = await res.json();
                     if (data.success) {
@@ -3106,7 +3118,7 @@ function renderAdminRenewals(users) {
         tr.innerHTML = `
             <td style="font-weight: 600; color: var(--text-primary); font-size: 12.5px;">${user.name}</td>
             <td class="font-mono" style="font-size: 11px;">${user.rut}</td>
-            <td class="font-mono text-neon-teal" style="font-weight: bold; font-size: 11px;" id="renewal-date-text-${user.id}">${user.expirationDate || 'Pendiente'}</td>
+            <td class="font-mono text-neon-teal" style="font-weight: bold; font-size: 11px;" id="renewal-date-text-${user.id}">${(user.paymentDueDate || user.expirationDate || 'Pendiente').slice(0, 10)}</td>
             <td style="text-align: center;">
                 <input type="checkbox" class="renew-plan-checkbox" data-id="${user.id}" style="width: 18px; height: 18px; cursor: pointer;">
             </td>
@@ -3134,6 +3146,8 @@ function renderAdminRenewals(users) {
                             // Si el usuario renovado es el usuario activo actual en esta sesión, actualizamos localmente
                             if (AppState.user && AppState.user.id === userId) {
                                 AppState.user.expirationDate = data.expirationDate;
+                                AppState.user.registrationDate = data.registrationDate;
+                                AppState.user.paymentDueDate = data.paymentDueDate;
                                 localStorage.setItem('aura_user_profile', JSON.stringify(AppState.user));
                                 renderProfileTab();
                             }
