@@ -618,6 +618,40 @@
                                     <option value="deportista_seleccionado">Deportista Seleccionado</option>
                                 </select>
                             </div>
+
+                            <!-- IMC & BFP Preview Box for Profile tab -->
+                            <div id="profile-imc-preview-box" class="imc-preview-card" style="margin-top: 20px; display: none;">
+                                <div class="preview-stats-grid">
+                                    <div class="imc-result">
+                                        <span class="imc-lbl">Tu IMC:</span>
+                                        <span class="imc-val" id="profile-imc-value">--</span>
+                                    </div>
+                                    <div class="bfp-result">
+                                        <span class="imc-lbl">% Grasa (IA):</span>
+                                        <span class="imc-val" id="profile-bfp-value">--</span>
+                                    </div>
+                                </div>
+                                <span id="profile-imc-badge" class="imc-category-badge">Normal</span>
+                                <p class="text-xs text-secondary text-center" style="margin-bottom: 8px;">
+                                    Estimaciones calculadas a partir de tus medidas antropométricas.</p>
+                                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                                        <span class="text-secondary">Rango Saludable:</span>
+                                        <span id="profile-imc-healthy-range-text" class="text-cyan font-bold" style="color: var(--color-neon-teal);">--</span>
+                                    </div>
+                                    <div id="profile-imc-weight-status-text" class="text-xs text-center" style="font-weight: 600;"></div>
+                                    <div style="position: relative; height: 18px; margin-top: 4px;">
+                                        <div style="position: absolute; top: 6px; left: 0; width: 100%; height: 6px; background: linear-gradient(to right, var(--color-danger) 0%, var(--color-danger) 17.5%, var(--color-neon-teal) 17.5%, var(--color-neon-teal) 49.5%, #ffa502 49.5%, #ffa502 75%, var(--color-danger) 75%, var(--color-danger) 100%); border-radius: 3px;"></div>
+                                        <div id="profile-imc-slider-indicator" style="position: absolute; top: 3px; left: 0%; width: 12px; height: 12px; border-radius: 50%; background: #ffffff; border: 2px solid var(--bg-card); box-shadow: 0 0 8px #ffffff; transition: left 0.3s ease;"></div>
+                                    </div>
+                                    <div style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.3px;">
+                                        <span>Bajo peso</span>
+                                        <span>Normal</span>
+                                        <span>Sobrepeso/Obesidad</span>
+                                    </div>
+                                </div>
+                            </div>
+
                             <button type="submit" class="btn btn-outline btn-sm btn-block"
                                 style="justify-content: center;">Guardar Métricas</button>
                             <button type="button" id="btn-show-metrics-history" class="btn btn-primary btn-sm btn-block btn-glow"

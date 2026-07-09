@@ -912,6 +912,8 @@ function initEventListeners() {
     if (DOM.inputWaist) DOM.inputWaist.addEventListener('input', updateIMCOnboarding);
     if (DOM.inputNeck) DOM.inputNeck.addEventListener('input', updateIMCOnboarding);
     if (DOM.inputHip) DOM.inputHip.addEventListener('input', updateIMCOnboarding);
+    if (DOM.profileInputWeight) DOM.profileInputWeight.addEventListener('input', updateIMCProfile);
+    if (DOM.profileInputHeight) DOM.profileInputHeight.addEventListener('input', updateIMCProfile);
 
     // Selector de Sexo Biológico (Onboarding)
     if (DOM.genderControl) {
@@ -1996,6 +1998,7 @@ function renderProfileTab() {
     if (DOM.profileInputMuscleMass) DOM.profileInputMuscleMass.value = AppState.user.muscleMass || '';
     if (DOM.profileInputSkeletalMuscle) DOM.profileInputSkeletalMuscle.value = AppState.user.skeletalMuscle || '';
     if (DOM.profileInputType) DOM.profileInputType.value = AppState.user.profileType || 'estudiante';
+    updateIMCProfile();
 
     // Mostrar u ocultar panel de plan y pago
     const paymentPanel = document.getElementById('profile-payment-panel');
@@ -4537,4 +4540,100 @@ function setupCollapsibleAndDraggableAdminSections() {
 
     container.addEventListener('pointerup', endDrag);
     container.addEventListener('pointercancel', endDrag);
+}
+
+// Calcular y Mostrar IMC y Grasa Corporal dinámicamente en la pestaña de Perfil (Actualizar Métricas)
+function updateIMCProfile() {
+    if (!AppState.user) return;
+
+    const weightInput = document.getElementById('profile-input-weight');
+    const heightInput = document.getElementById('profile-input-height');
+
+    const weight = parseFloat(weightInput ? weightInput.value : 0);
+    const height = parseFloat(heightInput ? heightInput.value : 0);
+
+    const waist = AppState.user.waist || 0;
+    const neck = AppState.user.neck || 0;
+    const hip = AppState.user.hip || 0;
+
+    const previewBox = document.getElementById('profile-imc-preview-box');
+    const imcValue = document.getElementById('profile-imc-value');
+    const bfpValue = document.getElementById('profile-bfp-value');
+    const imcBadge = document.getElementById('profile-imc-badge');
+    const healthyRangeText = document.getElementById('profile-imc-healthy-range-text');
+    const weightStatusText = document.getElementById('profile-imc-weight-status-text');
+    const sliderIndicator = document.getElementById('profile-imc-slider-indicator');
+
+    if (weight > 0 && height > 0) {
+        const heightM = height / 100;
+        const imc = weight / (heightM * heightM);
+        const imcFormatted = imc.toFixed(1);
+
+        if (imcValue) imcValue.textContent = imcFormatted;
+
+        let category = "Normal";
+        let badgeClass = "normal";
+        let desc = "";
+
+        const minHealthyWeight = (18.5 * Math.pow(height / 100, 2)).toFixed(1);
+        const maxHealthyWeight = (24.9 * Math.pow(height / 100, 2)).toFixed(1);
+
+        if (healthyRangeText) {
+            healthyRangeText.textContent = `${minHealthyWeight} - ${maxHealthyWeight} kg`;
+        }
+
+        let statusText = '';
+        let statusColor = '';
+
+        if (imc < 18.5) {
+            category = "Bajo Peso";
+            badgeClass = "bajo";
+            const diff = (parseFloat(minHealthyWeight) - weight).toFixed(1);
+            statusText = `Bajo el peso mínimo recomendado por ${diff} kg`;
+            statusColor = 'var(--color-danger)';
+        } else if (imc >= 18.5 && imc < 25) {
+            category = "Normal";
+            badgeClass = "normal";
+            statusText = `Peso óptimo dentro del rango saludable`;
+            statusColor = 'var(--color-neon-teal)';
+        } else if (imc >= 25 && imc < 30) {
+            category = "Sobrepeso";
+            badgeClass = "sobrepeso";
+            const diff = (weight - parseFloat(maxHealthyWeight)).toFixed(1);
+            statusText = `Sobre el peso máximo recomendado por ${diff} kg`;
+            statusColor = '#ffa502';
+        } else {
+            category = "Obesidad";
+            badgeClass = "obesidad";
+            const diff = (weight - parseFloat(maxHealthyWeight)).toFixed(1);
+            statusText = `Sobrepeso severo (obesidad) por ${diff} kg`;
+            statusColor = 'var(--color-danger)';
+        }
+
+        if (weightStatusText) {
+            weightStatusText.textContent = statusText;
+            weightStatusText.style.color = statusColor;
+        }
+
+        const percentage = Math.min(Math.max(((imc - 15) / 20) * 100, 0), 100);
+        if (sliderIndicator) {
+            sliderIndicator.style.left = `calc(${percentage}% - 6px)`;
+        }
+
+        if (imcBadge) {
+            imcBadge.textContent = category;
+            imcBadge.className = `imc-category-badge ${badgeClass}`;
+        }
+
+        if (waist > 0 && neck > 0 && (AppState.user.sex === 'male' || hip > 0)) {
+            const bfp = AURA_AI.calculateNavySealBFP(AppState.user.sex, height, waist, neck, hip);
+            if (bfpValue) bfpValue.textContent = `${bfp.toFixed(1)}%`;
+        } else {
+            if (bfpValue) bfpValue.textContent = '--';
+        }
+
+        if (previewBox) previewBox.style.display = 'block';
+    } else {
+        if (previewBox) previewBox.style.display = 'none';
+    }
 }
