@@ -93,6 +93,57 @@
                         </div>
                         <small id="login-error-msg" style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
                         <button id="btn-login-submit" class="btn btn-primary btn-glow" style="width: 100%; margin-top: 20px;">Iniciar Sesión</button>
+                        <div style="text-align: center; margin-top: 15px;">
+                            <a href="#" id="link-forgot-password" style="color: var(--color-neon-teal); font-size: 13px; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                        </div>
+                    </div>
+
+                    <!-- SECCIÓN: RECUPERACIÓN DE CONTRASEÑA -->
+                    <div id="auth-forgot-section" style="display: none; max-width: 400px; margin: 0 auto;">
+                        <!-- Sub-paso 1: Solicitar Código -->
+                        <div id="forgot-request-block">
+                            <p class="text-secondary text-sm" style="margin-bottom: 20px; text-align: center;">Ingresa tu correo institucional registrado para recibir un código de verificación de 6 dígitos.</p>
+                            <div class="form-row">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="forgot-email">Correo Institucional</label>
+                                    <input type="email" id="forgot-email" placeholder="nombre@alumnos.ucn.cl o @ucn.cl" required>
+                                </div>
+                            </div>
+                            <small id="forgot-request-error" style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
+                            <small id="forgot-request-success" style="color: var(--color-neon-teal); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
+                            <button id="btn-forgot-send-code" class="btn btn-primary btn-glow" style="width: 100%; margin-top: 20px;">Enviar Código</button>
+                            <div style="text-align: center; margin-top: 15px;">
+                                <a href="#" class="link-back-to-login" style="color: var(--text-secondary); font-size: 13px; text-decoration: none;">Volver al Inicio de Sesión</a>
+                            </div>
+                        </div>
+
+                        <!-- Sub-paso 2: Ingresar Código y Nueva Contraseña -->
+                        <div id="forgot-reset-block" style="display: none;">
+                            <p class="text-secondary text-sm" style="margin-bottom: 20px; text-align: center;">Hemos enviado un código a tu correo. Ingresa el código y tu nueva contraseña.</p>
+                            <div class="form-row">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="forgot-code">Código de Verificación (6 dígitos)</label>
+                                    <input type="text" id="forgot-code" placeholder="123456" maxlength="6" style="text-align: center; letter-spacing: 4px; font-weight: bold;" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="forgot-new-password">Nueva Contraseña</label>
+                                    <input type="password" id="forgot-new-password" placeholder="••••••••" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="forgot-confirm-password">Confirmar Nueva Contraseña</label>
+                                    <input type="password" id="forgot-confirm-password" placeholder="••••••••" required>
+                                </div>
+                            </div>
+                            <small id="forgot-reset-error" style="color: var(--color-danger); display: none; font-size: 11px; margin-top: 8px; text-align: center; font-weight: bold;"></small>
+                            <button id="btn-forgot-reset-submit" class="btn btn-primary btn-glow" style="width: 100%; margin-top: 20px;">Restablecer Contraseña</button>
+                            <div style="text-align: center; margin-top: 15px;">
+                                <a href="#" class="link-back-to-login" style="color: var(--text-secondary); font-size: 13px; text-decoration: none;">Cancelar</a>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- SECCIÓN: REGISTRO -->

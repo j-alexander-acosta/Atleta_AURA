@@ -492,6 +492,227 @@ function initEventListeners() {
         });
     }
 
+    // Lógica de Recuperación de Contraseña (Forgot Password)
+    const linkForgot = document.getElementById('link-forgot-password');
+    const authForgotSec = document.getElementById('auth-forgot-section');
+    const authLoginSec = document.getElementById('auth-login-section');
+    const authRegisterSec = document.getElementById('auth-register-section');
+    const tabControl = document.getElementById('auth-tab-control');
+    const step2Title = document.getElementById('onboarding-step-2-title');
+
+    if (linkForgot) {
+        linkForgot.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (authLoginSec) authLoginSec.style.display = 'none';
+            if (authRegisterSec) authRegisterSec.style.display = 'none';
+            if (tabControl) tabControl.style.display = 'none';
+            if (authForgotSec) authForgotSec.style.display = 'block';
+            
+            const reqBlock = document.getElementById('forgot-request-block');
+            const rstBlock = document.getElementById('forgot-reset-block');
+            if (reqBlock) reqBlock.style.display = 'block';
+            if (rstBlock) rstBlock.style.display = 'none';
+
+            if (step2Title) step2Title.textContent = 'Recuperar Contraseña';
+
+            const reqEmail = document.getElementById('forgot-email');
+            const reqErr = document.getElementById('forgot-request-error');
+            const reqSucc = document.getElementById('forgot-request-success');
+            if (reqEmail) reqEmail.value = '';
+            if (reqErr) reqErr.style.display = 'none';
+            if (reqSucc) reqSucc.style.display = 'none';
+        });
+    }
+
+    const backToLoginLinks = document.querySelectorAll('.link-back-to-login');
+    backToLoginLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (authForgotSec) authForgotSec.style.display = 'none';
+            if (authLoginSec) authLoginSec.style.display = 'block';
+            if (tabControl) {
+                tabControl.style.display = 'flex';
+                const loginBtn = tabControl.querySelector('button[data-tab="login"]');
+                if (loginBtn) {
+                    tabControl.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                    loginBtn.classList.add('active');
+                }
+            }
+            if (step2Title) step2Title.textContent = 'Acceso a GYM_UCN';
+        });
+    });
+
+    const btnSendCode = document.getElementById('btn-forgot-send-code');
+    if (btnSendCode) {
+        btnSendCode.addEventListener('click', async () => {
+            const emailInput = document.getElementById('forgot-email');
+            const errorMsg = document.getElementById('forgot-request-error');
+            const successMsg = document.getElementById('forgot-request-success');
+            
+            if (!emailInput || emailInput.value.trim() === '') {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Por favor ingresa tu correo institucional.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            const email = emailInput.value.trim().toLowerCase();
+            if (!email.endsWith('@alumnos.ucn.cl') && !email.endsWith('@ucn.cl')) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'El correo debe terminar en @alumnos.ucn.cl o @ucn.cl.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            btnSendCode.disabled = true;
+            btnSendCode.textContent = 'Enviando...';
+            if (errorMsg) errorMsg.style.display = 'none';
+            if (successMsg) successMsg.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/password/request-reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Error al solicitar el código.');
+                }
+
+                if (successMsg) {
+                    successMsg.textContent = 'Código enviado. Revisa tu bandeja de entrada.';
+                    successMsg.style.display = 'block';
+                }
+
+                setTimeout(() => {
+                    const reqBlock = document.getElementById('forgot-request-block');
+                    const rstBlock = document.getElementById('forgot-reset-block');
+                    if (reqBlock) reqBlock.style.display = 'none';
+                    if (rstBlock) rstBlock.style.display = 'block';
+
+                    window.forgotPasswordEmail = email;
+
+                    const codeIn = document.getElementById('forgot-code');
+                    const passIn = document.getElementById('forgot-new-password');
+                    const confIn = document.getElementById('forgot-confirm-password');
+                    const rstErr = document.getElementById('forgot-reset-error');
+                    if (codeIn) codeIn.value = '';
+                    if (passIn) passIn.value = '';
+                    if (confIn) confIn.value = '';
+                    if (rstErr) rstErr.style.display = 'none';
+                }, 1500);
+
+            } catch (err) {
+                if (errorMsg) {
+                    errorMsg.textContent = err.message;
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                btnSendCode.disabled = false;
+                btnSendCode.textContent = 'Enviar Código';
+            }
+        });
+    }
+
+    const btnResetSubmit = document.getElementById('btn-forgot-reset-submit');
+    if (btnResetSubmit) {
+        btnResetSubmit.addEventListener('click', async () => {
+            const codeInput = document.getElementById('forgot-code');
+            const passInput = document.getElementById('forgot-new-password');
+            const confirmInput = document.getElementById('forgot-confirm-password');
+            const errorMsg = document.getElementById('forgot-reset-error');
+
+            if (!codeInput || !passInput || !confirmInput) return;
+
+            const code = codeInput.value.trim();
+            const password = passInput.value.trim();
+            const confirm = confirmInput.value.trim();
+
+            if (code === '' || password === '' || confirm === '') {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Por favor completa todos los campos.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            if (code.length !== 6 || isNaN(code)) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'El código debe ser numérico y de 6 dígitos.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            if (password !== confirm) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'Las contraseñas no coinciden.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            if (password.length < 6) {
+                if (errorMsg) {
+                    errorMsg.textContent = 'La nueva contraseña debe tener al menos 6 caracteres.';
+                    errorMsg.style.display = 'block';
+                }
+                return;
+            }
+
+            btnResetSubmit.disabled = true;
+            btnResetSubmit.textContent = 'Procesando...';
+            if (errorMsg) errorMsg.style.display = 'none';
+
+            try {
+                const res = await fetch('/api/password/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: window.forgotPasswordEmail,
+                        code,
+                        newPassword: password
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || 'Error al restablecer la contraseña.');
+                }
+
+                alert('¡Contraseña restablecida con éxito! Ya puedes iniciar sesión.');
+
+                if (authForgotSec) authForgotSec.style.display = 'none';
+                if (authLoginSec) authLoginSec.style.display = 'block';
+                if (tabControl) {
+                    tabControl.style.display = 'flex';
+                    const loginBtn = tabControl.querySelector('button[data-tab="login"]');
+                    if (loginBtn) {
+                        tabControl.querySelectorAll('.segment-btn').forEach(b => b.classList.remove('active'));
+                        loginBtn.classList.add('active');
+                    }
+                }
+                if (step2Title) step2Title.textContent = 'Acceso a GYM_UCN';
+
+                const loginEmail = document.getElementById('login-email');
+                if (loginEmail) loginEmail.value = window.forgotPasswordEmail;
+
+            } catch (err) {
+                if (errorMsg) {
+                    errorMsg.textContent = err.message;
+                    errorMsg.style.display = 'block';
+                }
+            } finally {
+                btnResetSubmit.disabled = false;
+                btnResetSubmit.textContent = 'Restablecer Contraseña';
+            }
+        });
+    }
+
     // Lógica de Submit Login
     const btnLoginSubmit = document.getElementById('btn-login-submit');
     if (btnLoginSubmit) {

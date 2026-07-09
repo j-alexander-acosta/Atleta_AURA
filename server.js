@@ -187,6 +187,97 @@ app.post('/api/auth/register-check', (req, res) => {
   });
 });
 
+// Endpoint: Solicitar código de recuperación de contraseña
+app.post('/api/password/request-reset', (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ error: 'El correo electrónico es obligatorio.' });
+  }
+
+  const emailLower = email.toLowerCase().trim();
+  db.getUserByEmail(emailLower, (err, user) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor.' });
+    if (!user) return res.status(404).json({ error: 'El correo institucional no está registrado en AURA.' });
+
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutos de expiración
+
+    db.savePasswordResetCode(emailLower, code, expiresAt, (dbErr) => {
+      if (dbErr) return res.status(500).json({ error: 'Error al generar código de recuperación.' });
+
+      if (transporter) {
+        const mailOptions = {
+          from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
+          to: emailLower,
+          subject: 'Código de Recuperación de Contraseña - GYM-UCN',
+          text: `Hola ${user.name || 'Atleta'},\n\nHemos recibido una solicitud para restablecer la contraseña de tu cuenta en GYM-UCN.\n\nTu código de verificación de un solo uso es:\n\n${code}\n\nEste código expira en 10 minutos.\n\nSi no solicitaste este cambio, puedes ignorar este correo de forma segura.\n\nEl Equipo GYM-UCN`,
+          html: `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 8px;">
+                   <h2 style="color: #00f5d4; text-align: center;">Recuperación de Contraseña</h2>
+                   <p>Hola <strong>${user.name || 'Atleta'}</strong>,</p>
+                   <p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta en GYM-UCN.</p>
+                   <div style="background-color: #f7f7f7; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+                     <span style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333;">${code}</span>
+                   </div>
+                   <p>Este código expira en <strong>10 minutos</strong> y es de un solo uso.</p>
+                   <p style="color: #666; font-size: 12px; margin-top: 30px;">Si no solicitaste este cambio, puedes ignorar este correo de forma segura.</p>
+                   <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+                   <p style="font-size: 12px; color: #999; text-align: center;">El Equipo GYM-UCN</p>
+                 </div>`
+        };
+
+        transporter.sendMail(mailOptions, (mailErr, mailInfo) => {
+          if (mailErr) {
+            console.error("Error al enviar correo de recuperación:", mailErr);
+            return res.status(500).json({ error: 'Error al enviar el correo de recuperación.' });
+          }
+          console.log("Correo de recuperación enviado:", mailInfo.messageId);
+          res.json({ success: true, message: 'Código de recuperación enviado con éxito.' });
+        });
+      } else {
+        console.log(`[MOCK EMAIL] Código de recuperación para ${emailLower}: ${code}`);
+        res.json({ success: true, message: 'Código de recuperación generado (consola).' });
+      }
+    });
+  });
+});
+
+// Endpoint: Restablecer la contraseña con el código
+app.post('/api/password/reset', (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ error: 'Faltan campos requeridos (correo, código o contraseña).' });
+  }
+
+  const emailLower = email.toLowerCase().trim();
+
+  db.getPasswordResetCode(emailLower, (err, row) => {
+    if (err) return res.status(500).json({ error: 'Error de servidor al validar código.' });
+    if (!row) return res.status(400).json({ error: 'No se ha solicitado recuperación para este correo o el código no es válido.' });
+
+    if (row.code !== code.trim()) {
+      return res.status(400).json({ error: 'Código de recuperación incorrecto.' });
+    }
+
+    if (Date.now() > row.expires_at) {
+      db.deletePasswordResetCode(emailLower, () => {});
+      return res.status(400).json({ error: 'El código de recuperación ha expirado.' });
+    }
+
+    bcrypt.hash(newPassword, 10, (hashErr, hash) => {
+      if (hashErr) return res.status(500).json({ error: 'Error al encriptar la nueva contraseña.' });
+
+      db.updateUserPasswordByEmail(emailLower, hash, (updateErr) => {
+        if (updateErr) return res.status(500).json({ error: 'Error al actualizar la contraseña en el sistema.' });
+
+        db.deletePasswordResetCode(emailLower, (deleteErr) => {
+          if (deleteErr) console.error("Error al eliminar código usado:", deleteErr);
+          res.json({ success: true, message: 'Tu contraseña se ha restablecido correctamente.' });
+        });
+      });
+    });
+  });
+});
+
 // Endpoint Habilitar Usuario (Protegido)
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
   const { rut, es_exento, limite_semanal, mes, profileType, email } = req.body;

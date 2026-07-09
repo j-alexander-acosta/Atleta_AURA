@@ -137,6 +137,16 @@ function initDb() {
       )
     `);
 
+    // Tabla de Códigos de Recuperación de Contraseña
+    db.run(`
+      CREATE TABLE IF NOT EXISTS password_resets (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT NOT NULL UNIQUE,
+        code TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      )
+    `);
+
     // Tabla Workouts / Logs
     db.run(`
       CREATE TABLE IF NOT EXISTS logs (
@@ -1530,6 +1540,31 @@ function renewUserPlan(userId, callback) {
   });
 }
 
+function savePasswordResetCode(email, code, expiresAt, callback) {
+  db.run(`
+    INSERT OR REPLACE INTO password_resets (email, code, expires_at)
+    VALUES (?, ?, ?)
+  `, [email.toLowerCase(), code, expiresAt], callback);
+}
+
+function getPasswordResetCode(email, callback) {
+  db.get(`
+    SELECT code, expires_at FROM password_resets WHERE email = ?
+  `, [email.toLowerCase()], callback);
+}
+
+function deletePasswordResetCode(email, callback) {
+  db.run(`
+    DELETE FROM password_resets WHERE email = ?
+  `, [email.toLowerCase()], callback);
+}
+
+function updateUserPasswordByEmail(email, passwordHash, callback) {
+  db.run(`
+    UPDATE users SET password_hash = ? WHERE email = ?
+  `, [passwordHash, email.toLowerCase()], callback);
+}
+
 module.exports = {
   dbPath,
   initDb,
@@ -1567,5 +1602,9 @@ module.exports = {
   getComunicados,
   addComunicado,
   updateUserAdminFields,
-  renewUserPlan
+  renewUserPlan,
+  savePasswordResetCode,
+  getPasswordResetCode,
+  deletePasswordResetCode,
+  updateUserPasswordByEmail
 };
