@@ -280,7 +280,7 @@ app.post('/api/password/reset', (req, res) => {
 
 // Endpoint Habilitar Usuario (Protegido)
 app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
-  const { rut, es_exento, limite_semanal, mes, profileType, email } = req.body;
+  const { rut, es_exento, limite_semanal, fecha, profileType, email } = req.body;
 
   if (!rut || !isValidRut(rut)) {
     return res.status(400).json({ error: 'RUT inválido o no proporcionado.' });
@@ -300,12 +300,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
   const limite = parseInt(limite_semanal) || 0;
   const isExento = (es_exento || profileType === 'atleta_elite') ? 1 : 0;
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const currentMonth = now.getMonth() + 1;
-  const mesVal = parseInt(mes) || currentMonth;
-  const monthStr = String(mesVal).padStart(2, '0');
-  const customFecha = `${year}-${monthStr}-01 12:00:00`;
+  const customFecha = fecha ? `${fecha} 12:00:00` : new Date().toISOString().slice(0, 10) + ' 12:00:00';
 
   db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, emailLower, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
@@ -317,9 +312,9 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
         return res.status(500).json({ error: 'Error interno verificando usuario.' });
       }
 
-      const now = new Date();
-      const registrationDate = now.toISOString();
-      const paymentDueDate = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+      const baseDate = fecha ? new Date(fecha + 'T12:00:00') : new Date();
+      const registrationDate = baseDate.toISOString();
+      const paymentDueDate = new Date(baseDate.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
       if (!user) {
         // Create initial record
@@ -339,15 +334,21 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
           email: emailLower,
           registrationDate,
           paymentDueDate,
-          expirationDate: paymentDueDate.slice(0, 10)
+          expirationDate: paymentDueDate.slice(0, 10),
+          isElite: profileType === 'deportista_seleccionado' ? 1 : 0
         };
         db.saveUser(newUser, (saveErr) => {
           if (saveErr) console.error("Error creating initial user:", saveErr);
           res.json({ success: true, message: 'Usuario habilitado y registrado correctamente.' });
         });
       } else {
-        db.db.run("UPDATE users SET profileType = ?, email = ?, registrationDate = ?, paymentDueDate = ?, expirationDate = ? WHERE rut = ?", 
-          [profileType || 'estudiante', emailLower, registrationDate, paymentDueDate, paymentDueDate.slice(0, 10), cleanRut], (updateErr) => {
+        db.updateUserHabilitationFields(cleanRut, {
+          profileType: profileType || 'estudiante',
+          email: emailLower,
+          registrationDate,
+          paymentDueDate,
+          isElite: profileType === 'deportista_seleccionado' ? 1 : 0
+        }, (updateErr) => {
           if (updateErr) console.error("Error al actualizar tipo de perfil de usuario y correo:", updateErr);
           res.json({ success: true, message: 'Usuario habilitado correctamente.' });
         });
@@ -436,7 +437,8 @@ app.post('/api/workouts', (req, res) => {
     const isCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
                            regSantiago.getMonth() === santiagoNow.getMonth();
 
-    if (!habilitado.es_exento && !isCurrentMonth) {
+    const isElite = user.isElite || user.profileType === 'deportista_seleccionado' || habilitado.es_exento;
+    if (!isElite && !isCurrentMonth) {
       return res.status(403).json({ error: 'Su habilitación mensual ha vencido o no corresponde al mes actual.' });
     }
 
@@ -626,7 +628,8 @@ app.post('/api/attendance', (req, res) => {
           }
         }
 
-        if (!hab.es_exento && !isPlanActive) {
+        const isElite = rowUser.isElite || rowUser.profileType === 'deportista_seleccionado' || hab.es_exento;
+        if (!isElite && !isPlanActive) {
           return res.status(409).json({ error: 'Su plan mensual ha vencido o no corresponde al mes actual.' });
         }
 
@@ -977,7 +980,8 @@ app.post('/api/asistencia/check-in', async (req, res) => {
           }
         }
 
-        if (!hab.es_exento && !isPlanActive) {
+        const isElite = rowUser.isElite || rowUser.profileType === 'deportista_seleccionado' || hab.es_exento;
+        if (!isElite && !isPlanActive) {
           return res.status(409).json({ 
             success: false, 
             error: 'Su plan mensual ha vencido o no corresponde al mes actual.',

@@ -318,8 +318,6 @@
                         <button class="day-btn" data-day="3"><span>M</span><span class="day-name">Mié</span></button>
                         <button class="day-btn" data-day="4"><span>J</span><span class="day-name">Jue</span></button>
                         <button class="day-btn" data-day="5"><span>V</span><span class="day-name">Vie</span></button>
-                        <button class="day-btn" data-day="6"><span>S</span><span class="day-name">Sáb</span></button>
-                        <button class="day-btn" data-day="0"><span>D</span><span class="day-name">Dom</span></button>
                     </div>
                     <div id="routine-preview-box" class="routine-preview-card hidden">
                         <h4 class="preview-title">Distribución sugerida:</h4>
@@ -615,7 +613,7 @@
                                     style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%; opacity: 0.7; cursor: not-allowed;">
                                     <option value="estudiante">Estudiante</option>
                                     <option value="funcionario">Funcionario</option>
-                                    <option value="deportista_seleccionado">Deportista Seleccionado</option>
+                                    <option value="deportista_seleccionado">Atleta Élite</option>
                                 </select>
                             </div>
 
@@ -763,7 +761,7 @@
                                         style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
                                         <option value="estudiante">Estudiante</option>
                                         <option value="funcionario">Funcionario</option>
-                                        <option value="deportista_seleccionado">Deportista Seleccionado</option>
+                                        <option value="deportista_seleccionado">Atleta Élite</option>
                                     </select>
                                 </div>
                                 <div class="form-group">
@@ -775,31 +773,6 @@
                                         <option value="4">4 días/semana</option>
                                         <option value="5">5 días/semana</option>
                                     </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="admin-hab-mes">Mes de Habilitación</label>
-                                    <select id="admin-hab-mes" required
-                                        style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
-                                        <option value="1">Enero</option>
-                                        <option value="2">Febrero</option>
-                                        <option value="3">Marzo</option>
-                                        <option value="4">Abril</option>
-                                        <option value="5">Mayo</option>
-                                        <option value="6">Junio</option>
-                                        <option value="7">Julio</option>
-                                        <option value="8">Agosto</option>
-                                        <option value="9">Septiembre</option>
-                                        <option value="10">Octubre</option>
-                                        <option value="11">Noviembre</option>
-                                        <option value="12">Diciembre</option>
-                                    </select>
-                                </div>
-                                <div class="form-group"
-                                    style="display: flex; align-items: center; gap: 10px; grid-column: span 2;">
-                                    <input type="checkbox" id="admin-hab-exento" style="width: 20px; height: 20px;">
-                                    <label for="admin-hab-exento"
-                                        style="margin: 0; cursor: pointer; color: var(--text-secondary);">Atleta Élite
-                                        Exento (Ignora límite semanal)</label>
                                 </div>
                                 <button id="btn-admin-habilitar" class="btn btn-primary btn-glow"
                                     style="grid-column: span 2;">Otorgar Acceso</button>

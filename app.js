@@ -1233,7 +1233,7 @@ function initEventListeners() {
 
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
             let typeLabel = 'Estudiante';
-            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel = 'Deportista Seleccionado';
+            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel = 'Atleta Élite';
             else if (AppState.user.profileType === 'funcionario') typeLabel = 'Funcionario';
             if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = typeLabel;
 
@@ -1258,7 +1258,7 @@ function initEventListeners() {
 
             if (DOM.accessModalUserName) DOM.accessModalUserName.textContent = AppState.user.name || 'Atleta';
             let typeLabel2 = 'Estudiante';
-            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel2 = 'Deportista Seleccionado';
+            if (AppState.user.profileType === 'deportista_seleccionado') typeLabel2 = 'Atleta Élite';
             else if (AppState.user.profileType === 'funcionario') typeLabel2 = 'Funcionario';
             if (DOM.accessModalUserType) DOM.accessModalUserType.textContent = typeLabel2;
 
@@ -1983,7 +1983,7 @@ function renderProfileTab() {
 
     let typeLabel = 'ESTUDIANTE';
     if (AppState.user.profileType === 'deportista_seleccionado') {
-        typeLabel = 'DEPORTISTA SELECCIONADO';
+        typeLabel = 'ATLETA ÉLITE';
     } else if (AppState.user.profileType === 'funcionario') {
         typeLabel = 'FUNCIONARIO';
     }
@@ -2732,7 +2732,7 @@ async function renderAdminTab() {
             const opt = document.createElement('option');
             opt.value = user.id;
             let profileLabel = 'Estudiante';
-            if (user.profileType === 'deportista_seleccionado') profileLabel = 'Deportista Seleccionado';
+            if (user.profileType === 'deportista_seleccionado') profileLabel = 'Atleta Élite';
             else if (user.profileType === 'funcionario') profileLabel = 'Funcionario';
             opt.textContent = `${user.name} (${profileLabel})`;
             DOM.adminBarcodeSelectUser.appendChild(opt);
@@ -2781,7 +2781,7 @@ async function renderAdminTab() {
 
             let profileLabel = 'Estudiante';
             if (user.profileType === 'deportista_seleccionado') {
-                profileLabel = 'Selección';
+                profileLabel = 'Atleta Élite';
             } else if (user.profileType === 'funcionario') {
                 profileLabel = 'Funcionario';
             }
@@ -3678,7 +3678,7 @@ function renderAttendanceHistory() {
                 }
                 const profileType = att.profileType || 'estudiante';
                 let profileLabel = 'Estudiante';
-                if (profileType === 'deportista_seleccionado') profileLabel = 'Selección';
+                if (profileType === 'deportista_seleccionado') profileLabel = 'Atleta Élite';
                 else if (profileType === 'funcionario') profileLabel = 'Funcionario';
 
                 const dateObj = new Date(att.date);
@@ -3824,24 +3824,16 @@ if (btnAdminLogout) {
 
 const btnAdminHabilitar = document.getElementById('btn-admin-habilitar');
 if (btnAdminHabilitar) {
-    // Pre-seleccionar el mes actual al cargar
-    const selectMes = document.getElementById('admin-hab-mes');
-    if (selectMes) {
-        selectMes.value = (new Date().getMonth() + 1).toString();
-    }
-
     btnAdminHabilitar.addEventListener('click', async () => {
         const token = sessionStorage.getItem('aura_admin_token');
         const rut = document.getElementById('admin-hab-rut').value;
         const emailEl = document.getElementById('admin-hab-email');
         const email = emailEl ? emailEl.value.trim() : '';
-        const exento = document.getElementById('admin-hab-exento').checked;
-        const limiteSemanalSelect = document.getElementById('admin-hab-semanal');
-        const limite_semanal = limiteSemanalSelect ? parseInt(limiteSemanalSelect.value) || 0 : 0;
-        const selectMes = document.getElementById('admin-hab-mes');
-        const mes = selectMes ? parseInt(selectMes.value) || (new Date().getMonth() + 1) : (new Date().getMonth() + 1);
         const selectTipo = document.getElementById('admin-hab-tipo');
         const profileType = selectTipo ? selectTipo.value : 'estudiante';
+        const exento = profileType === 'deportista_seleccionado';
+        const limiteSemanalSelect = document.getElementById('admin-hab-semanal');
+        const limite_semanal = limiteSemanalSelect ? parseInt(limiteSemanalSelect.value) || 0 : 0;
         const msg = document.getElementById('admin-hab-msg');
 
         if (!email) {
@@ -3866,7 +3858,7 @@ if (btnAdminHabilitar) {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify({ rut, es_exento: exento, limite_semanal, mes, profileType, email })
+                body: JSON.stringify({ rut, es_exento: exento, limite_semanal, profileType, email })
             });
             if (res.status === 401 || res.status === 403) {
                 sessionStorage.removeItem('aura_admin_token');
@@ -3881,7 +3873,6 @@ if (btnAdminHabilitar) {
                 document.getElementById('admin-hab-rut').value = '';
                 if (emailEl) emailEl.value = '';
                 if (limiteSemanalSelect) limiteSemanalSelect.value = '0';
-                if (selectMes) selectMes.value = (new Date().getMonth() + 1).toString();
                 if (selectTipo) selectTipo.value = 'estudiante';
                 AURA_AI.loadDB();
                 if(typeof renderAdminTab === 'function') renderAdminTab();
@@ -4268,7 +4259,7 @@ function renderScanResult(data) {
 
     if (data.success) {
         const initials = user && user.name ? user.name.charAt(0).toUpperCase() : '?';
-        const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' 
+        const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Atleta Élite' 
                            : (user.profileType === 'funcionario' ? 'Funcionario' : 'Estudiante');
         
         let injuryText = '<span style="color: var(--color-neon-teal); font-weight:600;">✔️ Saludable (Sin Lesiones)</span>';
@@ -4296,7 +4287,7 @@ function renderScanResult(data) {
         
         if (user) {
             const initials = user.name ? user.name.charAt(0).toUpperCase() : '?';
-            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Selección' 
+            const profileLabel = user.profileType === 'deportista_seleccionado' ? 'Atleta Élite' 
                                : (user.profileType === 'funcionario' ? 'Funcionario' : 'Estudiante');
             
             html = `

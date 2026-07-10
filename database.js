@@ -1550,6 +1550,19 @@ function renewUserPlan(userId, callback) {
   });
 }
 
+function updateUserHabilitationFields(rut, fields, callback) {
+  const cleanRut = getRunFromRut(rut);
+  const { profileType, email, registrationDate, paymentDueDate, isElite } = fields;
+  const isEliteInt = isElite ? 1 : 0;
+  const expirationDate = paymentDueDate ? paymentDueDate.slice(0, 10) : null;
+
+  db.run(`
+    UPDATE users 
+    SET profileType = ?, email = ?, registrationDate = ?, paymentDueDate = ?, expirationDate = ?, isElite = ? 
+    WHERE rut = ?
+  `, [profileType || 'estudiante', email || '', registrationDate, paymentDueDate, expirationDate, isEliteInt, cleanRut], callback);
+}
+
 function savePasswordResetCode(email, code, expiresAt, callback) {
   db.run(`
     INSERT OR REPLACE INTO password_resets (email, code, expires_at)
@@ -1616,5 +1629,7 @@ module.exports = {
   savePasswordResetCode,
   getPasswordResetCode,
   deletePasswordResetCode,
-  updateUserPasswordByEmail
+  updateUserPasswordByEmail,
+  updateUserHabilitationFields,
+  db
 };
