@@ -175,10 +175,11 @@ app.post('/api/auth/register-check', (req, res) => {
       if (err) return res.status(500).json({ error: 'Error de servidor verificando usuario.' });
       
       const isRegistered = !!(user && user.password_hash);
+      const profileType = user ? user.profileType : (habilitado.profileType || 'estudiante');
       res.json({
         success: true,
         registered: isRegistered,
-        profileType: user ? user.profileType : 'estudiante',
+        profileType: profileType,
         rut: user ? user.rut : habilitado.rut,
         limite_semanal: habilitado.limite_semanal || 0,
         userId: user ? user.id : null
@@ -318,7 +319,7 @@ app.post('/api/admin/habilitar-usuario', authenticateAdmin, (req, res) => {
 
   const customFecha = fecha ? `${fecha} 12:00:00` : new Date().toISOString().slice(0, 10) + ' 12:00:00';
 
-  db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, emailLower, (err) => {
+  db.addUsuarioHabilitado(cleanRut, dias, isExento, limite, customFecha, emailLower, profileType, (err) => {
     if (err) return res.status(500).json({ error: 'Error al habilitar usuario.' });
     
     // Check if user exists in users table
@@ -482,7 +483,7 @@ app.post('/api/workouts', (req, res) => {
               from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
               to: 'paula.ramos@ce.ucn.cl',
               subject: 'Alerta: Nueva Solicitud de Kinesiología por Lesión',
-              text: `Estimada Paula Ramos,\n\nEl atleta seleccionado ${user.name} ha reportado una lesión y solicita el servicio de Kinesiología.\n\nDetalles del deportista:\n- Nombre: ${user.name}\n- RUT: ${user.rut}\n- Correo: ${user.email || 'No registrado'}\n- Detalles de la lesión: ${user.injuryDetails || 'No proporcionado'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
+              text: `Estimada Paula Ramos,\n\nEl atleta seleccionado ${user.name} ha reportado una lesión y solicita el servicio de Kinesiología.\n\nDetalles del deportista:\n- Nombre: ${user.name}\n- RUT: ${user.rut}\n- Correo: ${user.email || 'No registrado'}\n- Teléfono: ${user.phone || 'No registrado'}\n- Detalles de la lesión: ${user.injuryDetails || 'No proporcionado'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
               html: `<p>Estimada Paula Ramos,</p>
                      <p>El atleta seleccionado <strong>${user.name}</strong> ha reportado una lesión y solicita el servicio de Kinesiología.</p>
                      <p><strong>Detalles del deportista:</strong></p>
@@ -490,6 +491,7 @@ app.post('/api/workouts', (req, res) => {
                        <li><strong>Nombre:</strong> ${user.name}</li>
                        <li><strong>RUT:</strong> ${user.rut}</li>
                        <li><strong>Correo:</strong> ${user.email || 'No registrado'}</li>
+                       <li><strong>Teléfono:</strong> ${user.phone || 'No registrado'}</li>
                        <li><strong>Detalles de la lesión:</strong> ${user.injuryDetails || 'No proporcionado'}</li>
                      </ul>
                      <p>Saludos cordiales,<br>Sistema GYM-UCN</p>`
@@ -672,13 +674,14 @@ app.post('/api/attendance', (req, res) => {
                 from: '"GYM-UCN" <jacinto.acosta@alumnos.ucn.cl>',
                 to: 'paula.ramos@ce.ucn.cl',
                 subject: 'Alerta: Asistencia de Kinesiología Registrada',
-                text: `Estimada Paula Ramos,\n\nSe ha habilitado/registrado una asistencia de Kinesiología para el siguiente atleta seleccionado:\n\n- Nombre: ${rowUser.name}\n- RUT: ${rowUser.rut}\n- Correo: ${rowUser.email || 'No registrado'}\n- Detalles/Notas: ${att.notes || 'Ninguna'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
+                text: `Estimada Paula Ramos,\n\nSe ha habilitado/registrado una asistencia de Kinesiología para el siguiente atleta seleccionado:\n\n- Nombre: ${rowUser.name}\n- RUT: ${rowUser.rut}\n- Correo: ${rowUser.email || 'No registrado'}\n- Teléfono: ${rowUser.phone || 'No registrado'}\n- Detalles/Notas: ${att.notes || 'Ninguna'}\n\nSaludos cordiales,\nSistema GYM-UCN`,
                 html: `<p>Estimada Paula Ramos,</p>
                        <p>Se ha habilitado/registrado una asistencia de Kinesiología para el siguiente atleta seleccionado:</p>
                        <ul>
                          <li><strong>Nombre:</strong> ${rowUser.name}</li>
                          <li><strong>RUT:</strong> ${rowUser.rut}</li>
                          <li><strong>Correo:</strong> ${rowUser.email || 'No registrado'}</li>
+                         <li><strong>Teléfono:</strong> ${rowUser.phone || 'No registrado'}</li>
                          <li><strong>Detalles/Notas:</strong> ${att.notes || 'Ninguna'}</li>
                        </ul>
                        <p>Saludos cordiales,<br>Sistema GYM-UCN</p>`

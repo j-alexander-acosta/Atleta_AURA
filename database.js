@@ -66,6 +66,10 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN phone TEXT", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN email TEXT", () => {});
+    db.run("ALTER TABLE usuarios_habilitados ADD COLUMN profileType TEXT DEFAULT 'estudiante'", () => {
+      // Migración de datos: Si es_exento es 1, actualizar a deportista_seleccionado
+      db.run("UPDATE usuarios_habilitados SET profileType = 'deportista_seleccionado' WHERE es_exento = 1", () => {});
+    });
 
     // Tabla de Usuarios Habilitados
     db.run(`
@@ -76,7 +80,8 @@ function initDb() {
         fecha_registro DATETIME DEFAULT CURRENT_TIMESTAMP,
         es_exento BOOLEAN DEFAULT 0,
         limite_semanal INTEGER DEFAULT 0,
-        email TEXT
+        email TEXT,
+        profileType TEXT DEFAULT 'estudiante'
       )
     `);
 
@@ -1029,15 +1034,24 @@ function obtenerUltimaAsistenciaUsuario(usuario_id, callback) {
 }
 
 // Nuevas funciones para Usuarios Habilitados
-function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email, callback) {
+function addUsuarioHabilitado(rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email, profileType, callback) {
+  let actualProfileType = 'estudiante';
+  let cb = callback;
+  if (typeof profileType === 'function') {
+    cb = profileType;
+    actualProfileType = es_exento ? 'deportista_seleccionado' : 'estudiante';
+  } else {
+    actualProfileType = profileType || 'estudiante';
+  }
+
   const cleanRut = getRunFromRut(rut);
   const finalDate = fecha_registro || new Date().toISOString().replace('T', ' ').substring(0, 19);
   const stmt = db.prepare(`
-    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT OR REPLACE INTO usuarios_habilitados (rut, dias_permitidos, es_exento, limite_semanal, fecha_registro, email, profileType)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
-  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0, finalDate, email || null], function(err) {
-    callback(err);
+  stmt.run([cleanRut, dias_permitidos, es_exento ? 1 : 0, parseInt(limite_semanal) || 0, finalDate, email || null, actualProfileType], function(err) {
+    cb(err);
   });
   stmt.finalize();
 }
