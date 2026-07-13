@@ -4494,7 +4494,9 @@ function setupCollapsibleAndDraggableAdminSections() {
     const sectionWrappers = {};
 
     panels.forEach((panel, idx) => {
-        const config = sectionConfigs[idx] || { id: `panel-${idx}`, title: panel.querySelector('h3')?.textContent || 'Panel' };
+        const h3El = panel.querySelector('h3');
+        const defaultTitle = h3El ? h3El.textContent : 'Panel';
+        const config = sectionConfigs[idx] || { id: `panel-${idx}`, title: defaultTitle };
         
         const sectionDiv = document.createElement('div');
         sectionDiv.className = 'draggable-section';

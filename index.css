@@ -45,7 +45,7 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-body {
+html, body {
     background-color: var(--bg-black);
     color: var(--text-primary);
     font-family: var(--font-sans);
@@ -53,6 +53,9 @@ body {
     height: 100vh; /* Fallback for older browsers */
     height: 100dvh; /* Viewport dinámico para móviles (resuelve la barra de direcciones) */
     width: 100vw;
+}
+
+body {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -60,7 +63,7 @@ body {
 
 /* Soporte específico para iOS antiguo */
 @supports (-webkit-touch-callout: none) {
-    body {
+    html, body {
         height: -webkit-fill-available;
     }
 }
