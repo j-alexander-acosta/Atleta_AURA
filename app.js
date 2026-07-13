@@ -897,9 +897,10 @@ function initEventListeners() {
         }
 
         if (validateStep2()) {
+            const phoneRes = cleanAndValidatePhone(DOM.inputPhone.value);
             tempProfile.password = passwordInput.value;
             tempProfile.name = DOM.inputName.value.trim();
-            tempProfile.phone = DOM.inputPhone.value.trim();
+            tempProfile.phone = phoneRes.formatted;
             tempProfile.age = parseInt(DOM.inputAge.value);
             tempProfile.weight = parseFloat(DOM.inputWeight.value);
             tempProfile.height = parseInt(DOM.inputHeight.value);
@@ -911,7 +912,12 @@ function initEventListeners() {
             
             showOnboardingStep(3);
         } else {
-            alert("Por favor completa todos tus datos físicos.");
+            const phoneRes = cleanAndValidatePhone(DOM.inputPhone.value);
+            if (!phoneRes.valid) {
+                alert("Por favor introduce un teléfono de contacto válido (Ej: +56912345678 o 912345678).");
+            } else {
+                alert("Por favor completa todos tus datos físicos.");
+            }
         }
     });
 
@@ -1510,10 +1516,33 @@ function showOnboardingStep(stepNum) {
     }
 }
 
+function cleanAndValidatePhone(phoneStr) {
+    if (!phoneStr) return { valid: false };
+    const clean = phoneStr.replace(/\s+/g, '').replace(/-/g, '');
+    
+    // Si empieza con 9 y tiene 9 dígitos, anteponer +56
+    if (/^9\d{8}$/.test(clean)) {
+        return { valid: true, formatted: "+56" + clean };
+    }
+    
+    // Si empieza con +569 y tiene 12 caracteres en total (8 dígitos al final)
+    if (/^\+569\d{8}$/.test(clean)) {
+        return { valid: true, formatted: clean };
+    }
+    
+    // Si empieza con 569 y tiene 11 caracteres en total
+    if (/^569\d{8}$/.test(clean)) {
+        return { valid: true, formatted: "+" + clean };
+    }
+    
+    return { valid: false };
+}
+
 // Validar Datos Físicos
 function validateStep2() {
+    const phoneRes = cleanAndValidatePhone(DOM.inputPhone.value);
     const baseValid = DOM.inputName.value.trim() !== '' &&
-        DOM.inputPhone.value.trim() !== '' &&
+        phoneRes.valid &&
         DOM.inputAge.value !== '' &&
         DOM.inputWeight.value !== '' &&
         DOM.inputHeight.value !== '' &&
