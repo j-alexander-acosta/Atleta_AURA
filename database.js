@@ -1512,7 +1512,26 @@ function updateUserAdminFields(userId, fields, callback) {
     UPDATE users 
     SET isElite = ?, paymentDate = ?, expirationDate = ?, registrationDate = ?, paymentDueDate = ?
     WHERE id = ?
-  `, [isEliteInt, paymentDate, expirationDate, registrationDate, paymentDueDate, userId], callback);
+  `, [isEliteInt, paymentDate, expirationDate, registrationDate, paymentDueDate, userId], (err) => {
+    if (err) return callback(err);
+
+    // Sincronizar fecha de registro a la tabla de usuarios habilitados
+    db.get("SELECT rut FROM users WHERE id = ?", [userId], (getErr, row) => {
+      if (row && row.rut) {
+        const cleanRut = getRunFromRut(row.rut);
+        const dateVal = registrationDate ? registrationDate.replace('T', ' ').substring(0, 19) : null;
+        if (dateVal) {
+          db.run("UPDATE usuarios_habilitados SET fecha_registro = ? WHERE rut = ?", [dateVal, cleanRut], (updateErr) => {
+            callback(updateErr);
+          });
+        } else {
+          callback(null);
+        }
+      } else {
+        callback(null);
+      }
+    });
+  });
 }
 
 function renewUserPlan(userId, callback) {

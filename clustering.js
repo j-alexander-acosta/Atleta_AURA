@@ -48,6 +48,10 @@ const AURA_AI = (() => {
     };
 
     const getUserRegistrationDate = (user, habilitaciones = []) => {
+        if (user.registrationDate) {
+            const rawDate = user.registrationDate.toString();
+            return new Date(rawDate.includes('T') ? rawDate : rawDate.replace(' ', 'T'));
+        }
         if (user.rut && habilitaciones && habilitaciones.length > 0) {
             const userRutBody = getRunFromRut(user.rut.toString());
             const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);

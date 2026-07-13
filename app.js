@@ -317,6 +317,20 @@ function initApp() {
                         changed = true;
                     }
                 }
+
+                // Ajustar fecha de registro de Ricardo Juica Salinas (inició el 08 de julio)
+                if (tempDb.users) {
+                    tempDb.users.forEach(u => {
+                        if (u && (u.rut === '15019550' || (u.name && u.name.includes('Ricardo Juica')))) {
+                            if (u.registrationDate !== '2026-07-08T12:00:00.000Z') {
+                                u.registrationDate = '2026-07-08T12:00:00.000Z';
+                                u.paymentDate = '2026-07-08';
+                                changed = true;
+                                console.log("Migrated Ricardo Juica Salinas's registration date in localStorage users to 2026-07-08.");
+                            }
+                        }
+                    });
+                }
             }
             
             if (changed) {
@@ -326,6 +340,24 @@ function initApp() {
         }
     } catch (e) {
         console.error("Error cleaning local database storage:", e);
+    }
+
+    // Ajustar perfil activo si corresponde
+    try {
+        const activeProfile = localStorage.getItem('aura_user_profile');
+        if (activeProfile) {
+            const userObj = JSON.parse(activeProfile);
+            if (userObj && (userObj.rut === '15019550' || (userObj.name && userObj.name.includes('Ricardo Juica')))) {
+                if (userObj.registrationDate !== '2026-07-08T12:00:00.000Z') {
+                    userObj.registrationDate = '2026-07-08T12:00:00.000Z';
+                    userObj.paymentDate = '2026-07-08';
+                    localStorage.setItem('aura_user_profile', JSON.stringify(userObj));
+                    console.log("Migrated Ricardo Juica Salinas active profile in localStorage to 2026-07-08.");
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Error migrating active profile in localStorage:", e);
     }
 
     // Inicializar base de datos de IA
