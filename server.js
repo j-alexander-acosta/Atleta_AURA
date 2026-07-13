@@ -187,6 +187,22 @@ app.post('/api/auth/register-check', (req, res) => {
   });
 });
 
+// Endpoint: Reiniciar datos de usuario (borrar perfil e historial en el servidor)
+app.post('/api/auth/reset-data', (req, res) => {
+  const { userId } = req.body;
+  if (!userId) {
+    return res.status(400).json({ error: 'El ID de usuario es obligatorio.' });
+  }
+
+  db.resetUserData(userId, (err) => {
+    if (err) {
+      console.error("Error al reiniciar datos de usuario:", err);
+      return res.status(500).json({ error: 'Error de servidor al reiniciar datos de usuario.' });
+    }
+    res.json({ success: true, message: 'Datos del usuario eliminados correctamente del servidor.' });
+  });
+});
+
 // Endpoint: Solicitar código de recuperación de contraseña
 app.post('/api/password/request-reset', (req, res) => {
   const { email } = req.body;

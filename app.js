@@ -1164,8 +1164,7 @@ function initEventListeners() {
             'Aceptar',
             'var(--color-danger)',
             () => {
-                localStorage.clear();
-                location.reload();
+                window.forceAppCleanup();
             }
         );
     });
@@ -2631,8 +2630,24 @@ function registerServiceWorker() {
 }
 
 // Función global para forzar la limpieza completa de la aplicación
-window.forceAppCleanup = function () {
+window.forceAppCleanup = async function () {
     console.log("Iniciando limpieza forzada de la aplicación...");
+    
+    // Si hay un usuario activo, intentar reiniciar sus datos en el servidor
+    const activeUserId = AppState.user ? AppState.user.id : null;
+    if (activeUserId) {
+        try {
+            await fetch(`${window.location.origin}/api/auth/reset-data`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: activeUserId })
+            });
+            console.log("Datos del usuario eliminados del servidor correctamente.");
+        } catch (err) {
+            console.error("Error al notificar al servidor sobre el reinicio de datos:", err);
+        }
+    }
+
     localStorage.clear();
     sessionStorage.clear();
 

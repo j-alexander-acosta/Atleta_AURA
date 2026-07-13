@@ -1265,6 +1265,21 @@ function deleteUser(id, callback) {
   });
 }
 
+function resetUserData(id, callback) {
+  db.serialize(() => {
+    db.run("DELETE FROM logs WHERE userId = ?", [id]);
+    db.run("DELETE FROM attendance WHERE userId = ?", [id]);
+    db.run("DELETE FROM asistencia WHERE usuario_id = ?", [id]);
+    db.run("DELETE FROM progresion_atletas WHERE user_id = ?", [id]);
+    db.run("DELETE FROM notificaciones_web WHERE user_id = ?", [id]);
+    db.run("DELETE FROM historial_metricas WHERE user_id = ?", [id]);
+    db.run("DELETE FROM users WHERE id = ?", [id]);
+    db.run("SELECT 1", [], (err) => {
+      callback(err);
+    });
+  });
+}
+
 function checkUserAttendanceForDate(userId, dateStr, callback) {
   // 1. Convertir la fecha de consulta a fecha local de Chile (America/Santiago) en formato YYYY-MM-DD
   let targetLocalDate;
@@ -1635,6 +1650,7 @@ module.exports = {
   saveProgression,
   getProgressionHistory,
   deleteUser,
+  resetUserData,
   checkUserAttendanceForDate,
   checkUserWeeklyLimit,
   updateUserProfileType,
