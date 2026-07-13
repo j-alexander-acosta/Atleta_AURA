@@ -176,6 +176,12 @@
                                 </div>
                             </div>
                             <div class="form-row" style="margin-top: 15px;">
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label for="input-phone">Teléfono de Contacto</label>
+                                    <input type="tel" id="input-phone" placeholder="Ej. +56912345678" required>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 15px;">
                                 <div class="form-group">
                                     <label for="input-age">Edad</label>
                                     <input type="number" id="input-age" placeholder="Años" min="12" max="100" required>
@@ -1072,7 +1078,10 @@
 
                         <!-- Panel de Alertas y Notificaciones -->
                         <div class="admin-notifications-section">
-                            <h3 class="panel-section-title">Notificaciones de Recuperación Automatizadas</h3>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+                                <h3 class="panel-section-title" style="margin: 0;">Notificaciones de Recuperación Automatizadas</h3>
+                                <button id="btn-admin-trigger-recovery-check" class="btn btn-secondary btn-sm" style="font-size: 11px; padding: 6px 12px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.05); cursor: pointer; border-radius: 6px;">Revisar y Enviar Alertas Auto</button>
+                            </div>
                             <div id="admin-notifications-container" class="admin-notifications-list">
                                 <!-- Generado dinámicamente por JS -->
                             </div>

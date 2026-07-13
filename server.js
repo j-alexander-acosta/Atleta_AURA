@@ -1265,6 +1265,229 @@ setTimeout(() => {
   checkAndSendPaymentReminders();
 }, 10000);
 
+
+// --- SISTEMA DE NOTIFICACIONES AUTOMÁTICAS POR INACTIVIDAD ---
+
+function getRunFromRut(rut) {
+  if (!rut) return '';
+  const rutStr = rut.toString();
+  const clean = rutStr.replace(/\./g, '').replace(/-/g, '').replace(/\s/g, '').trim().toUpperCase();
+  if (clean.length < 2) return clean;
+
+  const body = clean.slice(0, -1);
+  const dv = clean.slice(-1);
+
+  let sum = 0;
+  let mul = 2;
+  for (let i = body.length - 1; i >= 0; i--) {
+    sum += parseInt(body.charAt(i)) * mul;
+    mul = mul === 7 ? 2 : mul + 1;
+  }
+  const expectedDvVal = 11 - (sum % 11);
+  const calculatedDv = expectedDvVal === 11 ? '0' : expectedDvVal === 10 ? 'K' : expectedDvVal.toString();
+
+  if (dv === calculatedDv) {
+    return body;
+  }
+  return clean;
+}
+
+function getUserRegistrationDate(user, habilitaciones = []) {
+  if (user.registrationDate) {
+    const rawDate = user.registrationDate.toString();
+    return new Date(rawDate.includes('T') ? rawDate : rawDate.replace(' ', 'T'));
+  }
+  if (user.rut && habilitaciones && habilitaciones.length > 0) {
+    const userRutBody = getRunFromRut(user.rut.toString());
+    const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
+    if (hab && hab.fecha_registro) {
+      const rawDate = hab.fecha_registro.toString();
+      return new Date(rawDate.includes('T') ? rawDate : rawDate.replace(' ', 'T'));
+    }
+  }
+  if (user.id && user.id.startsWith('user-')) {
+    const tsStr = user.id.split('-')[1];
+    const ts = parseInt(tsStr);
+    if (!isNaN(ts) && ts > 1000000000000) {
+      return new Date(ts);
+    }
+  }
+  return new Date(0);
+}
+
+function checkAndSendRecoveryNotifications(manualCallback) {
+  db.getAllUsers((err, users) => {
+    if (err || !users) {
+      if (manualCallback) manualCallback(err);
+      return;
+    }
+    
+    db.getAllHabilitaciones((err, habilitaciones) => {
+      if (err || !habilitaciones) {
+        if (manualCallback) manualCallback(err);
+        return;
+      }
+      
+      let sentCount = 0;
+      let checkedCount = 0;
+      
+      const highRiskUsers = users.filter(u => u.assignedCluster === 'Alto riesgo');
+      if (highRiskUsers.length === 0) {
+        if (manualCallback) manualCallback(null, 0);
+        return;
+      }
+      
+      highRiskUsers.forEach(user => {
+        let isRegisteredCurrentMonth = false;
+        if (user.rut && habilitaciones.length > 0) {
+          const userRutBody = getRunFromRut(user.rut.toString());
+          const hab = habilitaciones.find(h => h.rut && getRunFromRut(h.rut.toString()) === userRutBody);
+          if (hab) {
+            if (hab.es_exento) {
+              isRegisteredCurrentMonth = true;
+            } else if (hab.fecha_registro) {
+              try {
+                const now = new Date();
+                const santiagoStr = now.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                const santiagoNow = new Date(santiagoStr);
+
+                const regDateVal = hab.fecha_registro.includes('Z') ? hab.fecha_registro : hab.fecha_registro + 'Z';
+                const regDate = new Date(regDateVal);
+                const regSantiagoStr = regDate.toLocaleString("en-US", { timeZone: "America/Santiago" });
+                const regSantiago = new Date(regSantiagoStr);
+
+                isRegisteredCurrentMonth = regSantiago.getFullYear() === santiagoNow.getFullYear() && 
+                                           regSantiago.getMonth() === santiagoNow.getMonth();
+              } catch (e) {
+                console.error("Error parsing fecha_registro in checkAndSendRecoveryNotifications:", e);
+              }
+            }
+          }
+        }
+        
+        if (!isRegisteredCurrentMonth) {
+          checkedCount++;
+          if (checkedCount === highRiskUsers.length && manualCallback) {
+            manualCallback(null, sentCount);
+          }
+          return;
+        }
+
+        db.getUserAttendanceHistory(user.id, (logsErr, logs) => {
+          checkedCount++;
+          if (logsErr) {
+            console.error(`Error obteniendo logs para usuario ${user.id}:`, logsErr);
+            if (checkedCount === highRiskUsers.length && manualCallback) {
+              manualCallback(null, sentCount);
+            }
+            return;
+          }
+          
+          const sortedLogs = logs || [];
+          const lastLog = sortedLogs[0];
+          
+          let rutinaSugerida = "Tren Superior";
+          if (lastLog && lastLog.routineName) {
+            if (lastLog.routineName.toLowerCase().includes("superior")) {
+              rutinaSugerida = "Tren Inferior";
+            }
+          }
+          
+          let daysInactive = 0;
+          const today = new Date();
+          
+          if (lastLog && lastLog.date) {
+            const diffTime = Math.abs(today - new Date(lastLog.date));
+            daysInactive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          } else {
+            const regDate = getUserRegistrationDate(user, habilitaciones);
+            const diffTime = Math.abs(today - regDate);
+            daysInactive = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+          }
+          
+          if (daysInactive >= 3) {
+            const message = `Notamos que llevas ${daysInactive} días sin entrenar, tu rutina de ${rutinaSugerida} te espera con ajuste de carga de -10%.`;
+            
+            db.db.get(
+              "SELECT COUNT(*) as count FROM notificaciones_web WHERE user_id = ? AND message = ? AND datetime(fecha_hora) > datetime('now', '-1 day')",
+              [user.id, message],
+              (countErr, row) => {
+                if (countErr || (row && row.count > 0)) {
+                  if (checkedCount === highRiskUsers.length && manualCallback) {
+                    manualCallback(null, sentCount);
+                  }
+                  return;
+                }
+                
+                db.saveWebNotification(user.id, message, (saveErr, notifId) => {
+                  if (saveErr) {
+                    console.error("Error guardando notificación automática:", saveErr);
+                    if (checkedCount === highRiskUsers.length && manualCallback) {
+                      manualCallback(null, sentCount);
+                    }
+                    return;
+                  }
+                  
+                  if (user.email && transporter) {
+                    const mailOptions = {
+                      from: '"GYM-UCN Admin" <jacinto.acosta@alumnos.ucn.cl>',
+                      to: user.email,
+                      subject: 'Alerta de Recuperación Automática - GYM-UCN',
+                      text: message,
+                      html: `<p>Hola ${user.name},</p><p>${message}</p><p>El Equipo GYM-UCN</p>`
+                    };
+                    
+                    transporter.sendMail(mailOptions, (mailErr, info) => {
+                      if (!mailErr) {
+                        sentCount++;
+                        console.log(`Alerta de recuperación automática enviada a ${user.email} (${daysInactive} días inactivo)`);
+                      } else {
+                        console.error(`Error enviando email de recuperación automática a ${user.email}:`, mailErr);
+                      }
+                      
+                      if (checkedCount === highRiskUsers.length && manualCallback) {
+                        manualCallback(null, sentCount);
+                      }
+                    });
+                  } else {
+                    sentCount++;
+                    if (checkedCount === highRiskUsers.length && manualCallback) {
+                      manualCallback(null, sentCount);
+                    }
+                  }
+                });
+              }
+            );
+          } else {
+            if (checkedCount === highRiskUsers.length && manualCallback) {
+              manualCallback(null, sentCount);
+            }
+          }
+        });
+      });
+    });
+  });
+}
+
+// Programador automático en el Servidor
+setInterval(() => {
+  console.log("Ejecutando revisión automática de inactividad de atletas...");
+  checkAndSendRecoveryNotifications();
+}, 24 * 60 * 60 * 1000);
+
+setTimeout(() => {
+  console.log("Ejecutando revisión inicial de inactividad de atletas...");
+  checkAndSendRecoveryNotifications();
+}, 15000);
+
+// Endpoint de Prueba/Acción Manual para Recordatorios de Recuperación por inactividad (Admin Only)
+app.post('/api/admin/trigger-recovery-check', authenticateAdmin, (req, res) => {
+  checkAndSendRecoveryNotifications((err, sentCount) => {
+    if (err) return res.status(500).json({ error: 'Error ejecutando recordatorios de inactividad: ' + err.message });
+    res.json({ success: true, message: `Ejecución manual de alertas de inactividad completada. Alertas enviadas: ${sentCount}` });
+  });
+});
+
 // Endpoint Comunicados: Consultar comunicados dirigidos al tipo de perfil
 app.get('/api/comunicados', (req, res) => {
   const { profileType } = req.query;

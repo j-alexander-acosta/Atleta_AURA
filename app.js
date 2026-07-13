@@ -154,6 +154,7 @@ const DOM = {
     genderControl: document.getElementById('gender-control'),
     inputRut: document.getElementById('input-rut'),
     inputName: document.getElementById('input-name'),
+    inputPhone: document.getElementById('input-phone'),
     inputEmail: document.getElementById('input-email'),
     inputAge: document.getElementById('input-age'),
     inputWaist: document.getElementById('input-waist'),
@@ -898,6 +899,7 @@ function initEventListeners() {
         if (validateStep2()) {
             tempProfile.password = passwordInput.value;
             tempProfile.name = DOM.inputName.value.trim();
+            tempProfile.phone = DOM.inputPhone.value.trim();
             tempProfile.age = parseInt(DOM.inputAge.value);
             tempProfile.weight = parseFloat(DOM.inputWeight.value);
             tempProfile.height = parseInt(DOM.inputHeight.value);
@@ -1512,6 +1514,7 @@ function showOnboardingStep(stepNum) {
 // Validar Datos Físicos
 function validateStep2() {
     const baseValid = DOM.inputName.value.trim() !== '' &&
+        DOM.inputPhone.value.trim() !== '' &&
         DOM.inputAge.value !== '' &&
         DOM.inputWeight.value !== '' &&
         DOM.inputHeight.value !== '' &&
@@ -1670,7 +1673,8 @@ function saveOnboardingProfile() {
         muscleMass: tempProfile.muscleMass || 0.0,
         skeletalMuscle: tempProfile.skeletalMuscle || 0.0,
         injured: tempProfile.injured || 0,
-        injuryDetails: tempProfile.injuryDetails || ""
+        injuryDetails: tempProfile.injuryDetails || "",
+        phone: tempProfile.phone || ''
     };
 
     // Sincronizar inmediatamente los datos de registro con la base de datos real en el servidor
@@ -2022,7 +2026,8 @@ function renderProfileTab() {
     const muscleText = AppState.user.muscleMass ? ` • M. Muscular: ${AppState.user.muscleMass}%` : '';
     const skeletalText = AppState.user.skeletalMuscle ? ` • M. Esquelética: ${AppState.user.skeletalMuscle}%` : '';
 
-    DOM.profileStatsSummary.textContent = `Perfil: ${typeLabel} • Objetivo: ${AppState.user.goal.toUpperCase()} • Peso: ${AppState.user.weight} kg • Estatura: ${AppState.user.height} cm${imcText}${bfpText}${muscleText}${skeletalText}`;
+    const phoneText = AppState.user.phone ? ` • Tel: ${AppState.user.phone}` : '';
+    DOM.profileStatsSummary.textContent = `Perfil: ${typeLabel} • Objetivo: ${AppState.user.goal.toUpperCase()} • Peso: ${AppState.user.weight} kg • Estatura: ${AppState.user.height} cm${imcText}${bfpText}${muscleText}${skeletalText}${phoneText}`;
 
     // Poblar inputs del formulario de actualización manual de métricas
     if (DOM.profileInputWeight) DOM.profileInputWeight.value = AppState.user.weight || '';
@@ -2915,7 +2920,10 @@ async function renderAdminTab() {
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
                                 <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Contacto / Correo</span>
-                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">${user.email || '--'}</span>
+                                <span style="font-size: 12px; color: var(--text-primary); font-weight: 500;">
+                                    ${user.email || '--'}
+                                    ${user.phone ? `<br><span style="font-size: 11px; color: var(--text-secondary); font-family: monospace;">Telf: ${user.phone}</span>` : ''}
+                                </span>
                             </div>
                             <div style="display: flex; flex-direction: column; gap: 4px; border-left: 1px solid rgba(255, 255, 255, 0.1); padding-left: 15px;">
                                 <span style="font-size: 10px; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; letter-spacing: 0.05em;">Métricas Manuales</span>
@@ -3851,6 +3859,49 @@ if (btnAdminLogout) {
         if (appContainer) appContainer.classList.remove('admin-mode');
         
         window.checkAdminAuth();
+    });
+}
+
+const btnAdminTriggerRecoveryCheck = document.getElementById('btn-admin-trigger-recovery-check');
+if (btnAdminTriggerRecoveryCheck) {
+    btnAdminTriggerRecoveryCheck.addEventListener('click', async () => {
+        const token = sessionStorage.getItem('aura_admin_token');
+        if (!token) {
+            alert("Debe iniciar sesión como administrador.");
+            return;
+        }
+
+        btnAdminTriggerRecoveryCheck.textContent = 'Procesando...';
+        btnAdminTriggerRecoveryCheck.disabled = true;
+
+        try {
+            const res = await fetch(`${window.location.origin}/api/admin/trigger-recovery-check`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (res.status === 401 || res.status === 403) {
+                sessionStorage.removeItem('aura_admin_token');
+                window.checkAdminAuth();
+                alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+                return;
+            }
+            const data = await res.json();
+            if (data.success) {
+                alert(data.message || "Revisión y envío de alertas de inactividad completados con éxito.");
+                if (typeof renderAdminTab === 'function') renderAdminTab();
+            } else {
+                alert("Error: " + (data.error || "Fallo al ejecutar alertas."));
+            }
+        } catch (err) {
+            console.error("Error al ejecutar alertas de inactividad:", err);
+            alert("Error de red al intentar gatillar la revisión automática.");
+        } finally {
+            btnAdminTriggerRecoveryCheck.textContent = 'Revisar y Enviar Alertas Auto';
+            btnAdminTriggerRecoveryCheck.disabled = false;
+        }
     });
 }
 

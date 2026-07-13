@@ -167,7 +167,8 @@ const AURA_AI = (() => {
                 muscleMass: userObj.muscleMass || 0.0,
                 skeletalMuscle: userObj.skeletalMuscle || 0.0,
                 injured: userObj.injured ? 1 : 0,
-                injuryDetails: userObj.injuryDetails || ""
+                injuryDetails: userObj.injuryDetails || "",
+                phone: userObj.phone || ""
             };
 
             if (idx !== -1) {

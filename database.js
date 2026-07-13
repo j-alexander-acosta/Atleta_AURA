@@ -63,6 +63,7 @@ function initDb() {
     db.run("ALTER TABLE users ADD COLUMN expirationDate TEXT", () => {});
     db.run("ALTER TABLE users ADD COLUMN registrationDate TEXT", () => {});
     db.run("ALTER TABLE users ADD COLUMN paymentDueDate TEXT", () => {});
+    db.run("ALTER TABLE users ADD COLUMN phone TEXT", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN limite_semanal INTEGER DEFAULT 0", () => {});
     db.run("ALTER TABLE usuarios_habilitados ADD COLUMN email TEXT", () => {});
 
@@ -845,8 +846,8 @@ function saveUser(user, callback) {
 
     const stmt = db.prepare(`
       INSERT OR REPLACE INTO users 
-      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      (id, name, age, sex, weight, height, goal, level, streak, assignedCluster, profileType, muscleMass, skeletalMuscle, injured, injuryDetails, rut, email, imc, bodyFat, waist, neck, hip, days, password_hash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate, phone) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run([
@@ -855,7 +856,7 @@ function saveUser(user, callback) {
       user.profileType || 'estudiante', user.muscleMass || 0.0, user.skeletalMuscle || 0.0,
       user.injured ? 1 : 0, user.injuryDetails || '', cleanRut, user.email || '',
       user.imc || 0.0, user.bodyFat || 0.0, user.waist || 0.0, user.neck || 0.0, user.hip || 0.0,
-      daysStr, passwordHash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate
+      daysStr, passwordHash, isElite, paymentDate, expirationDate, registrationDate, paymentDueDate, user.phone || null
     ], function(runErr) {
       if (runErr) {
         stmt.finalize();
