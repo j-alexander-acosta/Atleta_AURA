@@ -238,8 +238,12 @@ let tempProfile = {
 /* ==========================================================================
    Inicialización y Carga de Estado
    ========================================================================== */
-// Initialize App on DOM Content Loaded
-document.addEventListener('DOMContentLoaded', initApp);
+// Initialize App safely handling DOM load status
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initApp);
+} else {
+    initApp();
+}
 
 // ============================================================================
 // Funciones de Notificaciones Web (Atletas)
