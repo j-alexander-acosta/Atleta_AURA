@@ -16,7 +16,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/Escudo.png">
     <link rel="manifest" href="manifest.json">
     <!-- CSS Estilos -->
     <link rel="stylesheet" href="index.css?v=20260713">
@@ -25,12 +25,63 @@
 </head>
 
 <script>
-    // Interceptor de errores fatales para dispositivos móviles
+    // Interceptor de errores fatales para dispositivos móviles que dibuja un banner en el DOM
+    function showDOMError(msg, file, line, col) {
+        let debugDiv = document.getElementById('debug-error-overlay');
+        if (!debugDiv) {
+            debugDiv = document.createElement('div');
+            debugDiv.id = 'debug-error-overlay';
+            debugDiv.style.position = 'fixed';
+            debugDiv.style.top = '0';
+            debugDiv.style.left = '0';
+            debugDiv.style.width = '100%';
+            debugDiv.style.background = '#dc3545';
+            debugDiv.style.color = '#ffffff';
+            debugDiv.style.padding = '15px';
+            debugDiv.style.fontSize = '12px';
+            debugDiv.style.fontFamily = 'monospace';
+            debugDiv.style.zIndex = '999999';
+            debugDiv.style.boxSizing = 'border-box';
+            debugDiv.style.maxHeight = '50vh';
+            debugDiv.style.overflowY = 'auto';
+            debugDiv.style.borderBottom = '3px solid #ff0055';
+            
+            if (document.body) {
+                document.body.prepend(debugDiv);
+            } else {
+                document.addEventListener('DOMContentLoaded', () => {
+                    document.body.prepend(debugDiv);
+                });
+            }
+        }
+        const errText = document.createElement('div');
+        errText.style.marginBottom = '10px';
+        errText.style.borderBottom = '1px solid rgba(255,255,255,0.3)';
+        errText.style.paddingBottom = '5px';
+        errText.innerText = `🚨 [Falla iOS] ${msg}\nArchivo: ${file}\nLínea: ${line}:${col || 0}`;
+        debugDiv.appendChild(errText);
+    }
+
     window.addEventListener('error', function (e) {
-        alert("Falla iOS detectada:\n" + e.message + "\nArchivo: " + e.filename + "\nLínea: " + e.lineno);
+        showDOMError(e.message, e.filename, e.lineno, e.colno);
+        
+        // Enviar error al servidor para auditoría
+        fetch('/api/admin/log-error', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: e.message, filename: e.filename, lineno: e.lineno, colno: e.colno })
+        }).catch(function() {});
     });
+
     window.addEventListener('unhandledrejection', function (e) {
-        alert("Promesa rechazada en iOS:\n" + e.reason);
+        const msg = e.reason ? (e.reason.message || e.reason) : 'Desconocido';
+        showDOMError("Promesa Rechazada: " + msg, 'Promise', 0, 0);
+        
+        fetch('/api/admin/log-error', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: "Promesa Rechazada: " + msg, filename: 'Promise', lineno: 0, colno: 0 })
+        }).catch(function() {});
     });
 </script>
 

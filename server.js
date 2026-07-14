@@ -129,6 +129,13 @@ app.post('/api/admin/login', (req, res) => {
   });
 });
 
+// Endpoint para registrar errores del cliente (para depuración en móviles)
+app.post('/api/admin/log-error', (req, res) => {
+  const { message, filename, lineno, colno } = req.body;
+  console.error(`🚨 [Client Error] ${message} in ${filename} at line ${lineno}:${colno}`);
+  res.json({ success: true });
+});
+
 // Endpoint de Login de Estudiante
 app.post('/api/auth/login', (req, res) => {
   const { email, password } = req.body;
