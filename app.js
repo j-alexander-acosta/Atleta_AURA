@@ -139,6 +139,21 @@ const DOM = {
     adminUsersTableBody: document.getElementById('admin-users-table-body'),
     adminNotificationsContainer: document.getElementById('admin-notifications-container'),
     adminFilterCluster: document.getElementById('admin-filter-cluster'),
+    adminReportFilterProfile: document.getElementById('admin-report-filter-profile'),
+    adminReportFilterMonth: document.getElementById('admin-report-filter-month'),
+    btnAdminReportGenerate: document.getElementById('btn-admin-report-generate'),
+    btnAdminReportPdf: document.getElementById('btn-admin-report-pdf'),
+    btnAdminReportExcel: document.getElementById('btn-admin-report-excel'),
+    adminReportsTableBody: document.getElementById('admin-reports-table-body'),
+    adminReportType: document.getElementById('admin-report-type'),
+    adminReportDateMode: document.getElementById('admin-report-date-mode'),
+    adminReportMonthContainer: document.getElementById('admin-report-month-container'),
+    adminReportRangeContainer: document.getElementById('admin-report-range-container'),
+    adminReportFilterStart: document.getElementById('admin-report-filter-start'),
+    adminReportFilterEnd: document.getElementById('admin-report-filter-end'),
+    btnAdminToggleCharts: document.getElementById('btn-admin-toggle-charts'),
+    adminReportsChartsWrapper: document.getElementById('admin-reports-charts-wrapper'),
+    adminReportsTableHeader: document.getElementById('admin-reports-table-header'),
 
     // IMC & BFP Preview
     imcPreviewBox: document.getElementById('imc-preview-box'),
@@ -3184,6 +3199,8 @@ async function renderAdminTab() {
     // Inicializar formularios administrativos adicionales
     initAdminComunicados();
     initAdminRoutineEditor();
+    initAdminReports();
+    loadAdminReports();
 }
 
 // Helper to render renewal list under admin tab
@@ -3255,6 +3272,533 @@ function renderAdminRenewals(users) {
         });
         
         tableBody.appendChild(tr);
+    });
+}
+
+let adminReportsInitialized = false;
+function initAdminReports() {
+    if (adminReportsInitialized) return;
+    
+    // Set default month to current month YYYY-MM
+    if (DOM.adminReportFilterMonth) {
+        DOM.adminReportFilterMonth.value = new Date().toISOString().substring(0, 7);
+    }
+    
+    // Toggle date inputs depending on Date Mode
+    if (DOM.adminReportDateMode) {
+        DOM.adminReportDateMode.addEventListener('change', () => {
+            const mode = DOM.adminReportDateMode.value;
+            if (mode === 'range') {
+                if (DOM.adminReportMonthContainer) DOM.adminReportMonthContainer.style.display = 'none';
+                if (DOM.adminReportRangeContainer) DOM.adminReportRangeContainer.style.display = 'block';
+            } else {
+                if (DOM.adminReportMonthContainer) DOM.adminReportMonthContainer.style.display = 'block';
+                if (DOM.adminReportRangeContainer) DOM.adminReportRangeContainer.style.display = 'none';
+            }
+            loadAdminReports();
+        });
+    }
+
+    // Toggle Collapsible Charts Section
+    if (DOM.btnAdminToggleCharts && DOM.adminReportsChartsWrapper) {
+        DOM.btnAdminToggleCharts.addEventListener('click', () => {
+            const isHidden = DOM.adminReportsChartsWrapper.style.display === 'none';
+            if (isHidden) {
+                DOM.adminReportsChartsWrapper.style.display = 'grid';
+                DOM.btnAdminToggleCharts.innerHTML = '<span>📊 Ocultar Gráficos Estadísticos</span>';
+            } else {
+                DOM.adminReportsChartsWrapper.style.display = 'none';
+                DOM.btnAdminToggleCharts.innerHTML = '<span>📊 Mostrar Gráficos Estadísticos</span>';
+            }
+        });
+    }
+
+    if (DOM.btnAdminReportGenerate) {
+        DOM.btnAdminReportGenerate.addEventListener('click', () => {
+            loadAdminReports();
+        });
+    }
+    
+    // Add automatic refresh on filter changes
+    const automaticFilters = [
+        DOM.adminReportType,
+        DOM.adminReportFilterProfile,
+        DOM.adminReportFilterMonth,
+        DOM.adminReportFilterStart,
+        DOM.adminReportFilterEnd
+    ];
+    automaticFilters.forEach(filter => {
+        if (filter) {
+            filter.addEventListener('change', () => {
+                loadAdminReports();
+            });
+        }
+    });
+
+    // PDF Export
+    if (DOM.btnAdminReportPdf) {
+        DOM.btnAdminReportPdf.addEventListener('click', async () => {
+            const token = sessionStorage.getItem('aura_admin_token');
+            if (!token) return alert('Sesión de administrador no válida.');
+
+            const reportType = DOM.adminReportType ? DOM.adminReportType.value : 'general';
+            const profile = DOM.adminReportFilterProfile ? DOM.adminReportFilterProfile.value : 'all';
+            const dateMode = DOM.adminReportDateMode ? DOM.adminReportDateMode.value : 'month';
+            const month = DOM.adminReportFilterMonth ? DOM.adminReportFilterMonth.value : '';
+            const startDate = DOM.adminReportFilterStart ? DOM.adminReportFilterStart.value : '';
+            const endDate = DOM.adminReportFilterEnd ? DOM.adminReportFilterEnd.value : '';
+
+            DOM.btnAdminReportPdf.disabled = true;
+            DOM.btnAdminReportPdf.textContent = 'Generando...';
+
+            let query = `profile=${profile}&reportType=${reportType}`;
+            let downloadFilename = `Reporte_AURA_${reportType}_`;
+            if (dateMode === 'range') {
+                query += `&startDate=${startDate}&endDate=${endDate}`;
+                downloadFilename += `${startDate}_a_${endDate}.pdf`;
+            } else {
+                query += `&month=${month}`;
+                downloadFilename += `${month}.pdf`;
+            }
+
+            try {
+                const res = await fetch(`${window.location.origin}/api/admin/reports/export/pdf?${query}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.status === 401 || res.status === 403) {
+                    sessionStorage.removeItem('aura_admin_token');
+                    window.checkAdminAuth();
+                    alert("Su sesión ha expirado.");
+                    return;
+                }
+
+                if (!res.ok) throw new Error('Error al descargar el PDF.');
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert('No se pudo descargar el PDF.');
+            } finally {
+                DOM.btnAdminReportPdf.disabled = false;
+                DOM.btnAdminReportPdf.textContent = '📄 PDF';
+            }
+        });
+    }
+
+    // Excel Export
+    if (DOM.btnAdminReportExcel) {
+        DOM.btnAdminReportExcel.addEventListener('click', async () => {
+            const token = sessionStorage.getItem('aura_admin_token');
+            if (!token) return alert('Sesión de administrador no válida.');
+
+            const reportType = DOM.adminReportType ? DOM.adminReportType.value : 'general';
+            const profile = DOM.adminReportFilterProfile ? DOM.adminReportFilterProfile.value : 'all';
+            const dateMode = DOM.adminReportDateMode ? DOM.adminReportDateMode.value : 'month';
+            const month = DOM.adminReportFilterMonth ? DOM.adminReportFilterMonth.value : '';
+            const startDate = DOM.adminReportFilterStart ? DOM.adminReportFilterStart.value : '';
+            const endDate = DOM.adminReportFilterEnd ? DOM.adminReportFilterEnd.value : '';
+
+            DOM.btnAdminReportExcel.disabled = true;
+            DOM.btnAdminReportExcel.textContent = 'Generando...';
+
+            let query = `profile=${profile}&reportType=${reportType}`;
+            let downloadFilename = `Reporte_AURA_${reportType}_`;
+            if (dateMode === 'range') {
+                query += `&startDate=${startDate}&endDate=${endDate}`;
+                downloadFilename += `${startDate}_a_${endDate}.csv`;
+            } else {
+                query += `&month=${month}`;
+                downloadFilename += `${month}.csv`;
+            }
+
+            try {
+                const res = await fetch(`${window.location.origin}/api/admin/reports/export/excel?${query}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (res.status === 401 || res.status === 403) {
+                    sessionStorage.removeItem('aura_admin_token');
+                    window.checkAdminAuth();
+                    alert("Su sesión ha expirado.");
+                    return;
+                }
+
+                if (!res.ok) throw new Error('Error al descargar el archivo Excel.');
+
+                const blob = await res.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = downloadFilename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            } catch (err) {
+                console.error(err);
+                alert('No se pudo descargar la planilla de Excel.');
+            } finally {
+                DOM.btnAdminReportExcel.disabled = false;
+                DOM.btnAdminReportExcel.textContent = '📊 Excel/CSV';
+            }
+        });
+    }
+    
+    adminReportsInitialized = true;
+}
+
+async function loadAdminReports() {
+    if (!DOM.adminReportsTableBody) return;
+    
+    const token = sessionStorage.getItem('aura_admin_token');
+    if (!token) return;
+
+    const reportType = DOM.adminReportType ? DOM.adminReportType.value : 'general';
+    const profile = DOM.adminReportFilterProfile ? DOM.adminReportFilterProfile.value : 'all';
+    const dateMode = DOM.adminReportDateMode ? DOM.adminReportDateMode.value : 'month';
+    const month = DOM.adminReportFilterMonth ? DOM.adminReportFilterMonth.value : '';
+    const startDate = DOM.adminReportFilterStart ? DOM.adminReportFilterStart.value : '';
+    const endDate = DOM.adminReportFilterEnd ? DOM.adminReportFilterEnd.value : '';
+
+    let url = `/api/admin/reports?profile=${profile}&reportType=${reportType}`;
+    if (dateMode === 'range') {
+        if (!startDate || !endDate) {
+            DOM.adminReportsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                        Por favor, seleccione un rango de fechas válido (Desde y Hasta).
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        url += `&startDate=${startDate}&endDate=${endDate}`;
+    } else {
+        url += `&month=${month}`;
+    }
+
+    DOM.adminReportsTableBody.innerHTML = `
+        <tr>
+            <td colspan="6" style="text-align: center; color: var(--color-neon-purple); padding: 20px;">
+                Cargando reporte...
+            </td>
+        </tr>
+    `;
+
+    try {
+        const res = await fetch(url, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (res.status === 401 || res.status === 403) {
+            sessionStorage.removeItem('aura_admin_token');
+            window.checkAdminAuth();
+            alert("Su sesión de administrador ha expirado. Por favor, inicie sesión nuevamente.");
+            return;
+        }
+
+        const data = await res.json();
+        if (data.success && data.reportData) {
+            renderReportsTable(data.reportData, reportType);
+            updateReportsCharts(data.reportData);
+        } else {
+            DOM.adminReportsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--color-danger); padding: 20px;">
+                        Error al cargar los datos del reporte: ${data.error || 'Respuesta no válida.'}
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (err) {
+        console.error("Error loading admin reports:", err);
+        DOM.adminReportsTableBody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align: center; color: var(--color-danger); padding: 20px;">
+                    Error de conexión al cargar el reporte.
+                </td>
+            </tr>
+        `;
+    }
+}
+
+function updateReportsCharts(reportData) {
+    const attendanceCounts = {};
+    const volumeSum = {};
+    
+    reportData.forEach(user => {
+        // Group attendances
+        if (user.attendancesList && Array.isArray(user.attendancesList)) {
+            user.attendancesList.forEach(dateStr => {
+                const day = dateStr.slice(0, 10); // YYYY-MM-DD
+                attendanceCounts[day] = (attendanceCounts[day] || 0) + 1;
+            });
+        }
+        
+        // Group volumes
+        if (user.completedRoutines && Array.isArray(user.completedRoutines)) {
+            user.completedRoutines.forEach(routine => {
+                const day = routine.date.slice(0, 10); // YYYY-MM-DD
+                volumeSum[day] = (volumeSum[day] || 0) + (routine.volume || 0);
+            });
+        }
+    });
+    
+    const allDates = Array.from(new Set([
+        ...Object.keys(attendanceCounts),
+        ...Object.keys(volumeSum)
+    ])).sort();
+    
+    const labels = allDates.length > 0 ? allDates.map(d => d.substring(5)) : ['Sin datos']; // MM-DD
+    const attendanceData = allDates.map(d => attendanceCounts[d] || 0);
+    const volumeData = allDates.map(d => volumeSum[d] || 0);
+
+    if (adminAttendanceChartInstance) adminAttendanceChartInstance.destroy();
+    if (adminVolumeChartInstance) adminVolumeChartInstance.destroy();
+
+    const attCanvas = document.getElementById('admin-attendance-chart');
+    if (attCanvas) {
+        const ctx = attCanvas.getContext('2d');
+        adminAttendanceChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Asistencias',
+                    data: attendanceData,
+                    backgroundColor: 'rgba(0, 245, 212, 0.4)',
+                    borderColor: '#00f5d4',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    const volCanvas = document.getElementById('admin-volume-chart');
+    if (volCanvas) {
+        const ctx = volCanvas.getContext('2d');
+        adminVolumeChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Volumen (kg)',
+                    data: volumeData,
+                    borderColor: '#a855f7',
+                    backgroundColor: 'rgba(168, 85, 247, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' } },
+                    x: { grid: { color: 'rgba(255, 255, 255, 0.05)' } }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+}
+
+function renderReportsTable(reportData, reportType) {
+    if (!DOM.adminReportsTableBody || !DOM.adminReportsTableHeader) return;
+    DOM.adminReportsTableBody.innerHTML = '';
+
+    if (reportType === 'retention') {
+        DOM.adminReportsTableHeader.innerHTML = `
+            <tr>
+                <th>Atleta</th>
+                <th>RUT</th>
+                <th>Correo</th>
+                <th>Clúster</th>
+                <th>Último Entrenamiento</th>
+                <th>Días Inactivo</th>
+            </tr>
+        `;
+    } else if (reportType === 'kinesiology') {
+        DOM.adminReportsTableHeader.innerHTML = `
+            <tr>
+                <th>Atleta</th>
+                <th>RUT</th>
+                <th>Perfil</th>
+                <th>Detalle Clínico (Lesión)</th>
+                <th>Sesiones Kine</th>
+                <th>Última Sesión</th>
+            </tr>
+        `;
+    } else {
+        DOM.adminReportsTableHeader.innerHTML = `
+            <tr>
+                <th>Atleta</th>
+                <th>RUT</th>
+                <th>Perfil</th>
+                <th>Asistencias</th>
+                <th>Rutinas Realizadas</th>
+                <th>Últimas Métricas</th>
+            </tr>
+        `;
+    }
+
+    if (reportData.length === 0) {
+        const columnsCount = reportType === 'general' ? 6 : (reportType === 'retention' ? 6 : 6);
+        DOM.adminReportsTableBody.innerHTML = `
+            <tr>
+                <td colspan="${columnsCount}" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                    No se encontraron datos para los filtros seleccionados.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    const profileLabelMap = {
+        estudiante: 'Estudiante',
+        funcionario: 'Funcionario',
+        deportista_seleccionado: 'Atleta Élite'
+    };
+
+    reportData.forEach(row => {
+        const tr = document.createElement('tr');
+
+        // Nombre
+        const athleteTd = document.createElement('td');
+        athleteTd.style.fontWeight = '600';
+        athleteTd.textContent = row.name || 'Nuevo Atleta';
+        tr.appendChild(athleteTd);
+
+        // RUT
+        const rutTd = document.createElement('td');
+        rutTd.className = 'font-mono';
+        rutTd.style.fontSize = '11px';
+        rutTd.textContent = row.rut || '--';
+        tr.appendChild(rutTd);
+
+        if (reportType === 'retention') {
+            // Correo
+            const emailTd = document.createElement('td');
+            emailTd.textContent = row.email || '--';
+            tr.appendChild(emailTd);
+
+            // Cluster
+            const clusterTd = document.createElement('td');
+            clusterTd.textContent = row.assignedCluster || 'Pendiente';
+            tr.appendChild(clusterTd);
+
+            // Último entrenamiento
+            const lastWorkoutTd = document.createElement('td');
+            lastWorkoutTd.className = 'font-mono';
+            lastWorkoutTd.textContent = row.lastWorkoutDate ? row.lastWorkoutDate.slice(0, 10) : 'Nunca';
+            tr.appendChild(lastWorkoutTd);
+
+            // Días inactivo
+            const inactiveTd = document.createElement('td');
+            inactiveTd.style.textAlign = 'center';
+            inactiveTd.style.fontWeight = 'bold';
+            inactiveTd.className = 'text-neon-purple';
+            
+            const lastDate = row.lastWorkoutDate ? new Date(row.lastWorkoutDate) : null;
+            const daysInactive = lastDate ? Math.floor((new Date() - lastDate) / (1000 * 60 * 60 * 24)) : 999;
+            inactiveTd.textContent = daysInactive === 999 ? 'N/A' : `${daysInactive} días`;
+            tr.appendChild(inactiveTd);
+
+        } else if (reportType === 'kinesiology') {
+            // Perfil
+            const profileTd = document.createElement('td');
+            profileTd.textContent = profileLabelMap[row.profileType] || row.profileType || 'Estudiante';
+            tr.appendChild(profileTd);
+
+            // Detalle Clínico
+            const injuryTd = document.createElement('td');
+            injuryTd.textContent = row.injuryDetails || 'Sin detalles';
+            tr.appendChild(injuryTd);
+
+            // Sesiones Kine
+            const sessionsTd = document.createElement('td');
+            sessionsTd.style.textAlign = 'center';
+            sessionsTd.style.fontWeight = 'bold';
+            sessionsTd.className = 'text-neon-teal';
+            sessionsTd.textContent = row.kinesiologyAttendanceCount || 0;
+            tr.appendChild(sessionsTd);
+
+            // Última sesión
+            const lastSessionTd = document.createElement('td');
+            lastSessionTd.className = 'font-mono';
+            lastSessionTd.textContent = row.lastKinesiologyDate ? row.lastKinesiologyDate.slice(0, 10) : 'Nunca';
+            tr.appendChild(lastSessionTd);
+
+        } else {
+            // Perfil
+            const profileTd = document.createElement('td');
+            profileTd.textContent = profileLabelMap[row.profileType] || row.profileType || 'Estudiante';
+            tr.appendChild(profileTd);
+
+            // Asistencias
+            const attTd = document.createElement('td');
+            attTd.style.textAlign = 'center';
+            attTd.style.fontWeight = 'bold';
+            attTd.className = 'text-neon-teal';
+            attTd.textContent = row.monthlyAttendanceCount || 0;
+            tr.appendChild(attTd);
+
+            // Rutinas / Ejercicios
+            const routinesTd = document.createElement('td');
+            const uniqueRoutines = Array.from(new Set(row.completedRoutines.map(r => r.routineName)));
+            if (uniqueRoutines.length > 0) {
+                routinesTd.textContent = uniqueRoutines.join(', ');
+            } else {
+                routinesTd.textContent = 'Ninguna';
+                routinesTd.style.color = 'var(--text-secondary)';
+            }
+            tr.appendChild(routinesTd);
+
+            // Métricas corporales (Peso / IMC / Grasa)
+            const metricsTd = document.createElement('td');
+            metricsTd.className = 'font-mono';
+            metricsTd.style.fontSize = '11px';
+            
+            let latestWeight = row.currentMetrics.weight;
+            let latestImc = row.currentMetrics.imc;
+            let latestBodyFat = row.currentMetrics.bodyFat;
+
+            if (row.metricsHistory && row.metricsHistory.length > 0) {
+                const latestHistory = row.metricsHistory[0];
+                latestWeight = latestHistory.weight || latestWeight;
+                latestImc = latestHistory.imc || latestImc;
+                latestBodyFat = latestHistory.bodyFat || latestBodyFat;
+            }
+
+            if (latestWeight || latestImc || latestBodyFat) {
+                metricsTd.textContent = `${latestWeight || '--'} kg | IMC: ${latestImc || '--'} | Grasa: ${latestBodyFat || '--'}%`;
+            } else {
+                metricsTd.textContent = 'Sin métricas';
+                metricsTd.style.color = 'var(--text-secondary)';
+            }
+            tr.appendChild(metricsTd);
+        }
+
+        DOM.adminReportsTableBody.appendChild(tr);
     });
 }
 
@@ -4049,6 +4593,8 @@ async function updateWeeklyAttendanceStats() {
 }
 
 let metricsChartInstance = null;
+let adminAttendanceChartInstance = null;
+let adminVolumeChartInstance = null;
 
 async function showMetricsHistory(userId, userName) {
     if (!userId || !DOM.metricsHistoryModal) return;
@@ -4487,6 +5033,7 @@ function setupCollapsibleAndDraggableAdminSections() {
         { id: 'comunicados', title: 'Publicar Comunicado Oficial' },
         { id: 'rutinas', title: 'Gestión de Rutinas y Ejercicios' },
         { id: 'motor-ia', title: 'Motor de IA (K-Means Clustering)' },
+        { id: 'reportes', title: 'Reportes y Exportación de Datos' },
         { id: 'atletas', title: 'Atletas Registrados' },
         { id: 'escaner', title: 'Escáner de Asistencia QR Integrado' },
         { id: 'historial', title: 'Historial de Asistencia' },
@@ -4566,7 +5113,7 @@ function setupCollapsibleAndDraggableAdminSections() {
         });
     });
 
-    const orderToUse = savedOrder && savedOrder.length === sectionConfigs.length ? savedOrder : sectionConfigs.map(c => c.id);
+    const orderToUse = (savedOrder && savedOrder.length === sectionConfigs.length && savedOrder.includes('reportes')) ? savedOrder : sectionConfigs.map(c => c.id);
     
     orderToUse.forEach(id => {
         const wrapper = sectionWrappers[id];

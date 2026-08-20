@@ -968,6 +968,110 @@
                             </div>
                         </div>
 
+                        <!-- NUEVO PANEL: Reportes y Exportación de Datos -->
+                        <div class="admin-ai-panel" style="margin-bottom: 20px;">
+                            <div class="admin-ai-header">
+                                <div class="ai-title-group">
+                                    <span class="ai-pulse-dot" style="background-color: var(--color-neon-purple);"></span>
+                                    <h3>Reportes y Exportación de Datos</h3>
+                                </div>
+                            </div>
+                            <p class="text-secondary text-xs" style="margin-top: 5px;">Genera reportes de actividad de atletas filtrados por perfil y mes, con vista previa y opciones de exportación.</p>
+                            
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                                <div class="form-group">
+                                    <label for="admin-report-type">Tipo de Reporte</label>
+                                    <select id="admin-report-type" style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="general">Reporte General de Actividad</option>
+                                        <option value="retention">Reporte de Retención (Alto Riesgo)</option>
+                                        <option value="kinesiology">Reporte de Kinesiología y Lesiones</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-report-filter-profile">Tipo de Perfil</label>
+                                    <select id="admin-report-filter-profile" style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="all">Todos los Perfiles</option>
+                                        <option value="estudiante">Estudiante</option>
+                                        <option value="funcionario">Funcionario</option>
+                                        <option value="deportista_seleccionado">Atleta Élite</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="admin-report-date-mode">Filtrar Fecha por</label>
+                                    <select id="admin-report-date-mode" style="padding: 14px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        <option value="month">Por Mes</option>
+                                        <option value="range">Rango Personalizado</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" id="admin-report-month-container">
+                                    <label for="admin-report-filter-month">Seleccionar Mes</label>
+                                    <input type="month" id="admin-report-filter-month" style="padding: 12px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 15px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                </div>
+                                <div class="form-group" id="admin-report-range-container" style="display: none;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <div>
+                                            <label for="admin-report-filter-start" style="font-size: 12px; color: var(--text-secondary);">Desde</label>
+                                            <input type="date" id="admin-report-filter-start" style="padding: 11px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        </div>
+                                        <div>
+                                            <label for="admin-report-filter-end" style="font-size: 12px; color: var(--text-secondary);">Hasta</label>
+                                            <input type="date" id="admin-report-filter-end" style="padding: 11px; background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); border-radius: 12px; font-size: 13px; font-family: var(--font-sans); outline: none; width: 100%;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                                <button id="btn-admin-report-generate" class="btn btn-primary btn-glow" style="flex: 1;">Vista Previa</button>
+                                <button id="btn-admin-report-pdf" class="btn btn-outline" style="border-color: var(--color-neon-purple); color: var(--color-neon-purple); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <span>📄 PDF</span>
+                                </button>
+                                <button id="btn-admin-report-excel" class="btn btn-outline" style="border-color: var(--color-neon-teal); color: var(--color-neon-teal); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                                    <span>📊 Excel/CSV</span>
+                                </button>
+                            </div>
+
+                            <!-- Bloque de Gráficos Estadísticos Collapsible -->
+                            <div style="margin-top: 20px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                                <button id="btn-admin-toggle-charts" class="btn btn-secondary btn-sm" style="width: 100%; display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 15px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.02);">
+                                    <span>📊 Mostrar Gráficos Estadísticos</span>
+                                </button>
+                                <div id="admin-reports-charts-wrapper" style="display: none; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 15px; margin-bottom: 15px;">
+                                    <div class="chart-container" style="background: var(--bg-obsidian); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; position: relative; height: 260px;">
+                                        <h4 class="text-xs uppercase tracking-widest text-secondary" style="margin-bottom: 10px; text-align: center; font-size: 10px;">Flujo de Asistencias Diarias</h4>
+                                        <canvas id="admin-attendance-chart" style="max-height: 190px;"></canvas>
+                                    </div>
+                                    <div class="chart-container" style="background: var(--bg-obsidian); border: 1px solid var(--border-color); border-radius: 12px; padding: 15px; position: relative; height: 260px;">
+                                        <h4 class="text-xs uppercase tracking-widest text-secondary" style="margin-bottom: 10px; text-align: center; font-size: 10px;">Evolución de Carga (kg)</h4>
+                                        <canvas id="admin-volume-chart" style="max-height: 190px;"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabla de Vista Previa -->
+                            <div class="table-responsive" style="margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                                <table class="admin-table">
+                                    <thead id="admin-reports-table-header">
+                                        <tr>
+                                            <th>Atleta</th>
+                                            <th>RUT</th>
+                                            <th>Perfil</th>
+                                            <th>Asistencias</th>
+                                            <th>Rutinas Realizadas</th>
+                                            <th>Últimas Métricas</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-reports-table-body">
+                                        <tr>
+                                            <td colspan="6" style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                                                Presiona "Vista Previa" para cargar los datos.
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
                         <!-- Tabla de Usuarios Registrados -->
                         <div class="admin-table-section">
                             <div class="admin-table-header">
