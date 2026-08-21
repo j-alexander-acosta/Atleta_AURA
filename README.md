@@ -32,6 +32,23 @@ Diseñada con una estética de última generación en modo ultra-dark con acento
 
 ---
 
+## 🏫 Ventajas de Implementación (Enfoque Universidad Católica del Norte)
+
+AURA ha sido optimizada para resolver los desafíos operativos y deportivos de los gimnasios universitarios, con especial orientación a las necesidades de la **Universidad Católica del Norte (UCN)**:
+
+1. **Acompañamiento Inteligente y Prevención de Deserción (Motor de IA)**:
+   * **Detección Temprana**: El algoritmo de clustering (K-Means) segmenta a los usuarios por su nivel de adherencia (*Comprometidos*, *Irregulares* y *Alto Riesgo*). Esto permite identificar de forma autónoma a los estudiantes en riesgo de inactividad o deserción y desplegar campañas de motivación oportunas desde portería o vía e-mail.
+2. **Seguimiento Clínico y Deportivo de Élite (Kinesiología y Lesiones)**:
+   * **Bitácora Deportiva**: Módulo diseñado específicamente para el resguardo de la salud física de los **Deportistas de Selección UCN**. Permite un registro riguroso de lesiones activas, detalle clínico de diagnóstico y la bitácora de sesiones de kinesiología y rehabilitación.
+3. **Eficiencia Operativa y Control de Aforo Multipropósito**:
+   * **Control Integrado**: Validación ágil de ingresos en portería mediante escaneo QR dinámico por cámara web, lector de barras USB o simulación administrativa. Controla límites semanales de uso de las instalaciones, alertas médicas y vigencia de membresías para estudiantes y funcionarios.
+4. **Eliminación de Fichas de Papel e Historial Deportivo**:
+   * **Digitalización Total**: Reemplaza las bitácoras físicas de entrenamiento por una base de datos centralizada de rutinas y progresión de cargas accesible directamente desde el celular del atleta.
+5. **Auditoría e Inteligencia de Negocios**:
+   * **Reportes y Gráficos Ejecutivos**: Descarga automatizada de reportes en PDF y hojas de cálculo (CSV delimitado por `;` y compatible con Excel en español), junto con análisis gráfico dinámico (Chart.js) del flujo de asistencia y toneladas movilizadas para auditoría y toma de decisiones.
+
+---
+
 ## 🛠️ Stack Tecnológico
 *   **Frontend**: HTML5 Semántico, Vanilla CSS3 (Variables CSS, Glassmorphism), Vanilla JavaScript (ES6+), Canvas API.
 *   **Backend**: Node.js, Express.js.
