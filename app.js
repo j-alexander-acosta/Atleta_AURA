@@ -486,24 +486,30 @@ function initEventListeners() {
     }
     
     // Acceso directo a Admin desde Onboarding
+    function openAdminTabFromOnboarding() {
+        document.getElementById('screen-onboarding').classList.remove('active');
+        document.getElementById('main-layout').classList.add('active');
+        
+        // Ocultar todos los tabs y mostrar admin
+        document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
+        document.getElementById('tab-admin').classList.add('active');
+        
+        // Desactivar todos los iconos nav y activar admin
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        const adminNav = document.getElementById('nav-item-admin');
+        if (adminNav) adminNav.classList.add('active');
+        
+        document.getElementById('app-container').classList.add('admin-mode');
+        window.checkAdminAuth();
+    }
+
     const btnOnboardingAdmin = document.getElementById('btn-onboarding-admin');
     if (btnOnboardingAdmin) {
-        btnOnboardingAdmin.addEventListener('click', () => {
-            document.getElementById('screen-onboarding').classList.remove('active');
-            document.getElementById('main-layout').classList.add('active');
-            
-            // Ocultar todos los tabs y mostrar admin
-            document.querySelectorAll('.tab-pane').forEach(t => t.classList.remove('active'));
-            document.getElementById('tab-admin').classList.add('active');
-            
-            // Desactivar todos los iconos nav y activar admin
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            const adminNav = document.getElementById('nav-item-admin');
-            if (adminNav) adminNav.classList.add('active');
-            
-            document.getElementById('app-container').classList.add('admin-mode');
-            window.checkAdminAuth();
-        });
+        btnOnboardingAdmin.addEventListener('click', openAdminTabFromOnboarding);
+    }
+    const btnLoginToAdmin = document.getElementById('btn-login-to-admin');
+    if (btnLoginToAdmin) {
+        btnLoginToAdmin.addEventListener('click', openAdminTabFromOnboarding);
     }
 
     // Escuchador para control segmentado de Tipo de Perfil en Onboarding
@@ -4407,11 +4413,21 @@ window.checkAdminAuth = function() {
 
 const btnAdminLogin = document.getElementById('btn-admin-login');
 if (btnAdminLogin) {
-    btnAdminLogin.addEventListener('click', async () => {
-        const user = document.getElementById('admin-username').value;
-        const pass = document.getElementById('admin-password').value;
+    const handleAdminLoginSubmit = async () => {
+        const userInput = document.getElementById('admin-username');
+        const passInput = document.getElementById('admin-password');
+        const user = (userInput ? userInput.value : '').trim();
+        const pass = (passInput ? passInput.value : '').trim();
         const errorMsg = document.getElementById('admin-login-error');
         
+        if (!user || !pass) {
+            if (errorMsg) {
+                errorMsg.textContent = 'Por favor complete todos los campos.';
+                errorMsg.style.display = 'block';
+            }
+            return;
+        }
+
         try {
             const res = await fetch(`${window.location.origin}/api/admin/login`, {
                 method: 'POST',
@@ -4421,17 +4437,35 @@ if (btnAdminLogin) {
             const data = await res.json();
             if (data.success && data.token) {
                 sessionStorage.setItem('aura_admin_token', data.token);
-                errorMsg.style.display = 'none';
-                document.getElementById('admin-password').value = '';
+                if (errorMsg) errorMsg.style.display = 'none';
+                if (passInput) passInput.value = '';
                 window.checkAdminAuth();
             } else {
-                errorMsg.textContent = data.error || 'Credenciales incorrectas';
-                errorMsg.style.display = 'block';
+                if (errorMsg) {
+                    errorMsg.textContent = data.error || 'Credenciales incorrectas';
+                    errorMsg.style.display = 'block';
+                }
             }
         } catch (err) {
             console.error("Login Admin Error:", err);
-            errorMsg.textContent = 'Error de conexión';
-            errorMsg.style.display = 'block';
+            if (errorMsg) {
+                errorMsg.textContent = 'Error de conexión';
+                errorMsg.style.display = 'block';
+            }
+        }
+    };
+
+    btnAdminLogin.addEventListener('click', handleAdminLoginSubmit);
+
+    ['admin-username', 'admin-password'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAdminLoginSubmit();
+                }
+            });
         }
     });
 }

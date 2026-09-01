@@ -1077,7 +1077,8 @@ function getAllHabilitaciones(callback) {
 }
 
 function getAdminByUsername(username, callback) {
-  db.get("SELECT * FROM administradores WHERE username = ?", [username], (err, row) => {
+  const clean = (username || '').trim();
+  db.get("SELECT * FROM administradores WHERE LOWER(TRIM(username)) = LOWER(?)", [clean], (err, row) => {
     callback(err, row);
   });
 }
