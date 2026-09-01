@@ -256,6 +256,17 @@ function initDb() {
           migrateAndNormalizeRuts();
         }
       });
+
+      // Asegurar usuario administrador 'temporal' si no existe
+      db.get("SELECT * FROM administradores WHERE LOWER(username) = 'temporal'", async (err, row) => {
+        if (!row) {
+          const salt = await bcrypt.genSalt(10);
+          const hash = await bcrypt.hash('temporal123', salt);
+          db.run("INSERT INTO administradores (username, password_hash) VALUES (?, ?)", ['temporal', hash], (err) => {
+            if (!err) console.log("Usuario administrador temporal creado (temporal:temporal123).");
+          });
+        }
+      });
     });
 }
 
