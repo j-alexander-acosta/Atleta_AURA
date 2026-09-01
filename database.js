@@ -1082,6 +1082,19 @@ function getAdminByUsername(username, callback) {
   });
 }
 
+async function createAdmin(username, plainPassword, callback) {
+  try {
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(plainPassword, salt);
+    db.run("INSERT INTO administradores (username, password_hash) VALUES (?, ?)", [username, hash], function(err) {
+      if (callback) callback(err, this ? this.lastID : null);
+    });
+  } catch (err) {
+    if (callback) callback(err);
+  }
+}
+
+
 function decrementarDiasPermitidos(rut, callback) {
   const cleanRut = getRunFromRut(rut);
   db.run(`
@@ -1653,6 +1666,7 @@ module.exports = {
   checkHabilitacionByEmail,
   getAllHabilitaciones,
   getAdminByUsername,
+  createAdmin,
   decrementarDiasPermitidos,
   getUserById,
   getUserByRut,

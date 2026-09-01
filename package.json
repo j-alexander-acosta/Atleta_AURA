@@ -4,6 +4,7 @@
   "description": "AURA es una **Progressive Web App (PWA)** de acondicionamiento físico de alto rendimiento, diseñada con una estética de última generación en modo ultra-dark con acentos neón (violeta/cian), inspirada en perfiles de fitness élite de Instagram como *Demicstory* y *Jongkeun Gil*.",
   "main": "app.js",
   "scripts": {
+    "start": "node server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
